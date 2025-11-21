@@ -9,5 +9,4 @@ SUPABASE_URL=https://jsrfbemtiaasiakgrjsn.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzcmZiZW10aWFhc2lha2dyanNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM3MzIwMDQsImV4cCI6MjA3OTMwODAwNH0.3PxSyZm1vDtRC70KVt9iOig7Ama5ShYN7UrTOPQLJH8
 # Supabase PostgreSQL Connection (pour Django ORM)
 # Format: postgresql://postgres.[PASSWORD]:[PROJECT_REF]@.supabase.com:5432/postgres
-DATABASE_URL=postgresql://postgres.jsrfbemtiaasiakgrjsn:NqopGzLhxz6llWiE
-@aws-1-eu-west-3.pooler.supabase.com:5432/postgres
+DATABASE_URL=postgresql://postgres.jsrfbemtiaasiakgrjsn:NqopGzLhxz6llWiE@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
