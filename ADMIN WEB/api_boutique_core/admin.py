@@ -299,19 +299,18 @@ class ProductBrandAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('sku', 'name', 'category', 'brand', 'supplier', 'cost_price', 'base_price', 'status')
-    list_filter = ('category', 'brand', 'supplier', 'status')
+    list_display = ('sku', 'name', 'category', 'brand')
+    list_filter = ('category', 'brand')
     search_fields = ('sku', 'name', 'description')
-    raw_id_fields = ('category', 'brand', 'supplier')
+    raw_id_fields = ('category', 'brand')
     inlines = [ProductVariantInline]
     
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('category', 'brand', 'supplier')
-
+        return super().get_queryset(request).select_related('category', 'brand')
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):
-    list_display = ('barcode', 'product', 'name', 'quantity', 'prix_vente', 'selection')
-    list_filter = ('product', 'selection')
+    list_display = ('barcode', 'product', 'name')
+    list_filter = ('product',)
     search_fields = ('barcode', 'product__name', 'name')
     raw_id_fields = ('product',)
 
@@ -371,14 +370,14 @@ class InventoryCountAdmin(admin.ModelAdmin):
 
 @admin.register(StoreProduct)
 class StoreProductAdmin(admin.ModelAdmin):
-    list_display = ('store', 'product', 'is_active', 'display_order')
+    list_display = ('store', 'product', 'is_active', 'display_order','store_cost_price', 'store_base_price','store_compare_at_price','qt_item')
     list_filter = ('store', 'is_active')
     search_fields = ('store__name', 'product__name')
     raw_id_fields = ('store', 'product')
 
 @admin.register(StoreProductVariant)
 class StoreProductVariantAdmin(admin.ModelAdmin):
-    list_display = ('store_product', 'variant', 'store_variant_price')
+    list_display = ('store_product', 'variant', 'store_variant_cost','store_variant_price')
     list_filter = ('store_product__store',)
     search_fields = ('store_product__product__name', 'variant__name')
     raw_id_fields = ('store_product', 'variant')
