@@ -447,7 +447,7 @@ const Employees: React.FC = () => {
           permissions: role.permissions || {}
         }));
       } else if (data.results && Array.isArray(data.results)) {
-        return data.results.map(role => ({
+        return data.results.map((role: { id: any; name: string; code: any; description: any; permissions: any; }) => ({
           id: role.id,
           name: role.name,
           code: role.code || role.name.toUpperCase().replace(/\s+/g, '_'),

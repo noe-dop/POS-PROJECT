@@ -295,28 +295,32 @@ const TypesProduits: React.FC = () => {
                 {category.products_count || 0} produits
               </span>
               <div className="flex items-center gap-1">
+                {/* Icône Modifier - BLEU */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     loadCategoryIntoForm(category);
                   }}
-                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                  className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
                   title="Modifier"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
+                
+                {/* Icône Supprimer - ROUGE */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDeleteCategory(category.id, category.name);
                   }}
-                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                  className="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
                   title="Supprimer"
                   disabled={isDeleting}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-                <button className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded">
+                
+                <button className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors">
                   <MoreVertical className="w-4 h-4" />
                 </button>
               </div>
@@ -567,25 +571,6 @@ const TypesProduits: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-200">
-                  <h3 className="font-medium text-gray-700 mb-2">Champs techniques</h3>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Ces champs sont requis par le backend :
-                  </p>
-                  <div className="bg-gray-50 p-3 rounded text-sm">
-                    <div className="flex justify-between mb-1">
-                      <span className="text-gray-600">slug:</span>
-                      <code className="text-gray-800">{generateSlug(formData.name) || '(vide)'}</code>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">sub_category:</span>
-                      <code className="text-gray-800">
-                        {formData.parent ? '"Sous-catégorie"' : '"Catégorie principale"'}
-                      </code>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={selectedCategory ? handleUpdateCategory : handleCreateCategory}
@@ -657,16 +642,19 @@ const TypesProduits: React.FC = () => {
 
                 <div className="space-y-3">
                   <h3 className="font-medium text-gray-700">Actions</h3>
+                  {/* Bouton Modifier - BLEU */}
                   <button
                     onClick={() => loadCategoryIntoForm(selectedCategory)}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-blue-600 hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 rounded-lg transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
                     <span>Modifier la catégorie</span>
                   </button>
+                  
+                  {/* Bouton Supprimer - ROUGE */}
                   <button
                     onClick={() => handleDeleteCategory(selectedCategory.id, selectedCategory.name)}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-red-600 hover:bg-red-50 border border-red-200 rounded-lg transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white border border-red-600 rounded-lg transition-colors"
                     disabled={isDeleting}
                   >
                     <Trash2 className="w-4 h-4" />
