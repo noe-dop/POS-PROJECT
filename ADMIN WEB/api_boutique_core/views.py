@@ -802,9 +802,9 @@ class ProductBrandViewSet(BaseAuditViewSet):
     search_fields = ['name']
 
 class ProductViewSet(BaseAuditViewSet):
-    queryset = Product.objects.select_related('category', 'brand', 'supplier').prefetch_related('variants')
+    queryset = Product.objects.select_related('category', 'brand').prefetch_related('variants')
     serializer_class = ProductSerializer
-    filterset_fields = ['category', 'brand', 'supplier', 'status']
+    filterset_fields = ['category', 'brand']  # CORRIGÉ : retiré 'supplier' et 'status'
     search_fields = ['name', 'sku', 'description']
     
     @action(detail=True, methods=['get'])
@@ -817,7 +817,7 @@ class ProductViewSet(BaseAuditViewSet):
 class ProductVariantViewSet(BaseAuditViewSet):
     queryset = ProductVariant.objects.select_related('product')
     serializer_class = ProductVariantSerializer
-    filterset_fields = ['product', 'selection']
+    filterset_fields = ['product']  # CORRIGÉ : retiré 'selection'
     search_fields = ['barcode', 'name']
 
 
