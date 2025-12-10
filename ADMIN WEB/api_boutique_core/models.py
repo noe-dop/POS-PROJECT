@@ -589,8 +589,8 @@ class Product(AuditModel):
         indexes = [
             models.Index(fields=['sku']),
             models.Index(fields=['name']),
-            models.Index(fields=['category', 'status']),
-            models.Index(fields=['is_active', 'status']),
+            models.Index(fields=['category']),
+            models.Index(fields=['is_active']),
             models.Index(fields=['created_at']),
         ]
 
@@ -623,9 +623,8 @@ class ProductVariant(AuditModel):
         ordering = ['product__name', 'name']
         indexes = [
             models.Index(fields=['barcode']),
-            models.Index(fields=['product', 'selection']),
+            models.Index(fields=['product']),
             models.Index(fields=['name']),
-            models.Index(fields=['prix_vente']),
         ]
         
 
