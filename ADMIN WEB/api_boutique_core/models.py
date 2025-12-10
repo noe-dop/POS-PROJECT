@@ -572,44 +572,13 @@ class Product(AuditModel):
         verbose_name="Marque",
         db_index=True
     )
-    supplier = models.ForeignKey(
-        Supplier, 
-        on_delete=models.PROTECT, 
-        related_name='products',
-        verbose_name="Fournisseur",
-        db_index=True
-    )
-    
-    sku = models.CharField("SKU", max_length=50, unique=True, blank=True, db_index=True)
     name = models.CharField("Nom", max_length=255, db_index=True)
+    sku = models.CharField("SKU", max_length=50, unique=True, blank=True, db_index=True)
     description = models.TextField("Description", blank=True)
-    
-    cost_price = models.DecimalField("Prix d'achat", max_digits=10, decimal_places=2, default=0)
-    base_price = models.DecimalField("Prix de vente", max_digits=10, decimal_places=2, default=0)
-    compare_at_price = models.DecimalField("Prix de référence", max_digits=10, decimal_places=2, blank=True, null=True)
-    
-    qt_item = models.DecimalField(
-        "Quantité par item", 
-        max_digits=10, 
-        decimal_places=2, 
-        default=1
-    )
-    jour_ecart = models.IntegerField("Jours écart", default=15)
-    
     photo = models.ImageField("Photo principale", upload_to='products/main/', blank=True, null=True)
     additional_images = JSONField("Images supplémentaires", default=list, blank=True)
-    
-    status = models.CharField(
-        "Statut",
-        max_length=20,
-        choices=[
-            ('draft', 'Brouillon'),
-            ('active', 'Actif'),
-            ('archived', 'Archivé'),
-        ],
-        default='draft',
-        db_index=True
-    )
+
+   
     
     search_vector = models.TextField(blank=True)
     
@@ -622,7 +591,6 @@ class Product(AuditModel):
             models.Index(fields=['name']),
             models.Index(fields=['category', 'status']),
             models.Index(fields=['is_active', 'status']),
-            models.Index(fields=['base_price']),
             models.Index(fields=['created_at']),
         ]
 
@@ -646,21 +614,7 @@ class ProductVariant(AuditModel):
     
     barcode = models.CharField("Code barre", max_length=100, unique=True, db_index=True)
     name = models.CharField("Nom variante", max_length=255, db_index=True)
-    
-    cost_price = models.DecimalField("Coût variante", max_digits=10, decimal_places=2, blank=True, null=True)
-    prix_vente = models.DecimalField("Prix vente", max_digits=10, decimal_places=2, blank=True, null=True)
-    prix_reduction = models.DecimalField("Prix réduit", max_digits=10, decimal_places=2, blank=True, null=True)
-    
-    quantity = models.DecimalField("Quantité", max_digits=10, decimal_places=2)
-    weight = models.DecimalField(
-        "Poids (kg)", 
-        max_digits=8, 
-        decimal_places=3, 
-        blank=True, 
-        null=True
-    )
-    
-    selection = models.BooleanField("Sélectionnée", default=False, db_index=True)
+        
     photo = models.ImageField("Photo", upload_to='products/variants/', null=True, blank=True)
     
     class Meta:
@@ -674,8 +628,6 @@ class ProductVariant(AuditModel):
             models.Index(fields=['prix_vente']),
         ]
         
-    def get_final_price(self):
-        return self.prix_reduction or self.prix_vente or self.product.base_price
 
 # -----------------------------
 # Gestion des Stocks Avancée OPTIMISÉE
@@ -1003,7 +955,13 @@ class StoreProduct(AuditModel):
         verbose_name="Produit",
         db_index=True
     )
-    
+    supplier = models.ForeignKey(
+        Supplier, 
+        on_delete=models.PROTECT, 
+        related_name='products',
+        verbose_name="Fournisseur",
+        db_index=True
+    )
     store_cost_price = models.DecimalField(
         "Prix d'achat boutique", 
         max_digits=12, 
@@ -1026,6 +984,12 @@ class StoreProduct(AuditModel):
         blank=True
     )
     
+    qt_item = models.DecimalField(
+        "Quantité par item", 
+        max_digits=10, 
+        decimal_places=2, 
+        default=1
+    )
     dlv = models.DateField("Date limite vente", null=True, blank=True)
     dlc = models.DateField("Date limite consommation", null=True, blank=True)
     dcr = models.DateField("Date création/entrée", null=True, blank=True)
@@ -1035,7 +999,18 @@ class StoreProduct(AuditModel):
     
     min_stock_threshold = models.IntegerField("Seuil alerte boutique", null=True, blank=True)
     reorder_quantity = models.IntegerField("Quantité réappro boutique", null=True, blank=True)
-    
+    jour_ecart = models.IntegerField("Jours écart", default=15)
+    status = models.CharField(
+        "Statut",
+        max_length=20,
+        choices=[
+            ('draft', 'Brouillon'),
+            ('active', 'Actif'),
+            ('archived', 'Archivé'),
+        ],
+        default='draft',
+        db_index=True
+    )
     class Meta:
         verbose_name = "Produit en boutique"
         verbose_name_plural = "Produits en boutiques"
@@ -1098,6 +1073,19 @@ class StoreProductVariant(AuditModel):
         null=True, 
         blank=True
     )
+
+    prix_reduction = models.DecimalField("Prix réduit", max_digits=10, decimal_places=2, blank=True, null=True)
+    quantity = models.DecimalField("Quantité", max_digits=10, decimal_places=2)
+    weight = models.DecimalField(
+        "Poids (kg)", 
+        max_digits=8, 
+        decimal_places=3, 
+        blank=True, 
+        null=True
+    )
+    
+    selection = models.BooleanField("Sélectionnée", default=False, db_index=True)
+
     
     class Meta:
         verbose_name = "Prix variante boutique"
