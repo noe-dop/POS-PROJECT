@@ -1083,7 +1083,6 @@ class StoreProductVariant(AuditModel):
     )
     
     selection = models.BooleanField("Sélectionnée", default=False, db_index=True)
-
     
     class Meta:
         verbose_name = "Prix variante boutique"
