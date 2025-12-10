@@ -1072,6 +1072,7 @@ class StoreProductVariant(AuditModel):
         null=True, 
         blank=True
     )
+    
     prix_reduction = models.DecimalField("Prix réduit", max_digits=10, decimal_places=2, blank=True, null=True)
     quantity = models.DecimalField("Quantité", max_digits=10, decimal_places=2)
     weight = models.DecimalField(
