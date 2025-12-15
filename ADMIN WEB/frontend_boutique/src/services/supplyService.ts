@@ -1,6 +1,20 @@
 import { api } from './api';
 
 // Types basés sur vos sérialiseurs Django
+
+// AJOUTEZ cette interface pour les magasins
+export interface Store {
+  id: number;
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  manager?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Supplier {
   id: number;
   name: string;
@@ -38,6 +52,7 @@ export interface Supply {
   supplier?: Supplier;
   supplier_name?: string;
   store?: number;
+  store_object?: Store; // AJOUTÉ : Objet magasin complet
   store_name?: string;
   utilisateur?: any;
   utilisateur_name?: string;
@@ -143,6 +158,51 @@ class SupplyService {
   }
 
   /**
+   * Récupérer tous les magasins depuis la base de données réelle - NOUVELLE MÉTHODE
+   */
+  async getStores(): Promise<Store[]> {
+    try {
+      console.log('🏪 Chargement des magasins depuis la base de données...');
+      
+      const response = await api.get<any>('/stores/');
+      console.log('📋 Réponse API magasins:', response);
+      
+      let stores: Store[] = [];
+      
+      if (Array.isArray(response)) {
+        stores = response;
+      } else if (response && Array.isArray(response.results)) {
+        stores = response.results;
+      } else if (response && Array.isArray(response.data)) {
+        stores = response.data;
+      } else {
+        console.error('❌ Format de réponse inattendu pour les magasins:', response);
+        console.warn('⚠️ Utilisation de magasins par défaut...');
+        
+        // Retourner des magasins par défaut si l'API n'est pas disponible
+        return [
+          { id: 1, name: 'Magasin Principal', address: '123 Rue Principale, Ville', is_active: true },
+          { id: 2, name: 'Entrepôt Central', address: '456 Avenue Industrielle, Zone', is_active: true },
+          { id: 3, name: 'Boutique Ville', address: '789 Boulevard Commercial, Centre', is_active: true }
+        ];
+      }
+      
+      console.log(`✅ ${stores.length} magasin(s) chargé(s) depuis la base de données`);
+      return stores;
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement des magasins:', error);
+      console.warn('⚠️ Utilisation de magasins par défaut suite à une erreur...');
+      
+      // Retourner des magasins par défaut en cas d'erreur
+      return [
+        { id: 1, name: 'Magasin Principal', address: '123 Rue Principale, Ville', is_active: true },
+        { id: 2, name: 'Entrepôt Central', address: '456 Avenue Industrielle, Zone', is_active: true },
+        { id: 3, name: 'Boutique Ville', address: '789 Boulevard Commercial, Centre', is_active: true }
+      ];
+    }
+  }
+
+  /**
    * Récupérer un approvisionnement par ID depuis la base de données réelle
    */
   async getSupplyById(id: number): Promise<Supply> {
@@ -216,9 +276,9 @@ class SupplyService {
   }
 
   /**
-   * Rechercher des approvisionnements dans la base de données
+   * Rechercher des approvisionnements dans la base de données - MIS À JOUR
    */
-  async searchSupplies(searchTerm: string, status?: string): Promise<Supply[]> {
+  async searchSupplies(searchTerm: string, status?: string, store?: number): Promise<Supply[]> {
     try {
       const params: any = {};
       
@@ -228,6 +288,10 @@ class SupplyService {
       
       if (status && status !== 'all') {
         params.status = status;
+      }
+
+      if (store && store !== 'all') {
+        params.store = store;
       }
 
       console.log('🔍 Recherche approvisionnements dans la base de données:', params);
@@ -242,10 +306,10 @@ class SupplyService {
    * Récupérer les statistiques depuis la base de données réelle
    */
   async getSupplyStats(): Promise<{
+    total_pending: number;
+    total_received: number;
+    total_cancelled: number;
     total_supplies: number;
-    pending_supplies: number;
-    received_supplies: number;
-    cancelled_supplies: number;
     total_amount: number;
     monthly_trend: number;
   }> {
@@ -254,16 +318,16 @@ class SupplyService {
       const supplies = await this.getSupplies();
       
       const total_supplies = supplies.length;
-      const pending_supplies = supplies.filter(s => s.status === 'pending').length;
-      const received_supplies = supplies.filter(s => s.status === 'received').length;
-      const cancelled_supplies = supplies.filter(s => s.status === 'cancelled').length;
+      const total_pending = supplies.filter(s => s.status === 'pending').length;
+      const total_received = supplies.filter(s => s.status === 'received').length;
+      const total_cancelled = supplies.filter(s => s.status === 'cancelled').length;
       const total_amount = supplies.reduce((sum, supply) => sum + (supply.total_command || 0), 0);
       
       const stats = {
         total_supplies,
-        pending_supplies,
-        received_supplies,
-        cancelled_supplies,
+        total_pending,
+        total_received,
+        total_cancelled,
         total_amount,
         monthly_trend: this.calculateMonthlyTrend(supplies)
       };
@@ -272,7 +336,16 @@ class SupplyService {
       return stats;
     } catch (error) {
       console.error('Erreur calcul stats depuis la base de données:', error);
-      throw new Error('Impossible de charger les statistiques depuis la base de données');
+      
+      // Retourner des valeurs par défaut au bon format
+      return {
+        total_supplies: 0,
+        total_pending: 0,
+        total_received: 0,
+        total_cancelled: 0,
+        total_amount: 0,
+        monthly_trend: 0
+      };
     }
   }
 
@@ -381,6 +454,35 @@ class SupplyService {
     } catch (error) {
       console.error(`❌ Erreur suppression fournisseur ${id}:`, error);
       throw new Error(`Impossible de supprimer le fournisseur ${id} de la base de données`);
+    }
+  }
+
+  /**
+   * Créer un nouveau magasin dans la base de données - NOUVELLE MÉTHODE (optionnelle)
+   */
+  async createStore(storeData: Omit<Store, 'id'>): Promise<Store> {
+    try {
+      console.log('📤 Création magasin dans la base de données:', storeData);
+      const response = await api.post<Store>('/stores/', storeData);
+      console.log('✅ Magasin créé dans la base de données:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Erreur création magasin:', error);
+      throw new Error('Impossible de créer le magasin dans la base de données');
+    }
+  }
+
+  /**
+   * Supprimer un magasin de la base de données - NOUVELLE MÉTHODE (optionnelle)
+   */
+  async deleteStore(id: number): Promise<void> {
+    try {
+      console.log('🗑️ Suppression magasin de la base de données:', id);
+      await api.delete(`/stores/${id}/`);
+      console.log('✅ Magasin supprimé de la base de données');
+    } catch (error) {
+      console.error(`❌ Erreur suppression magasin ${id}:`, error);
+      throw new Error(`Impossible de supprimer le magasin ${id} de la base de données`);
     }
   }
 

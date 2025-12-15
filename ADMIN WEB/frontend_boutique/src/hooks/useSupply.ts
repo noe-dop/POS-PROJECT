@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { 
   Supply, 
   Supplier, 
-  RetailSupply
+  RetailSupply,
+  Store
 } from '../services/supplyService';
 import { supplyService } from '../services/supplyService';
 
@@ -72,6 +73,7 @@ export const useSupplies = (filters?: {
   start_date?: string;
   end_date?: string;
   search?: string;
+  store?: number;
 }) => {
   const [supplies, setSupplies] = useState<Supply[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +86,8 @@ export const useSupplies = (filters?: {
     filters?.search, 
     filters?.supplier, 
     filters?.start_date, 
-    filters?.end_date
+    filters?.end_date,
+    filters?.store
   ]);
 
   const fetchSupplies = useCallback(async () => {
@@ -102,15 +105,17 @@ export const useSupplies = (filters?: {
       
       let data: Supply[];
       
-      if (stableFilters?.search || stableFilters?.status) {
+      if (stableFilters?.search || stableFilters?.status || stableFilters?.store) {
         data = await supplyService.searchSupplies(
           stableFilters.search || '', 
-          stableFilters.status
+          stableFilters.status,
+          stableFilters.store
         );
       } else {
         data = await supplyService.getSupplies(stableFilters);
       }
       
+      console.log('📦 Approvisionnements chargés:', data.length);
       setSupplies(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors du chargement des approvisionnements';
@@ -206,6 +211,7 @@ export const useSuppliers = (search?: string) => {
       
       const params = debouncedSearch ? { search: debouncedSearch } : undefined;
       const data = await supplyService.getSuppliers(params);
+      console.log('📞 Fournisseurs chargés:', data.length);
       setSuppliers(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors du chargement des fournisseurs';
@@ -222,16 +228,9 @@ export const useSuppliers = (search?: string) => {
 
   const createSupplier = async (supplierData: CreateSupplierData): Promise<Supplier> => {
     try {
-      // Simulation - À implémenter avec un vrai service
-      console.warn('⚠️ Création de fournisseur simulée');
-      const mockSupplier: Supplier = {
-        id: Date.now(),
-        ...supplierData,
-        total_supplies: 0
-      };
-      
-      setSuppliers(prev => [...prev, mockSupplier]);
-      return mockSupplier;
+      const newSupplier = await supplyService.createSupplier(supplierData);
+      await fetchSuppliers(); // Recharger la liste
+      return newSupplier;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la création du fournisseur';
       throw new Error(errorMessage);
@@ -240,8 +239,8 @@ export const useSuppliers = (search?: string) => {
 
   const deleteSupplier = async (id: number): Promise<void> => {
     try {
-      console.warn('⚠️ Suppression de fournisseur simulée');
-      setSuppliers(prev => prev.filter(supplier => supplier.id !== id));
+      await supplyService.deleteSupplier(id);
+      await fetchSuppliers(); // Recharger la liste
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la suppression';
       throw new Error(errorMessage);
@@ -255,6 +254,75 @@ export const useSuppliers = (search?: string) => {
     refetch: fetchSuppliers,
     createSupplier,
     deleteSupplier
+  };
+};
+
+// Hook pour les magasins - NOUVEAU HOOK
+export const useStores = () => {
+  const [stores, setStores] = useState<Store[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+
+  const fetchStores = useCallback(async () => {
+    // Éviter les appels trop rapprochés
+    const now = Date.now();
+    if (now - lastFetchTime < 1000) {
+      return;
+    }
+    
+    setLastFetchTime(now);
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const data = await supplyService.getStores();
+      console.log('🏪 Magasins chargés:', data.length);
+      setStores(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors du chargement des magasins';
+      setError(errorMessage);
+      console.error('❌ Erreur useStores:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [lastFetchTime]);
+
+  useEffect(() => {
+    fetchStores();
+  }, [fetchStores]);
+
+  const createStore = async (storeData: Omit<Store, 'id'>): Promise<Store> => {
+    try {
+      // Note: Vous devrez créer cette méthode dans supplyService
+      const newStore = await supplyService.createStore(storeData);
+      await fetchStores(); // Recharger la liste
+      return newStore;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la création du magasin';
+      throw new Error(errorMessage);
+    }
+  };
+
+  const deleteStore = async (id: number): Promise<void> => {
+    try {
+      // Note: Vous devrez créer cette méthode dans supplyService
+      await supplyService.deleteStore(id);
+      await fetchStores(); // Recharger la liste
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la suppression';
+      throw new Error(errorMessage);
+    }
+  };
+
+  return { 
+    stores, 
+    loading, 
+    error, 
+    refetch: fetchStores,
+    createStore,
+    deleteStore
   };
 };
 
@@ -277,7 +345,7 @@ export const useSupplyProducts = (filters?: {
       setLoading(true);
       setError(null);
       
-      // Simulation temporaire
+      // Simulation temporaire - À remplacer par un vrai service quand disponible
       const mockProducts: Product[] = [
         {
           id: 1,
@@ -327,6 +395,7 @@ export const useSupplyProducts = (filters?: {
         );
       }
       
+      console.log('📊 Produits chargés:', filteredProducts.length);
       setProducts(filteredProducts);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur lors du chargement des produits';
@@ -349,24 +418,46 @@ export const useSupplyProducts = (filters?: {
   };
 };
 
-// Hook pour les statistiques
+// Hook pour les statistiques - CORRIGÉ
 export const useSupplyStats = () => {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<{
+    total_pending: number;
+    total_received: number;
+    total_cancelled: number;
+  }>({ total_pending: 0, total_received: 0, total_cancelled: 0 });
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchStats = useCallback(async () => {
     try {
+      console.log('🟡 Début fetchStats...');
       setLoading(true);
       setError(null);
+      
       const statsData = await supplyService.getSupplyStats();
-      setStats(statsData);
+      console.log('📊 Stats brutes reçues du service:', statsData);
+      
+      // Assurer que nous avons les bonnes propriétés
+      const formattedStats = {
+        total_pending: statsData.total_pending || 0,
+        total_received: statsData.total_received || 0,
+        total_cancelled: statsData.total_cancelled || 0
+      };
+      
+      console.log('✅ Stats formatées:', formattedStats);
+      setStats(formattedStats);
+      
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors du chargement des statistiques';
+      console.error('🔴 Erreur fetchStats:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       setError(errorMessage);
-      console.error('❌ Erreur useSupplyStats:', err);
+      
+      // Valeurs par défaut en cas d'erreur
+      setStats({ total_pending: 0, total_received: 0, total_cancelled: 0 });
     } finally {
       setLoading(false);
+      console.log('⚪ Fin fetchStats');
     }
   }, []);
 
@@ -374,7 +465,12 @@ export const useSupplyStats = () => {
     fetchStats();
   }, [fetchStats]);
 
-  return { stats, loading, error, refetch: fetchStats };
+  return { 
+    stats, 
+    loading, 
+    error, 
+    refetch: fetchStats 
+  };
 };
 
 // Hook pour les alertes
