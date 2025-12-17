@@ -13,7 +13,8 @@ import Products from '@pages/Products';
 import Inventory from '@pages/Inventory';
 import Supply from '@pages/Supply';
 import Subscriptions from '@pages/Subscriptions';
-import TypesProduits from '@pages/TypesProduits'; // IMPORT AJOUTÉ ICI
+import TypesProduits from '@pages/TypesProduits';
+import Stock from '@pages/Stock'; // AJOUTEZ CET IMPORT
 import { ROUTES } from '@constants/routes';
 
 // Composants de pages temporaires (à développer)
@@ -120,8 +121,8 @@ function AppRoutes() {
         <Route path={ROUTES.SUPPLY.replace('/', '')} element={<Supply />} />
         <Route path={ROUTES.STATISTICS.replace('/', '')} element={<TemporaryPage title="Statistiques" />} />
         <Route path={ROUTES.SUBSCRIPTIONS.replace('/', '')} element={<Subscriptions />} />
-        <Route path={ROUTES.STOCK.replace('/', '')} element={<TemporaryPage title="Stock" />} />
-        <Route path={ROUTES.TYPES_PRODUITS.replace('/', '')} element={<TypesProduits />} /> {/* ROUTE AJOUTÉE ICI */}
+        <Route path={ROUTES.STOCK.replace('/', '')} element={<Stock />} /> {/* MODIFIEZ ICI */}
+        <Route path={ROUTES.TYPES_PRODUITS.replace('/', '')} element={<TypesProduits />} />
         
         {/* Routes des paramètres */}
         <Route path={ROUTES.SETTINGS.replace('/', '')}>
