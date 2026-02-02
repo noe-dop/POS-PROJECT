@@ -14,10 +14,11 @@ import json
 from django.http import HttpResponse
 import csv
 from datetime import datetime
+from rest_framework_simplejwt.tokens import RefreshToken
 
 # Import des modèles
 from .models import (
-    User, UserType, Owner, Shareholder, Customer, Address, Currency,
+    User, Owner, Shareholder, Customer, Address, Currency,
     StoreType, StoreNetwork, Store, StoreOwnership, StoreShareholder, Department,
     EmployeeRole, Employee, Session, ActivityLog, SousService,
     TypeCard, Card, CardTransaction, LoyaltyProgram, LoyaltyReward,
@@ -41,37 +42,269 @@ from .models import (
 # Import de tous les sérialiseurs
 from .serializers import *
 
-# =============================================================================
-# VUES D'AUTHENTIFICATION
-# =============================================================================
-
-class RegisterView(generics.CreateAPIView):
+class LoginView(APIView):
     """
-    Vue pour l'inscription des utilisateurs
+    Connexion et génération de token
+    POST /api/auth/login/
     """
-    serializer_class = UserSerializer
     permission_classes = [AllowAny]
+    
+    def post(self, request, *args, **kwargs):
+        serializer = LoginSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response({
+                "success": False,
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = serializer.validated_data['user']
+        # Générer les tokens JWT (Simple JWT) 
+        refresh = RefreshToken.for_user(user)
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        # Créer l'utilisateur
-        user = serializer.save()
-        
-        # Réponse de succès
-        return Response({
-            "message": "Utilisateur créé avec succès",
+        # Préparer les données de réponse
+        response_data = {
+            "success": True,
+            "message": "Connexion réussie",
+            "access": str(refresh.access_token), # Token d'accès
+            "refresh": str(refresh),          # Token de rafraîchissement
             "user": {
                 "id": user.id,
                 "username": user.username,
                 "email": user.email,
                 "first_name": user.first_name,
                 "last_name": user.last_name,
-                "full_name": user.get_full_name()
+                "full_name": user.get_full_name(),
+                "phone": user.phone,
+                "is_staff": user.is_staff,
+                "is_superuser": user.is_superuser,
+                "last_login": user.last_login,
+                "created_at": user.date_joined,
+            },
+            'expires_in': refresh.access_token.lifetime.total_seconds()
+        }
+        
+        # Ajouter le rôle de l'utilisateur
+        if hasattr(user, 'owner'):
+            owner = user.owner
+            response_data["user"]["role"] = "owner"
+            response_data["user"]["owner_profile"] = {
+                "id": owner.id,
+                "photo": owner.photo if owner.photo else None,
+                "created_at": owner.created_at
             }
-        }, status=status.HTTP_201_CREATED)
+            
+        elif hasattr(user, 'employee'):
+            response_data["user"]["role"] = "employee"
+            response_data["user"]["employee_id"] = user.employee.id
+            response_data["user"]["store_id"] = user.employee.store_id
+            response_data["user"]["role_name"] = user.employee.role.name
+            response_data["user"]["department"] = user.employee.department.name if user.employee.department else None
+            
+        elif hasattr(user, 'shareholder'):
+            response_data["user"]["role"] = "shareholder"
+            response_data["user"]["shareholder_id"] = user.shareholder.id
+            response_data["user"]["investment_amount"] = user.shareholder.investment_amount
+            
+        elif hasattr(user, 'customer'):
+            response_data["user"]["role"] = "customer"
+            response_data["user"]["customer_id"] = user.customer.id
+            response_data["user"]["loyalty_points"] = user.customer.loyalty_points
+            
+        else:
+            response_data["user"]["role"] = "user"  # Pas de profil spécifique
+        
+        return Response(response_data, status=status.HTTP_200_OK)
 
+
+class LogoutView(APIView):
+    """
+    Déconnexion - Suppression du token
+    POST /api/auth/logout/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        # Supprimer le token
+        try:
+            refresh_token = request.data.get("refresh")
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()  
+
+            return Response({
+                "success": True,
+                "message": "Déconnexion réussie"
+            }, status=status.HTTP_205_RESET_CONTENT)
+        
+        except Exception as e:
+            return Response({
+                "success": False,
+                "message": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+    
+
+class UserProfileView(APIView):
+    """
+    Récupérer le profil de l'utilisateur connecté
+    GET /api/auth/profile/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        
+        response_data = {
+            "success": True,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "full_name": user.get_full_name(),
+                "phone": user.phone,
+                "address": user.address,
+                "is_staff": user.is_staff,
+                "is_superuser": user.is_superuser,
+                "date_joined": user.date_joined,
+                "last_login": user.last_login,
+            }
+        }
+        
+        # Ajouter les infos spécifiques au rôle
+        if hasattr(user, 'owner'):
+            owner = user.owner
+            response_data["user"]["role"] = "owner"
+            response_data["user"]["owner_profile"] = {
+                "id": owner.id,
+                "photo": owner.photo if owner.photo else None,
+                "created_at": owner.created_at
+            }
+            
+        elif hasattr(user, 'employee'):
+            employee = user.employee
+            response_data["user"]["role"] = "employee"
+            response_data["user"]["employee_profile"] = {
+                "id": employee.id,
+                "store_id": employee.store_id,
+                "store_name": employee.store.name,
+                "role_id": employee.role_id,
+                "role_name": employee.role.name,
+                "department": employee.department.name if employee.department else None,
+                "hire_date": employee.hire_date,
+                "salary": employee.salary,
+                "is_active": employee.is_active,
+                "photo": employee.photo if employee.photo else None
+            }
+            
+        elif hasattr(user, 'shareholder'):
+            shareholder = user.shareholder
+            response_data["user"]["role"] = "shareholder"
+            response_data["user"]["shareholder_profile"] = {
+                "id": shareholder.id,
+                "investment_amount": shareholder.investment_amount,
+                "photo": shareholder.photo if shareholder.photo else None
+            }
+            
+        elif hasattr(user, 'customer'):
+            customer = user.customer
+            response_data["user"]["role"] = "customer"
+            response_data["user"]["customer_profile"] = {
+                "id": customer.id,
+                "birth_date": customer.birth_date,
+                "loyalty_points": customer.loyalty_points,
+                "total_spent": customer.total_spent,
+                "first_purchase": customer.first_purchase,
+                "last_purchase": customer.last_purchase
+            }
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+
+# =============================================================================
+# VUES D'AUTHENTIFICATION
+# =============================================================================
+
+class OwnerRegisterView(generics.CreateAPIView):
+    """Création d'un Owner"""
+    serializer_class = OwnerCreateSerializer
+    permission_classes = [AllowAny]
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        owner = serializer.save()
+        
+        return Response({
+            "success": True,
+            "message": "Owner créé avec succès",
+            "user": {
+                "id": owner.id,
+                "user_id": owner.user.id,
+                "username": owner.user.username,
+                "email": owner.user.email,
+                "full_name": owner.user.get_full_name(),
+                "photo_url": owner.photo if owner.photo else None
+            }
+        }, status=201)
+    
+class EmployeeRegisterView(generics.CreateAPIView):
+    """Création d'un Employee"""
+    serializer_class = EmployeeCreateSerializer
+    permission_classes = [AllowAny]
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = serializer.save()
+        
+        
+        return Response({
+            "success": True,
+            "message": "Employé créé avec succès",
+            "user": {
+                "id": user.employee.id,
+                "user_id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "full_name": user.get_full_name(),
+                "photo_url": user.photo.url if user.photo else None,
+                "store": user.employee.store.name,
+                "role": user.employee.role.name,
+                "department": user.employee.department.name if user.employee.department else None,
+                "hire_date": user.employee.hire_date,
+                "last_login": user.last_login,
+            }
+        }, status=201)
+    
+class ShareholderRegisterView(generics.CreateAPIView):
+    serializer_class = ShareholderCreateSerializer
+    permission_classes = [AllowAny]
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = serializer.save()
+        shareholder = user.shareholder
+        
+        return Response({
+            "success": True,
+            "message": "Actionnaire créé avec succès",
+            "user": {
+                "id": shareholder.id,
+                "user_id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "full_name": user.get_full_name(),
+                "investment_amount": shareholder.investment_amount,
+                "last_login": user.last_login,
+            }
+        }, status=201)
 
 class CheckUsernameView(APIView):
     """
@@ -437,11 +670,6 @@ class RequestsAPIView(APIView):
 # =============================================================================
 # UTILISATEURS ET AUTHENTIFICATION
 # =============================================================================
-
-class UserTypeViewSet(viewsets.ModelViewSet):
-    queryset = UserType.objects.all()
-    serializer_class = UserTypeSerializer
-    permission_classes = [AllowAny]
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.select_related('user_type')

@@ -8,14 +8,14 @@ from .models import *
 # =============================================================================
 
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'user_type', 'phone', 'is_active', 'date_joined')
-    list_filter = ('user_type', 'is_active', 'is_staff', 'date_joined')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'phone', 'is_active', 'date_joined')
+    list_filter = ( 'is_active', 'is_staff', 'date_joined')
     search_fields = ('username', 'email', 'first_name', 'last_name', 'phone')
     ordering = ('-date_joined',)
     
     fieldsets = UserAdmin.fieldsets + (
         ('Informations supplémentaires', {
-            'fields': ('user_type', 'phone', 'phone2', 'address', 'photo')
+            'fields': ( 'phone', 'phone2', 'address', 'photo')
         }),
     )
 
@@ -83,11 +83,6 @@ class InventoryCountItemInline(admin.TabularInline):
 # ADMIN MODELS
 # =============================================================================
 
-@admin.register(UserType)
-class UserTypeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'code', 'description')
-    search_fields = ('name', 'code')
-    list_filter = ('code',)
 
 @admin.register(Owner)
 class OwnerAdmin(admin.ModelAdmin):

@@ -1,7 +1,7 @@
 # api_boutique_core/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView,TokenVerifyView
 from . import views
 
 # =============================================================================
@@ -63,7 +63,6 @@ router.register(r'analytics', views.AnalyticsViewSet, basename='analytics')
 # UTILISATEURS ET AUTHENTIFICATION
 # =============================================================================
 
-router.register(r'user-types', views.UserTypeViewSet, basename='user-types')
 router.register(r'users', views.UserViewSet, basename='users')
 router.register(r'owners', views.OwnerViewSet, basename='owners')
 router.register(r'shareholders', views.ShareholderViewSet, basename='shareholders')
@@ -214,10 +213,16 @@ router.register(r'error-reports', views.ErrorReportViewSet, basename='error-repo
 
 custom_urlpatterns = [
     # 🔐 AUTHENTIFICATION JWT
-    path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('auth/login/', views.LoginView.as_view(), name='login'),
+    path('auth/logout/', views.LogoutView.as_view(), name='logout'),
+    path('auth/profile/', views.UserProfileView.as_view(), name='user-profile'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('auth/register/', views.RegisterView.as_view(), name='register'),
+    path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('auth/check-username/<str:username>/', views.CheckUsernameView.as_view(), name='check-username'),
+    # # Création par Owner/Admin
+    path('owner/register/', views.OwnerRegisterView.as_view(), name='owner-register'),
+    path('employee/register/', views.EmployeeRegisterView.as_view(), name='employee-register'),
+    path('shareholder/register/', views.ShareholderRegisterView.as_view(), name='shareholder-register'),
     
     # 🎯 DASHBOARD - CORRIGÉ : DashboardDataView au lieu de DashboardView
     path('dashboard/', views.DashboardDataView.as_view(), name='dashboard-data'),
