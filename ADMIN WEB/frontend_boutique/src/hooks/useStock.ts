@@ -9,7 +9,7 @@ import {
   Warehouse,
   Batch,
   StockStats
-} from '@/types/stock.types';
+} from '@/types/stocktypes';
 
 interface UseStockOptions {
   storeId?: number;
