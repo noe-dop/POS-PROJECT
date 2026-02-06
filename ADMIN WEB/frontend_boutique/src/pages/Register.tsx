@@ -14,8 +14,8 @@ export const Register: React.FC = () => {
     phone: '',
     address: '',
     password: '',
-    password_confirm: '',
-    user_type: 3
+    password_confirm: ''
+    // ❌ SUPPRIMÉ: user_type: 3
   });
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState('');
@@ -52,8 +52,8 @@ export const Register: React.FC = () => {
       }
     });
 
-    if (formData.password && formData.password.length < 6) {
-      errors.password = 'Le mot de passe doit contenir au moins 6 caractères';
+    if (formData.password && formData.password.length < 8) { // Modifier de 6 à 8
+      errors.password = 'Le mot de passe doit contenir au moins 8 caractères';
     }
 
     if (formData.password && formData.password_confirm && formData.password !== formData.password_confirm) {
@@ -77,16 +77,54 @@ export const Register: React.FC = () => {
 
     try {
       console.log('📤 Données envoyées au backend:', formData);
-      await authService.register(formData);
+      
+      // NE PAS ENVOYER user_type - il n'existe pas dans le serializer
+      await authService.register({
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
+        phone: formData.phone.trim() || '',
+        address: formData.address.trim() || '',
+        password: formData.password,
+        password_confirm: formData.password_confirm
+      });
+      
       setSuccess(true);
     } catch (err: any) {
       console.error('❌ Erreur détaillée:', err.response?.data);
-      const errorMessage =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        err.message ||
-        'Erreur lors de la création du compte';
-      setFormError(errorMessage);
+      
+      // Afficher les détails de l'erreur
+      if (err.response?.data) {
+        const errorData = err.response.data;
+        
+        if (errorData.non_field_errors) {
+          setFormError(errorData.non_field_errors.join(', '));
+        } else if (typeof errorData === 'object') {
+          // Afficher les erreurs de champ
+          const fieldErrors: Record<string, string> = {};
+          Object.keys(errorData).forEach(key => {
+            if (Array.isArray(errorData[key])) {
+              fieldErrors[key] = errorData[key].join(', ');
+            } else if (typeof errorData[key] === 'string') {
+              fieldErrors[key] = errorData[key];
+            }
+          });
+          setFieldErrors(fieldErrors);
+          
+          if (Object.keys(fieldErrors).length === 0 && errorData.message) {
+            setFormError(errorData.message);
+          }
+        } else if (typeof errorData === 'string') {
+          setFormError(errorData);
+        } else {
+          setFormError('Erreur lors de la création du compte');
+        }
+      } else if (err.message) {
+        setFormError(err.message);
+      } else {
+        setFormError('Erreur lors de la création du compte');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -292,7 +330,7 @@ export const Register: React.FC = () => {
                 className={`w-full border rounded-lg px-3 py-2 sm:py-2.5 text-sm focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-colors ${
                   fieldErrors.password ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="Minimum 6 caractères"
+                placeholder="Minimum 8 caractères"
               />
               {fieldErrors.password && (
                 <p className="text-red-500 text-xs mt-1 flex items-center">
@@ -330,7 +368,7 @@ export const Register: React.FC = () => {
           </div>
 
           <div className="text-center text-xs sm:text-sm text-gray-500">
-            Le mot de passe doit contenir au moins 6 caractères
+            Le mot de passe doit contenir au moins 8 caractères
           </div>
 
           {/* Conditions d'utilisation */}

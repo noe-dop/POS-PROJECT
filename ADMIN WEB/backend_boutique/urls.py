@@ -46,9 +46,6 @@ urlpatterns = [
     path('', RedirectView.as_view(url='/swagger/', permanent=False)),
     path('admin/', admin.site.urls),
     
-    # ✅ AJOUT : URLs d'authentification JWT
-    path('api/auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
     # Ton app API
     path('api/', include('api_boutique_core.urls')),

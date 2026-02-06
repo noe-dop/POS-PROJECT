@@ -48,18 +48,9 @@ class Currency(models.Model):
 # Utilisateurs et Authentification OPTIMISÉS
 # -----------------------------
 
-class UserType(models.Model):
-    code = models.CharField("Code", max_length=20, unique=True, db_index=True)
-    name = models.CharField("Nom", max_length=100)
-    description = models.TextField("Description", blank=True, null=True)
-    
-    class Meta:
-        verbose_name = "Type d'utilisateur"
-        verbose_name_plural = "Types d'utilisateurs"
-        ordering = ['name']
 
 class User(AbstractUser):
-    user_type = models.ForeignKey(UserType, on_delete=models.PROTECT, db_index=True)
+    email = models.EmailField('email_address',unique=True,blank=True)
     phone = models.CharField(max_length=15, unique=True, db_index=True)
     phone2 = models.CharField(max_length=15, blank=True, null=True)
     address = models.TextField(blank=True, null=True)
@@ -887,6 +878,9 @@ class InventoryCount(AuditModel):
         default=0
     )
     
+    # AJOUTEZ CES CHAMPS OBLIGATOIRES !
+    notes = models.TextField("Notes", blank=True, default='')
+    
     class Meta:
         verbose_name = "Inventaire physique"
         verbose_name_plural = "Inventaires physiques"
@@ -895,6 +889,10 @@ class InventoryCount(AuditModel):
             models.Index(fields=['store', 'count_date']),
             models.Index(fields=['status']),
         ]
+
+# =============================================================================
+# AJOUTEZ CETTE CLASSE MANQUANTE !
+# =============================================================================
 
 class InventoryCountItem(AuditModel):
     inventory_count = models.ForeignKey(
@@ -934,7 +932,6 @@ class InventoryCountItem(AuditModel):
     def save(self, *args, **kwargs):
         self.discrepancy = self.counted_quantity - self.expected_quantity
         super().save(*args, **kwargs)
-
 # -----------------------------
 # Liaison stores et produits avec prix spécifiques OPTIMISÉE
 # -----------------------------

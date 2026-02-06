@@ -1,16 +1,33 @@
 // src/pages/Store.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Plus, Search, Filter, MapPin, Phone, Mail, 
   Edit, Trash2, Users, 
   ArrowUpDown, Building,
-  Upload, Image, Menu, X,
+  Upload, Image, X,
   Clock, Settings, CheckCircle,
   Package2, RefreshCw,
   Store as StoreIcon,
   Navigation,
   LocateFixed,
-  Map
+  Map,
+  Eye,
+  MoreVertical,
+  Download,
+  Grid3x3,
+  List,
+  TrendingUp,
+  Shield,
+  Copy,
+  Star,
+  AlertCircle,
+  BarChart3,
+  ChevronDown,
+  ExternalLink,
+  Calendar,
+  Target,
+  Globe,
+  Loader2
 } from 'lucide-react';
 import storeService, { 
   type Store as StoreType, 
@@ -19,73 +36,283 @@ import storeService, {
   type StoreNetwork,
   type StoreStats 
 } from '../services/storeService';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Types locaux
 type SortField = 'name' | 'created_at' | 'total_employees' | 'total_products';
 type SortOrder = 'asc' | 'desc';
 type StatusFilter = 'all' | 'active' | 'inactive';
+type ViewMode = 'grid' | 'list';
 
 // Configuration des jours de la semaine
 const DAYS_OF_WEEK = [
-  { key: 'monday', label: 'Lundi' },
-  { key: 'tuesday', label: 'Mardi' },
-  { key: 'wednesday', label: 'Mercredi' },
-  { key: 'thursday', label: 'Jeudi' },
-  { key: 'friday', label: 'Vendredi' },
-  { key: 'saturday', label: 'Samedi' },
-  { key: 'sunday', label: 'Dimanche' }
+  { key: 'monday', label: 'Lundi', short: 'Lun' },
+  { key: 'tuesday', label: 'Mardi', short: 'Mar' },
+  { key: 'wednesday', label: 'Mercredi', short: 'Mer' },
+  { key: 'thursday', label: 'Jeudi', short: 'Jeu' },
+  { key: 'friday', label: 'Vendredi', short: 'Ven' },
+  { key: 'saturday', label: 'Samedi', short: 'Sam' },
+  { key: 'sunday', label: 'Dimanche', short: 'Dim' }
 ];
 
-// Coordonnées approximatives pour les principales villes sénégalaises
-const CITY_COORDINATES: Record<string, {lat: number, lon: number}> = {
-  'Dakar': { lat: 14.716677, lon: -17.467686 },
-  'Thiès': { lat: 14.789167, lon: -16.926111 },
-  'Saint-Louis': { lat: 16.033333, lon: -16.5 },
-  'Kaolack': { lat: 14.138978, lon: -16.076200 },
-  'Ziguinchor': { lat: 12.583333, lon: -16.266667 },
-  'Diourbel': { lat: 14.655, lon: -16.231667 },
-  'Louga': { lat: 15.616667, lon: -16.216667 },
-  'Tambacounda': { lat: 13.768889, lon: -13.667222 },
-  'Kolda': { lat: 12.883889, lon: -14.95 },
-  'Matam': { lat: 15.655833, lon: -13.255278 },
-  'Kédougou': { lat: 12.55, lon: -12.183333 },
-  'Fatick': { lat: 14.325, lon: -16.416111 },
-  'Kaffrine': { lat: 14.105, lon: -15.55 },
-  'Sédhiou': { lat: 12.708056, lon: -15.556944 }
-};
+// Villes principales du Sénégal avec coordonnées
+const SENEGAL_CITIES = [
+  { name: 'Dakar', lat: 14.716677, lon: -17.467686 },
+  { name: 'Thiès', lat: 14.789167, lon: -16.926111 },
+  { name: 'Saint-Louis', lat: 16.033333, lon: -16.5 },
+  { name: 'Kaolack', lat: 14.138978, lon: -16.076200 },
+  { name: 'Ziguinchor', lat: 12.583333, lon: -16.266667 },
+  { name: 'Diourbel', lat: 14.655, lon: -16.231667 },
+  { name: 'Louga', lat: 15.616667, lon: -16.216667 },
+  { name: 'Tambacounda', lat: 13.768889, lon: -13.667222 },
+  { name: 'Kolda', lat: 12.883889, lon: -14.95 },
+  { name: 'Matam', lat: 15.655833, lon: -13.255278 },
+  { name: 'Kédougou', lat: 12.55, lon: -12.183333 },
+  { name: 'Fatick', lat: 14.325, lon: -16.416111 },
+  { name: 'Kaffrine', lat: 14.105, lon: -15.55 },
+  { name: 'Sédhiou', lat: 12.708056, lon: -15.556944 }
+];
 
-// Composant pour afficher les coordonnées
-const LocationDisplay = ({ latitude, longitude, accuracy }: { latitude?: number; longitude?: number; accuracy?: number }) => {
-  if (!latitude || !longitude) return null;
-  
-  const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
-  
+// Composant StatCard amélioré
+const StatCard = ({ 
+  title, 
+  value, 
+  icon: Icon, 
+  color = 'blue',
+  trend,
+  description 
+}: { 
+  title: string; 
+  value: string | number; 
+  icon: React.ElementType; 
+  color?: 'blue' | 'green' | 'purple' | 'orange';
+  trend?: { value: number; direction: 'up' | 'down' };
+  description?: string;
+}) => {
+  const colors = {
+    blue: { bg: 'bg-gradient-to-br from-blue-500 to-blue-600', icon: 'text-blue-100' },
+    green: { bg: 'bg-gradient-to-br from-green-500 to-green-600', icon: 'text-green-100' },
+    purple: { bg: 'bg-gradient-to-br from-purple-500 to-purple-600', icon: 'text-purple-100' },
+    orange: { bg: 'bg-gradient-to-br from-orange-500 to-orange-600', icon: 'text-orange-100' }
+  };
+
   return (
-    <div className="flex flex-col gap-1 text-xs">
-      <div className="flex items-center gap-2 text-gray-600 bg-blue-50 px-2 py-1 rounded">
-        <MapPin size={10} />
-        <span>{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
-        <a 
-          href={googleMapsUrl} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800 hover:underline ml-auto"
-          title="Voir sur Google Maps"
-        >
-          <Map size={10} />
-        </a>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -5 }}
+      className={`${colors[color].bg} rounded-xl p-5 text-white shadow-lg hover:shadow-xl transition-all duration-300`}
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-white/80 text-sm font-medium mb-1">{title}</p>
+          <p className="text-2xl font-bold mb-2">{value}</p>
+          {description && (
+            <p className="text-white/70 text-xs">{description}</p>
+          )}
+        </div>
+        <div className={`p-3 rounded-xl bg-white/10 ${colors[color].icon}`}>
+          <Icon size={22} />
+        </div>
       </div>
-      {accuracy && (
-        <div className="text-gray-500 italic">
-          Précision: ~{accuracy < 1000 ? `${Math.round(accuracy)}m` : `${(accuracy/1000).toFixed(1)}km`}
+      {trend && (
+        <div className="flex items-center gap-1 mt-3">
+          <TrendingUp size={14} className={trend.direction === 'up' ? 'text-green-300' : 'text-red-300'} />
+          <span className="text-sm font-medium">
+            {trend.direction === 'up' ? '+' : '-'}{trend.value}%
+          </span>
         </div>
       )}
-    </div>
+    </motion.div>
+  );
+};
+
+// Composant StoreCard amélioré
+const StoreCard = ({ store, onEdit, onDelete, onToggleStatus, onView }: { 
+  store: StoreType; 
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggleStatus: () => void;
+  onView: () => void;
+}) => {
+  const [showMenu, setShowMenu] = useState(false);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      whileHover={{ y: -5 }}
+      className="group relative bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-xl transition-all duration-300"
+    >
+      {/* Badge de statut */}
+      <div className="absolute top-4 right-4">
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${store.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          {store.is_active ? '🟢 Actif' : '🔴 Inactif'}
+        </span>
+      </div>
+
+      {/* En-tête avec logo et infos */}
+      <div className="flex items-start gap-3 mb-4">
+        <div className="relative">
+          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
+            {store.logo ? (
+              <img 
+                src={store.logo} 
+                alt={store.name}
+                className="w-14 h-14 rounded-xl object-cover"
+              />
+            ) : (
+              store.name.charAt(0)
+            )}
+          </div>
+          <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-white rounded-full border-2 border-blue-500 flex items-center justify-center">
+            <StoreIcon size={14} className="text-blue-500" />
+          </div>
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+            {store.name}
+          </h3>
+          <p className="text-sm text-gray-600 truncate">{store.slogan || 'Aucun slogan'}</p>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">
+              {store.store_type_name || 'Non spécifié'}
+            </span>
+            {store.network_name && (
+              <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-medium">
+                {store.network_name}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Informations principales */}
+      <div className="space-y-3 mb-4">
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <MapPin size={16} className="text-gray-400 flex-shrink-0" />
+          <span className="truncate">{store.address_details?.city || 'Non localisé'}</span>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-3">
+          <div className="text-center p-2 bg-gray-50 rounded-lg">
+            <div className="text-lg font-bold text-gray-900">{store.total_employees}</div>
+            <div className="text-xs text-gray-500">Employés</div>
+          </div>
+          <div className="text-center p-2 bg-gray-50 rounded-lg">
+            <div className="text-lg font-bold text-gray-900">{store.total_products}</div>
+            <div className="text-xs text-gray-500">Produits</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onView}
+            className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="Vue rapide"
+          >
+            <Eye size={16} />
+          </button>
+          <button
+            onClick={onEdit}
+            className="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+            title="Modifier"
+          >
+            <Edit size={16} />
+          </button>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onToggleStatus}
+            className={`p-1.5 rounded-lg transition-colors ${store.is_active ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50'}`}
+            title={store.is_active ? 'Désactiver' : 'Activer'}
+          >
+            {store.is_active ? (
+              <CheckCircle size={16} />
+            ) : (
+              <X size={16} />
+            )}
+          </button>
+          
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <MoreVertical size={16} />
+            </button>
+            
+            <AnimatePresence>
+              {showMenu && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  className="absolute right-0 mt-2 w-40 bg-white rounded-lg border border-gray-200 shadow-lg z-50"
+                >
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        onView();
+                        setShowMenu(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <Eye size={14} />
+                      Vue rapide
+                    </button>
+                    <button
+                      onClick={() => {
+                        onEdit();
+                        setShowMenu(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <Edit size={14} />
+                      Modifier
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`/stores/${store.id}`);
+                        toast.success('Lien copié !');
+                        setShowMenu(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <Copy size={14} />
+                      Copier le lien
+                    </button>
+                    <div className="border-t border-gray-100 my-1"></div>
+                    <button
+                      onClick={() => {
+                        onDelete();
+                        setShowMenu(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <Trash2 size={14} />
+                      Supprimer
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 };
 
 const StorePage = () => {
-  // États
+  // États principaux
   const [stores, setStores] = useState<StoreType[]>([]);
   const [filteredStores, setFilteredStores] = useState<StoreType[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -95,6 +322,7 @@ const StorePage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState<StoreType | null>(null);
   const [storeTypes, setStoreTypes] = useState<StoreTypeOption[]>([]);
   const [storeNetworks, setStoreNetworks] = useState<StoreNetwork[]>([]);
@@ -132,12 +360,34 @@ const StorePage = () => {
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'grid' | 'list'>('grid');
-  const [activeTab, setActiveTab] = useState<'info' | 'hours' | 'config'>('info');
+  const [currentView, setCurrentView] = useState<ViewMode>('grid');
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string>('');
-  const [showLocationHelp, setShowLocationHelp] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [selectedStoreType, setSelectedStoreType] = useState<string>('all');
+  const [selectedNetwork, setSelectedNetwork] = useState<string>('all');
+  const [isExporting, setIsExporting] = useState(false);
+  const [activeFormTab, setActiveFormTab] = useState<'basic' | 'advanced'>('basic');
+
+  // Calcul des statistiques
+  const calculatedStats = useMemo(() => {
+    const total = stores.length;
+    const active = stores.filter(store => store.is_active).length;
+    const inactive = total - active;
+    const totalEmployees = stores.reduce((sum, store) => sum + (store.total_employees || 0), 0);
+    const totalProducts = stores.reduce((sum, store) => sum + (store.total_products || 0), 0);
+    const averageEmployees = total > 0 ? Math.round(totalEmployees / total) : 0;
+    
+    return {
+      total,
+      active,
+      inactive,
+      totalEmployees,
+      totalProducts,
+      averageEmployees,
+      monthlyGrowth: 0
+    };
+  }, [stores]);
 
   // Chargement initial
   useEffect(() => {
@@ -150,16 +400,29 @@ const StorePage = () => {
 
     // Filtre par recherche
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       result = result.filter(store =>
-        store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (store.address_details?.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        store.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        store.name.toLowerCase().includes(term) ||
+        (store.address_details?.city?.toLowerCase().includes(term)) ||
+        store.email?.toLowerCase().includes(term) ||
+        store.phone?.toLowerCase().includes(term) ||
+        store.slogan?.toLowerCase().includes(term)
       );
     }
 
     // Filtre par statut
     if (statusFilter !== 'all') {
       result = result.filter(store => store.is_active === (statusFilter === 'active'));
+    }
+
+    // Filtre par type de store
+    if (selectedStoreType !== 'all') {
+      result = result.filter(store => store.store_type === parseInt(selectedStoreType));
+    }
+
+    // Filtre par réseau
+    if (selectedNetwork !== 'all') {
+      result = result.filter(store => store.network === parseInt(selectedNetwork));
     }
 
     // Tri
@@ -172,7 +435,6 @@ const StorePage = () => {
         bValue = new Date(bValue).getTime();
       }
 
-      // Gérer les valeurs null/undefined
       if (aValue == null) return sortOrder === 'asc' ? -1 : 1;
       if (bValue == null) return sortOrder === 'asc' ? 1 : -1;
 
@@ -184,65 +446,34 @@ const StorePage = () => {
     });
 
     setFilteredStores(result);
-  }, [stores, searchTerm, statusFilter, sortBy, sortOrder]);
+    setStats(calculatedStats);
+  }, [stores, searchTerm, statusFilter, selectedStoreType, selectedNetwork, sortBy, sortOrder, calculatedStats]);
 
   // Fonctions de chargement
   const loadInitialData = async () => {
     setLoading(true);
     try {
-      await Promise.all([
-        loadStores(),
-        loadStoreTypes(),
-        loadStoreNetworks()
+      const [storesData, typesData, networksData] = await Promise.all([
+        storeService.getStores({ page_size: 100 }),
+        storeService.getStoreTypes(),
+        storeService.getStoreNetworks()
       ]);
+      
+      setStores(storesData.results);
+      setFilteredStores(storesData.results);
+      setStoreTypes(typesData);
+      setStoreNetworks(networksData);
+      
+      toast.success('Données chargées avec succès !');
     } catch (error) {
       console.error('Erreur lors du chargement initial:', error);
-      showNotification('error', 'Erreur lors du chargement des données');
+      toast.error('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadStores = async () => {
-    try {
-      const response = await storeService.getStores({ page_size: 50 });
-      setStores(response.results);
-      setFilteredStores(response.results);
-      
-      // Calculer les stats avec les stores chargés
-      const statsData = await storeService.calculateStoreStats(response.results);
-      setStats(statsData);
-    } catch (error) {
-      console.error('Erreur lors du chargement des stores:', error);
-      showNotification('error', 'Impossible de charger les stores');
-      setStores([]);
-      setFilteredStores([]);
-    }
-  };
-
-  const loadStoreTypes = async () => {
-    try {
-      const types = await storeService.getStoreTypes();
-      setStoreTypes(types);
-    } catch (error) {
-      console.error('Erreur lors du chargement des types de store:', error);
-      showNotification('warning', 'Impossible de charger les types de store');
-      setStoreTypes([]);
-    }
-  };
-
-  const loadStoreNetworks = async () => {
-    try {
-      const networks = await storeService.getStoreNetworks();
-      setStoreNetworks(networks);
-    } catch (error) {
-      console.error('Erreur lors du chargement des réseaux:', error);
-      showNotification('warning', 'Impossible de charger les réseaux de store');
-      setStoreNetworks([]);
-    }
-  };
-
-  // Gestion du formulaire
+  // Gestion du formulaire - version compacte
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -263,8 +494,7 @@ const StorePage = () => {
     }
   };
 
-  // ============ GÉOLOCALISATION OPTIMISÉE ============
-
+  // Géolocalisation
   const getCurrentLocation = () => {
     setIsGettingLocation(true);
     setLocationError('');
@@ -275,222 +505,62 @@ const StorePage = () => {
       return;
     }
 
-    // Options optimisées pour la géolocalisation
-    const geolocationOptions = {
-      enableHighAccuracy: false, // Réduit la précision pour accélérer la réponse
-      timeout: 8000, // Réduit le timeout à 8 secondes
-      maximumAge: 30000 // Utilise une position mise en cache si disponible (30 secondes)
-    };
-
-    // Ajout d'un timeout manuel comme backup
-    const manualTimeout = setTimeout(() => {
-      setIsGettingLocation(false);
-      setLocationError('La géolocalisation prend trop de temps. Essayez à nouveau ou utilisez une autre méthode.');
-    }, 9000); // 1 seconde de plus que le timeout du navigateur
-
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        clearTimeout(manualTimeout);
         const { latitude, longitude } = position.coords;
-        
-        // Vérifier la précision de la position
-        const accuracy = position.coords.accuracy; // en mètres
+        const accuracy = position.coords.accuracy;
         
         setFormData(prev => ({
           ...prev,
           latitude,
           longitude,
-          accuracy // Stocker la précision
+          accuracy
         }));
         
         setIsGettingLocation(false);
-        
-        // Afficher une info sur la précision
-        if (accuracy > 100) {
-          showNotification('warning', `Position récupérée avec une précision de ${Math.round(accuracy)}m`);
-        } else {
-          showNotification('success', 'Position géographique récupérée avec succès');
-        }
+        toast.success('Position géographique récupérée !');
       },
       (error) => {
-        clearTimeout(manualTimeout);
         setIsGettingLocation(false);
-        
         switch(error.code) {
           case error.PERMISSION_DENIED:
-            setLocationError('Permission refusée. Veuillez autoriser la géolocalisation dans les paramètres de votre navigateur.');
+            setLocationError('Permission refusée. Veuillez autoriser la géolocalisation.');
             break;
           case error.POSITION_UNAVAILABLE:
-            setLocationError('Position indisponible. Vérifiez votre connexion internet.');
+            setLocationError('Position indisponible. Vérifiez votre connexion.');
             break;
           case error.TIMEOUT:
-            setLocationError('La géolocalisation a pris trop de temps. Essayez à nouveau ou utilisez une autre méthode.');
+            setLocationError('La géolocalisation a pris trop de temps.');
             break;
           default:
-            setLocationError('Erreur lors de la récupération de la position. Code d\'erreur: ' + error.code);
+            setLocationError('Erreur lors de la récupération de la position.');
         }
       },
-      geolocationOptions
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
-  // Géocodage optimisé depuis l'adresse
-  const getCoordinatesFromAddress = async () => {
-    if (!formData.address_line1 || !formData.city) {
-      setLocationError('Veuillez d\'abord renseigner l\'adresse et la ville');
-      return;
-    }
-
-    setIsGettingLocation(true);
-    setLocationError('');
-
-    try {
-      const fullAddress = `${formData.address_line1}, ${formData.city}, ${formData.state}, ${formData.postal_code}, ${formData.country}`;
-      
-      // Ajout d'un timeout pour la requête
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&limit=1`,
-        {
-          signal: controller.signal,
-          headers: {
-            'Accept-Language': 'fr-FR', // Améliore les résultats pour les adresses françaises
-            'User-Agent': 'StoreManagementApp/1.0'
-          }
-        }
-      );
-      
-      clearTimeout(timeoutId);
-      
-      const data = await response.json();
-      
-      if (data && data.length > 0) {
-        const { lat, lon, display_name } = data[0];
-        
-        // Vérifier la pertinence du résultat
-        const resultAddress = display_name.toLowerCase();
-        const searchAddress = fullAddress.toLowerCase();
-        let matchScore = 0;
-        
-        // Vérifier si la ville correspond
-        if (formData.city && resultAddress.includes(formData.city.toLowerCase())) {
-          matchScore++;
-        }
-        
-        // Vérifier si le code postal correspond
-        if (formData.postal_code && resultAddress.includes(formData.postal_code)) {
-          matchScore++;
-        }
-        
-        setFormData(prev => ({
-          ...prev,
-          latitude: parseFloat(lat),
-          longitude: parseFloat(lon),
-          geocoded_address: display_name // Optionnel : stocker l'adresse géocodée
-        }));
-        
-        if (matchScore >= 2) {
-          showNotification('success', 'Coordonnées trouvées pour cette adresse');
-        } else {
-          showNotification('warning', 'Coordonnées trouvées, mais vérifiez la correspondance avec l\'adresse');
-        }
-      } else {
-        setLocationError('Adresse non trouvée. Vérifiez l\'orthographe ou essayez une adresse plus simple.');
-      }
-    } catch (error: any) {
-      console.error('Erreur de géocodage:', error);
-      
-      if (error.name === 'AbortError') {
-        setLocationError('La recherche d\'adresse a pris trop de temps. Réessayez ou vérifiez votre connexion.');
-      } else {
-        setLocationError('Erreur lors du géocodage. Essayez une recherche plus simple.');
-      }
-      
-      // Fallback : utiliser une approximation par ville
-      if (formData.city && !formData.latitude) {
-        tryFallbackGeocoding();
-      }
-    } finally {
-      setIsGettingLocation(false);
-    }
-  };
-
-  // Fonction de fallback pour le géocodage
-  const tryFallbackGeocoding = async () => {
-    try {
-      // Essayer de géocoder juste avec la ville
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.city + ', ' + formData.state)}&limit=1`
-      );
-      
-      const data = await response.json();
-      
-      if (data && data.length > 0) {
-        const { lat, lon } = data[0];
-        
-        setFormData(prev => ({
-          ...prev,
-          latitude: parseFloat(lat),
-          longitude: parseFloat(lon)
-        }));
-        
-        showNotification('warning', 'Position approximative basée sur la ville uniquement. Précisez l\'adresse pour plus de précision.');
-      }
-    } catch (fallbackError) {
-      console.error('Fallback geocoding failed:', fallbackError);
-    }
-  };
-
-  // Position approximative par ville
-  const useApproximateLocation = async () => {
+  const useCityCoordinates = () => {
     if (!formData.city) {
       setLocationError('Veuillez d\'abord renseigner la ville');
       return;
     }
 
-    setIsGettingLocation(true);
-    setLocationError('');
+    const city = SENEGAL_CITIES.find(c => 
+      c.name.toLowerCase().includes(formData.city.toLowerCase()) ||
+      formData.city.toLowerCase().includes(c.name.toLowerCase())
+    );
 
-    try {
-      const cityName = formData.city.toLowerCase();
-      let foundCoords = null;
-      let foundCityName = '';
-
-      // Chercher une correspondance approximative
-      for (const [city, coords] of Object.entries(CITY_COORDINATES)) {
-        if (cityName.includes(city.toLowerCase()) || city.toLowerCase().includes(cityName)) {
-          foundCoords = coords;
-          foundCityName = city;
-          break;
-        }
-      }
-
-      if (foundCoords) {
-        setFormData(prev => ({
-          ...prev,
-          latitude: foundCoords.lat,
-          longitude: foundCoords.lon,
-          accuracy: 5000 // Précision approximative de 5km
-        }));
-        
-        showNotification('info', `Position approximative de ${foundCityName} enregistrée`);
-      } else {
-        // Fallback général pour le Sénégal
-        setFormData(prev => ({
-          ...prev,
-          latitude: 14.497401, // Centre approximatif du Sénégal
-          longitude: -14.452362,
-          accuracy: 100000 // Précision très faible
-        }));
-        
-        showNotification('warning', 'Position approximative du Sénégal enregistrée');
-      }
-    } catch (error) {
-      setLocationError('Impossible de déterminer une position approximative');
-    } finally {
-      setIsGettingLocation(false);
+    if (city) {
+      setFormData(prev => ({
+        ...prev,
+        latitude: city.lat,
+        longitude: city.lon,
+        accuracy: 5000 // 5km de précision pour les villes
+      }));
+      toast.info(`Position approximative de ${city.name} enregistrée`);
+    } else {
+      setLocationError('Ville non trouvée dans notre base de données');
     }
   };
 
@@ -505,7 +575,7 @@ const StorePage = () => {
     setLocationError('');
   };
 
-  // Gestion des horaires d'ouverture
+  // Gestion des horaires
   const handleOpeningHoursChange = (day: string, field: 'open' | 'close', value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -555,51 +625,42 @@ const StorePage = () => {
     setLogoFile(null);
     setLogoPreview('');
     setSelectedStore(null);
-    setActiveTab('info');
+    setActiveFormTab('basic');
     setLocationError('');
-    setIsGettingLocation(false);
   };
 
   // Actions CRUD
   const handleAddStore = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     const errors = storeService.validateStoreForm(formData);
     if (errors.length > 0) {
-      showNotification('error', errors.join('\n'));
+      errors.forEach(error => toast.error(error));
       return;
     }
 
     setFormLoading(true);
 
     try {
-      // Créer le store
       const newStore = await storeService.createStore(formData);
       
-      // Uploader le logo si présent
       if (logoFile && newStore.id) {
         try {
           const logoResponse = await storeService.uploadLogo(newStore.id, logoFile);
           newStore.logo = logoResponse.logo;
         } catch (logoError) {
           console.error('Erreur lors de l\'upload du logo:', logoError);
-          // Continuer même si l'upload du logo échoue
         }
       }
       
-      // Mettre à jour la liste des stores
       setStores(prev => [...prev, newStore]);
       setIsAddModalOpen(false);
       resetForm();
-      showNotification('success', 'Store créé avec succès');
+      toast.success('Store créé avec succès !');
       
     } catch (error: any) {
       console.error('Erreur lors de la création:', error);
-      const errorMessage = error.response?.data 
-        ? Object.values(error.response.data).flat().join(', ')
-        : error.message || 'Erreur lors de la création du store';
-      showNotification('error', errorMessage);
+      toast.error(error.response?.data?.message || 'Erreur lors de la création du store');
     } finally {
       setFormLoading(false);
     }
@@ -611,10 +672,8 @@ const StorePage = () => {
 
     setFormLoading(true);
     try {
-      // Mettre à jour le store
       const updatedStore = await storeService.updateStore(selectedStore.id, formData);
       
-      // Uploader le logo si un nouveau a été sélectionné
       if (logoFile) {
         try {
           const logoResponse = await storeService.uploadLogo(selectedStore.id, logoFile);
@@ -624,21 +683,17 @@ const StorePage = () => {
         }
       }
       
-      // Mettre à jour la liste des stores
       setStores(prev => prev.map(store =>
         store.id === selectedStore.id ? updatedStore : store
       ));
       
       setIsEditModalOpen(false);
       resetForm();
-      showNotification('success', 'Store modifié avec succès');
+      toast.success('Store modifié avec succès !');
       
     } catch (error: any) {
       console.error('Erreur lors de la modification:', error);
-      const errorMessage = error.response?.data 
-        ? Object.values(error.response.data).flat().join(', ')
-        : error.message || 'Erreur lors de la modification du store';
-      showNotification('error', errorMessage);
+      toast.error(error.response?.data?.message || 'Erreur lors de la modification du store');
     } finally {
       setFormLoading(false);
     }
@@ -654,14 +709,11 @@ const StorePage = () => {
       setStores(prev => prev.filter(store => store.id !== selectedStore.id));
       setIsDeleteModalOpen(false);
       resetForm();
-      showNotification('success', 'Store supprimé avec succès');
+      toast.success('Store supprimé avec succès !');
       
     } catch (error: any) {
       console.error('Erreur lors de la suppression:', error);
-      const errorMessage = error.response?.data 
-        ? Object.values(error.response.data).flat().join(', ')
-        : error.message || 'Erreur lors de la suppression du store';
-      showNotification('error', errorMessage);
+      toast.error(error.response?.data?.message || 'Erreur lors de la suppression du store');
     } finally {
       setFormLoading(false);
     }
@@ -679,24 +731,17 @@ const StorePage = () => {
         store.id === storeId ? updatedStore : store
       ));
       
-      showNotification('success', `Store ${newStatus ? 'activé' : 'désactivé'} avec succès`);
+      toast.success(`Store ${newStatus ? 'activé' : 'désactivé'} avec succès !`);
       
     } catch (error: any) {
       console.error('Erreur lors du changement de statut:', error);
-      showNotification('error', 'Erreur lors du changement de statut');
+      toast.error('Erreur lors du changement de statut');
     }
   };
 
   const openEditModal = (store: StoreType) => {
     setSelectedStore(store);
     const formData = storeService.prepareStoreFormData(store);
-    // Ajouter les champs de géolocalisation s'ils existent
-    if ('accuracy' in store || 'geocoded_address' in store) {
-      Object.assign(formData, {
-        accuracy: store.accuracy,
-        geocoded_address: store.geocoded_address
-      });
-    }
     setFormData(formData);
     
     if (store.logo) {
@@ -711,6 +756,11 @@ const StorePage = () => {
     setIsDeleteModalOpen(true);
   };
 
+  const openQuickView = (store: StoreType) => {
+    setSelectedStore(store);
+    setIsQuickViewOpen(true);
+  };
+
   const toggleSort = (field: SortField) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -720,998 +770,788 @@ const StorePage = () => {
     }
   };
 
-  // Notifications
-  const showNotification = (type: 'success' | 'error' | 'warning' | 'info', message: string) => {
-    const color = type === 'success' ? 'green' : type === 'error' ? 'red' : type === 'warning' ? 'yellow' : 'blue';
-    console.log(`%c${message}`, `color: ${color}; font-weight: bold;`);
-    
-    if (type === 'error') {
-      alert(`❌ Erreur: ${message}`);
-    } else if (type === 'success') {
-      alert(`✅ Succès: ${message}`);
-    } else if (type === 'warning') {
-      alert(`⚠️ Attention: ${message}`);
-    } else if (type === 'info') {
-      alert(`ℹ️ Info: ${message}`);
+  const exportStores = async (format: 'csv' | 'excel' | 'pdf') => {
+    setIsExporting(true);
+    try {
+      // Simuler l'export
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success(`Export ${format} généré avec succès !`);
+    } catch (error) {
+      toast.error('Erreur lors de l\'export');
+    } finally {
+      setIsExporting(false);
     }
   };
 
-  // Composant pour la section de localisation dans le formulaire
-  const LocationFormSection = () => (
-    <div className="md:col-span-2">
-      <div className="flex items-center justify-between mb-2">
-        <label className="block text-sm font-medium text-gray-700">
-          Position géographique (optionnel)
-        </label>
-        <button
-          type="button"
-          onClick={() => setShowLocationHelp(!showLocationHelp)}
-          className="text-xs text-blue-600 hover:text-blue-800"
-        >
-          ℹ️ Pourquoi ?
-        </button>
-      </div>
-      
-      {showLocationHelp && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3 text-sm text-blue-800">
-          <p className="font-medium mb-1">Pourquoi ajouter la localisation ?</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Permet d'afficher la boutique sur une carte</li>
-            <li>Facilite les recherches géolocalisées</li>
-            <li>Permet de calculer les distances pour les livraisons</li>
-            <li>Améliore l'expérience des clients mobiles</li>
-          </ul>
-        </div>
-      )}
-      
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="flex-1">
-            {formData.latitude && formData.longitude ? (
-              <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <MapPin size={16} className="text-green-600" />
-                  <span className="text-sm font-medium text-green-800">
-                    Coordonnées enregistrées
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-600">
-                    {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={clearLocation}
-                    className="text-xs text-red-600 hover:text-red-800"
-                    title="Effacer les coordonnées"
-                  >
-                    ✕
-                  </button>
-                </div>
+  // Composant FormTab simplifié
+  const FormTab = ({ id, label, icon: Icon, active }: { 
+    id: 'basic' | 'advanced'; 
+    label: string; 
+    icon: React.ElementType;
+    active: boolean;
+  }) => (
+    <button
+      type="button"
+      onClick={() => setActiveFormTab(id)}
+      className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition-all ${
+        active
+          ? 'border-blue-600 text-blue-600'
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+      }`}
+    >
+      <Icon size={18} />
+      {label}
+    </button>
+  );
+
+  // Formulaire compact avec tous les champs
+  const CompactForm = () => (
+    <div className="space-y-4">
+      {/* Logo et informations de base */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-1">
+          <div className="space-y-3">
+            <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-blue-500 transition-colors">
+              <div className="flex flex-col items-center justify-center">
+                {logoPreview ? (
+                  <img 
+                    src={logoPreview} 
+                    alt="Preview" 
+                    className="w-32 h-32 rounded-lg object-cover mb-3"
+                  />
+                ) : (
+                  <div className="w-32 h-32 rounded-lg bg-gray-100 flex items-center justify-center mb-3">
+                    <Image className="text-gray-400" size={32} />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  id="logo-upload"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="logo-upload"
+                  className="cursor-pointer px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium inline-flex items-center gap-1"
+                >
+                  <Upload size={14} />
+                  {logoPreview ? 'Changer' : 'Ajouter logo'}
+                </label>
               </div>
-            ) : (
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Statut du store
+              </label>
               <div className="flex items-center gap-3">
-                <div className="flex-1 p-3 bg-gray-50 border border-gray-300 rounded-lg">
-                  <p className="text-sm text-gray-600">
-                    Aucune position définie. Utilisez les boutons ci-dessous.
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Store actif</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="md:col-span-2">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nom du store *
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Nom du store"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Slogan
+              </label>
+              <input
+                type="text"
+                name="slogan"
+                value={formData.slogan}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Slogan du store"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type de store
+                </label>
+                <select
+                  name="store_type"
+                  value={formData.store_type || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="">Sélectionner un type</option>
+                  {storeTypes.map(type => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Réseau
+                </label>
+                <select
+                  name="network"
+                  value={formData.network || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="">Sélectionner un réseau</option>
+                  {storeNetworks.map(network => (
+                    <option key={network.id} value={network.id}>{network.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Informations de contact */}
+      <div className="border-t border-gray-200 pt-4">
+        <h4 className="text-sm font-semibold text-gray-900 mb-3">Informations de contact</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Téléphone *
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              placeholder="+221 XX XXX XX XX"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email *
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              placeholder="contact@store.com"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Adresse */}
+      <div className="border-t border-gray-200 pt-4">
+        <h4 className="text-sm font-semibold text-gray-900 mb-3">Adresse</h4>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Adresse ligne 1 *
+            </label>
+            <input
+              type="text"
+              name="address_line1"
+              value={formData.address_line1}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              placeholder="Numéro et rue"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Adresse ligne 2
+            </label>
+            <input
+              type="text"
+              name="address_line2"
+              value={formData.address_line2}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              placeholder="Complément d'adresse"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Ville *
+              </label>
+              <input
+                type="text"
+                name="city"
+                value={formData.city}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Ville"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Région *
+              </label>
+              <input
+                type="text"
+                name="state"
+                value={formData.state}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Région"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Code postal *
+              </label>
+              <input
+                type="text"
+                name="postal_code"
+                value={formData.postal_code}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Code postal"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Pays *
+              </label>
+              <input
+                type="text"
+                name="country"
+                value={formData.country}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                placeholder="Pays"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Géolocalisation */}
+      <div className="border-t border-gray-200 pt-4">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold text-gray-900">Géolocalisation</h4>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={getCurrentLocation}
+              disabled={isGettingLocation}
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-xs font-medium flex items-center gap-1"
+            >
+              {isGettingLocation ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <LocateFixed size={12} />
+              )}
+              Ma position
+            </button>
+            {formData.city && (
+              <button
+                type="button"
+                onClick={useCityCoordinates}
+                className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs font-medium"
+              >
+                Par ville
+              </button>
+            )}
+          </div>
+        </div>
+
+        {formData.latitude && formData.longitude ? (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MapPin className="text-green-600" size={16} />
+                <div>
+                  <p className="text-sm font-medium text-green-800">Position enregistrée</p>
+                  <p className="text-xs text-green-600">
+                    {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
                   </p>
                 </div>
               </div>
-            )}
+              <div className="flex items-center gap-1">
+                <a
+                  href={`https://www.google.com/maps?q=${formData.latitude},${formData.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded"
+                  title="Voir sur Google Maps"
+                >
+                  <ExternalLink size={14} />
+                </a>
+                <button
+                  type="button"
+                  onClick={clearLocation}
+                  className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
+                  title="Effacer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-        
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={getCurrentLocation}
-            disabled={isGettingLocation}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-            title="Utiliser ma position actuelle"
-          >
-            {isGettingLocation ? (
-              <>
-                <RefreshCw size={14} className="animate-spin" />
-                <span>Récupération...</span>
-              </>
-            ) : (
-              <>
-                <LocateFixed size={14} />
-                <span>Ma position</span>
-              </>
-            )}
-          </button>
-          
-          <button
-            type="button"
-            onClick={getCoordinatesFromAddress}
-            disabled={isGettingLocation || !formData.address_line1 || !formData.city}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-            title="Géocoder à partir de l'adresse"
-          >
-            <Navigation size={14} />
-            <span>À partir de l'adresse</span>
-          </button>
-          
-          <button
-            type="button"
-            onClick={useApproximateLocation}
-            disabled={isGettingLocation || !formData.city}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-            title="Utiliser une position approximative"
-          >
-            <Map size={14} />
-            <span>Approximation</span>
-          </button>
-          
-          {formData.latitude && formData.longitude && (
-            <a
-              href={`https://www.google.com/maps?q=${formData.latitude},${formData.longitude}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium transition-colors"
-              title="Voir sur Google Maps"
-            >
-              <Map size={14} />
-              <span>Voir sur carte</span>
-            </a>
-          )}
-        </div>
-        
+        ) : (
+          <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <p className="text-sm text-gray-600">
+              Aucune position définie. Utilisez les boutons pour géolocaliser.
+            </p>
+          </div>
+        )}
+
         {locationError && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <p className="text-sm text-red-800">{locationError}</p>
+          <div className="p-2 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-xs text-red-800">{locationError}</p>
           </div>
         )}
-        
-        <div className="text-xs text-gray-500">
-          <p>Conseil : Utilisez "Ma position" pour géolocaliser rapidement votre boutique sur place.</p>
-        </div>
       </div>
-    </div>
-  );
 
-  // Composant Store Card pour la vue mobile (avec coordonnées si disponibles)
-  const StoreCard = ({ store }: { store: StoreType }) => (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-3">
+      {/* Configuration avancée (onglet séparé) */}
+      {activeFormTab === 'advanced' && (
+        <div className="border-t border-gray-200 pt-4">
+          <h4 className="text-sm font-semibold text-gray-900 mb-3">Configuration avancée</h4>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Devise par défaut
+              </label>
+              <select
+                value={formData.configuration?.currency || 'XOF'}
+                onChange={(e) => handleConfigChange('currency', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="XOF">Franc CFA (XOF)</option>
+                <option value="EUR">Euro (EUR)</option>
+                <option value="USD">Dollar US (USD)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Fuseau horaire
+              </label>
+              <select
+                value={formData.configuration?.timezone || 'Africa/Dakar'}
+                onChange={(e) => handleConfigChange('timezone', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="Africa/Dakar">Afrique/Dakar (GMT+0)</option>
+                <option value="Africa/Abidjan">Afrique/Abidjan (GMT+0)</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.configuration?.online_orders || false}
+                  onChange={(e) => handleConfigChange('online_orders', e.target.checked)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Commandes en ligne</span>
+              </label>
+
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.configuration?.reservations || false}
+                  onChange={(e) => handleConfigChange('reservations', e.target.checked)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Réservations</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Boutons d'action */}
+      <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm">
-              {store.logo ? (
-                <img 
-                  src={store.logo} 
-                  alt={store.name}
-                  className="w-12 h-12 rounded-lg object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    const parent = target.parentElement;
-                    if (parent) {
-                      parent.innerHTML = `<span>${store.name.charAt(0)}</span>`;
-                    }
-                  }}
-                />
-              ) : (
-                store.name.charAt(0)
-              )}
-            </div>
-            {store.is_active && (
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                <CheckCircle size={8} className="text-white" />
-              </div>
-            )}
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">{store.name}</h3>
-            <p className="text-sm text-gray-500">{store.store_type_name || 'Non spécifié'}</p>
-          </div>
+          <FormTab 
+            id="basic" 
+            label="Informations de base" 
+            icon={Building} 
+            active={activeFormTab === 'basic'} 
+          />
+          <FormTab 
+            id="advanced" 
+            label="Configuration avancée" 
+            icon={Settings} 
+            active={activeFormTab === 'advanced'} 
+          />
         </div>
-        <button
-          onClick={() => handleToggleStatus(store.id)}
-          className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
-            store.is_active
-              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-              : 'bg-red-100 text-red-800 hover:bg-red-200'
-          }`}
-        >
-          {store.is_active ? '🟢' : '🔴'}
-        </button>
-      </div>
-
-      <div className="space-y-2 text-sm text-gray-600">
+        
         <div className="flex items-center gap-2">
-          <MapPin size={14} className="text-gray-400" />
-          <span className="truncate">{store.address_details?.city || 'Non spécifié'}</span>
-        </div>
-        
-        {/* Affichage des coordonnées si disponibles */}
-        {(store.latitude && store.longitude) && (
-          <div className="flex items-center gap-2">
-            <Navigation size={14} className="text-blue-400" />
-            <LocationDisplay 
-              latitude={store.latitude} 
-              longitude={store.longitude} 
-              accuracy={(store as any).accuracy}
-            />
-          </div>
-        )}
-        
-        {store.phone && (
-          <div className="flex items-center gap-2">
-            <Phone size={14} className="text-gray-400" />
-            <span>{store.phone}</span>
-          </div>
-        )}
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-4 text-xs">
-            <span className="flex items-center gap-1">
-              <Users size={12} />
-              {store.total_employees}
-            </span>
-            <span className="flex items-center gap-1">
-              <Package2 size={12} />
-              {store.total_products}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => openEditModal(store)}
-              className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-              title="Modifier"
-            >
-              <Edit size={16} />
-            </button>
-            <button
-              onClick={() => openDeleteModal(store)}
-              className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-              title="Supprimer"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Composant pour les onglets du modal
-  const ModalTabs = () => (
-    <div className="border-b border-gray-200">
-      <nav className="flex space-x-8">
-        <button
-          type="button"
-          onClick={() => setActiveTab('info')}
-          className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-            activeTab === 'info'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          <Building size={16} className="inline mr-2" />
-          Informations
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('hours')}
-          className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-            activeTab === 'hours'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          <Clock size={16} className="inline mr-2" />
-          Horaires
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('config')}
-          className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-            activeTab === 'config'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          <Settings size={16} className="inline mr-2" />
-          Configuration
-        </button>
-      </nav>
-    </div>
-  );
-
-  // Composant pour le formulaire d'informations
-  const InfoForm = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-      <div className="md:col-span-2">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Logo du Store
-        </label>
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
-            {logoPreview ? (
-              <img 
-                src={logoPreview} 
-                alt="Preview" 
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const parent = target.parentElement;
-                  if (parent) {
-                    parent.innerHTML = '<div class="text-gray-400"><Image size={24} /></div>';
-                  }
-                }}
-              />
+          <button
+            type="button"
+            onClick={() => {
+              isEditModalOpen ? setIsEditModalOpen(false) : setIsAddModalOpen(false);
+              resetForm();
+            }}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+          >
+            Annuler
+          </button>
+          <button
+            type="submit"
+            disabled={formLoading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium flex items-center gap-2"
+          >
+            {formLoading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                {isEditModalOpen ? 'Modification...' : 'Création...'}
+              </>
             ) : (
-              <Image size={20} className="text-gray-400" />
+              <>
+                {isEditModalOpen ? <CheckCircle size={16} /> : <Plus size={16} />}
+                {isEditModalOpen ? 'Modifier' : 'Créer'}
+              </>
             )}
-          </div>
-          <div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleLogoChange}
-              className="hidden"
-              id="logo-upload"
-            />
-            <label
-              htmlFor="logo-upload"
-              className="cursor-pointer flex items-center gap-2 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium bg-white"
-            >
-              <Upload size={14} />
-              {logoPreview ? 'Changer' : 'Téléverser'}
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div className="md:col-span-2">
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-          Nom du Store *
-        </label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          value={formData.name}
-          onChange={handleInputChange}
-          required
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          placeholder="Entrez le nom du store"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="store_type" className="block text-sm font-medium text-gray-700 mb-2">
-          Type de Store
-        </label>
-        <select
-          id="store_type"
-          name="store_type"
-          value={formData.store_type || ''}
-          onChange={handleInputChange}
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          disabled={storeTypes.length === 0}
-        >
-          <option value="">{storeTypes.length === 0 ? 'Aucun type disponible' : 'Sélectionnez un type'}</option>
-          {storeTypes.map(type => (
-            <option key={type.id} value={type.id}>
-              {type.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label htmlFor="network" className="block text-sm font-medium text-gray-700 mb-2">
-          Réseau
-        </label>
-        <select
-          id="network"
-          name="network"
-          value={formData.network || ''}
-          onChange={handleInputChange}
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          disabled={storeNetworks.length === 0}
-        >
-          <option value="">{storeNetworks.length === 0 ? 'Aucun réseau disponible' : 'Sélectionnez un réseau'}</option>
-          {storeNetworks.map(network => (
-            <option key={network.id} value={network.id}>
-              {network.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="md:col-span-2">
-        <label htmlFor="slogan" className="block text-sm font-medium text-gray-700 mb-2">
-          Slogan
-        </label>
-        <input
-          type="text"
-          id="slogan"
-          name="slogan"
-          value={formData.slogan}
-          onChange={handleInputChange}
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          placeholder="Slogan du store"
-        />
-      </div>
-
-      <div className="md:col-span-2">
-        <label htmlFor="address_line1" className="block text-sm font-medium text-gray-700 mb-2">
-          Adresse *
-        </label>
-        <input
-          type="text"
-          id="address_line1"
-          name="address_line1"
-          value={formData.address_line1}
-          onChange={handleInputChange}
-          required
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          placeholder="Adresse ligne 1"
-        />
-      </div>
-
-      <div className="md:col-span-2">
-        <label htmlFor="address_line2" className="block text-sm font-medium text-gray-700 mb-2">
-          Complément d'adresse
-        </label>
-        <input
-          type="text"
-          id="address_line2"
-          name="address_line2"
-          value={formData.address_line2}
-          onChange={handleInputChange}
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          placeholder="Adresse ligne 2"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-          Ville *
-        </label>
-        <input
-          type="text"
-          id="city"
-          name="city"
-          value={formData.city}
-          onChange={handleInputChange}
-          required
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          placeholder="Ville"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
-          Région *
-        </label>
-        <input
-          type="text"
-          id="state"
-          name="state"
-          value={formData.state}
-          onChange={handleInputChange}
-          required
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          placeholder="Région"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700 mb-2">
-          Code Postal *
-        </label>
-        <input
-          type="text"
-          id="postal_code"
-          name="postal_code"
-          value={formData.postal_code}
-          onChange={handleInputChange}
-          required
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          placeholder="Code postal"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">
-          Pays *
-        </label>
-        <input
-          type="text"
-          id="country"
-          name="country"
-          value={formData.country}
-          onChange={handleInputChange}
-          required
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          placeholder="Pays"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-          Téléphone *
-        </label>
-        <input
-          type="tel"
-          id="phone"
-          name="phone"
-          value={formData.phone}
-          onChange={handleInputChange}
-          required
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          placeholder="Téléphone"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-          Email *
-        </label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          value={formData.email}
-          onChange={handleInputChange}
-          required
-          className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-          placeholder="Email"
-        />
-      </div>
-
-      {/* Section de localisation géographique */}
-      <LocationFormSection />
-    </div>
-  );
-
-  // Composant pour les horaires d'ouverture
-  const HoursForm = () => (
-    <div className="space-y-4">
-      <p className="text-sm text-gray-600">
-        Définissez les horaires d'ouverture de votre store. Laissez vide pour les jours fermés.
-      </p>
-      
-      <div className="space-y-3">
-        {DAYS_OF_WEEK.map(day => {
-          const dayHours = formData.opening_hours?.[day.key] || {};
-          return (
-            <div key={day.key} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <div className="w-24 flex-shrink-0">
-                <label className="text-sm font-medium text-gray-700">{day.label}</label>
-              </div>
-              <div className="flex items-center gap-2 flex-1">
-                <input
-                  type="time"
-                  value={dayHours.open || ''}
-                  onChange={(e) => handleOpeningHoursChange(day.key, 'open', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-                />
-                <span className="text-gray-500">à</span>
-                <input
-                  type="time"
-                  value={dayHours.close || ''}
-                  onChange={(e) => handleOpeningHoursChange(day.key, 'close', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-                />
-                {(!dayHours.open || !dayHours.close) && (
-                  <span className="text-xs text-gray-400 ml-2">Fermé</span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  // Composant pour la configuration
-  const ConfigForm = () => (
-    <div className="space-y-6">
-      <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-3">Paramètres généraux</h4>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Devise par défaut
-            </label>
-            <select
-              value={formData.configuration?.currency || 'XOF'}
-              onChange={(e) => handleConfigChange('currency', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-            >
-              <option value="XOF">Franc CFA (XOF)</option>
-              <option value="EUR">Euro (EUR)</option>
-              <option value="USD">Dollar US (USD)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Fuseau horaire
-            </label>
-            <select
-              value={formData.configuration?.timezone || 'Africa/Dakar'}
-              onChange={(e) => handleConfigChange('timezone', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-            >
-              <option value="Africa/Dakar">Afrique/Dakar (UTC+0)</option>
-              <option value="Africa/Abidjan">Afrique/Abidjan (UTC+0)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.configuration?.online_orders || false}
-                onChange={(e) => handleConfigChange('online_orders', e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="ml-2 text-sm text-gray-700">Commandes en ligne activées</span>
-            </label>
-          </div>
-
-          <div>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.configuration?.reservations || false}
-                onChange={(e) => handleConfigChange('reservations', e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="ml-2 text-sm text-gray-700">Réservations activées</span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-3">Paramètres de notification</h4>
-        <div className="space-y-3">
-          <div>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.configuration?.email_notifications || true}
-                onChange={(e) => handleConfigChange('email_notifications', e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="ml-2 text-sm text-gray-700">Notifications par email</span>
-            </label>
-          </div>
-          <div>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.configuration?.sms_notifications || false}
-                onChange={(e) => handleConfigChange('sms_notifications', e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="ml-2 text-sm text-gray-700">Notifications par SMS</span>
-            </label>
-          </div>
+          </button>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
-      {/* En-tête */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center justify-between w-full sm:w-auto">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Building className="text-blue-600" size={28} />
-              Mes Stores
-            </h1>
-            <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">
-              Gérez l'ensemble de vos points de vente
-            </p>
+    <div className="min-h-screen bg-gray-50">
+      <ToastContainer position="top-right" autoClose={3000} />
+      
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-600 rounded-lg">
+              <StoreIcon className="text-white" size={20} />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Gestion des Stores</h1>
+              <p className="text-gray-600 text-xs">Gérez l'ensemble de vos points de vente</p>
+            </div>
           </div>
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="sm:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-          >
-            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
-        
-        <div className={`flex flex-col sm:flex-row gap-3 w-full sm:w-auto ${isMobileMenuOpen ? 'flex' : 'hidden sm:flex'}`}>
-          <div className="flex gap-2">
+          
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setCurrentView('grid')}
-              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg border text-sm font-medium ${
-                currentView === 'grid' 
-                  ? 'bg-blue-600 text-white border-blue-600' 
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
+              onClick={() => setIsExporting(true)}
+              className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm"
             >
-              Grille
+              <Download size={16} />
+              <span className="hidden sm:inline">Exporter</span>
             </button>
+            
             <button
-              onClick={() => setCurrentView('list')}
-              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg border text-sm font-medium ${
-                currentView === 'list' 
-                  ? 'bg-blue-600 text-white border-blue-600' 
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
             >
-              Liste
-            </button>
-          </div>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium text-sm sm:text-base"
-          >
-            <Plus size={18} />
-            <span>Nouveau Store</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Statistiques */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-xl text-white shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-xs font-medium">Total Stores</p>
-              <p className="text-lg sm:text-2xl font-bold mt-1">{stats.total}</p>
-              <p className="text-blue-100 text-xs mt-1">{stats.active} actifs • {stats.inactive} inactifs</p>
-            </div>
-            <StoreIcon className="text-blue-200" size={16} />
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-4 rounded-xl text-white shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-xs font-medium">Employés</p>
-              <p className="text-lg sm:text-2xl font-bold mt-1">{stats.totalEmployees}</p>
-              <p className="text-purple-100 text-xs mt-1">Moyenne: {stats.averageEmployees}/store</p>
-            </div>
-            <Users className="text-purple-200" size={16} />
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-4 rounded-xl text-white shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-indigo-100 text-xs font-medium">Stock de Produits</p>
-              <p className="text-lg sm:text-2xl font-bold mt-1">{stats.totalProducts}</p>
-              <p className="text-indigo-100 text-xs mt-1">En stock total</p>
-            </div>
-            <Package2 className="text-indigo-200" size={16} />
-          </div>
-        </div>
-      </div>
-
-      {/* Barre de recherche et filtres */}
-      <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-          <div className="flex-1 relative min-w-0 w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Rechercher un store, une ville..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-2 sm:gap-3 w-full lg:w-auto">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white min-w-[140px]"
-            >
-              <option value="all">Tous les statuts</option>
-              <option value="active">🟢 Actifs</option>
-              <option value="inactive">🔴 Inactifs</option>
-            </select>
-
-            <button 
-              onClick={loadInitialData}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium"
-            >
-              <RefreshCw size={16} />
-              <span className="hidden sm:inline">Actualiser</span>
+              <Plus size={16} />
+              <span>Nouveau Store</span>
             </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Contenu des stores */}
-      {currentView === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-          {loading ? (
-            Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm animate-pulse">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
-                    <div className="space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-24"></div>
-                      <div className="h-3 bg-gray-200 rounded w-16"></div>
-                    </div>
-                  </div>
-                  <div className="h-6 bg-gray-200 rounded w-12"></div>
-                </div>
-                <div className="space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-32"></div>
-                  <div className="h-4 bg-gray-200 rounded w-24"></div>
-                  <div className="flex justify-between pt-2">
-                    <div className="flex gap-4">
-                      <div className="h-4 bg-gray-200 rounded w-8"></div>
-                      <div className="h-4 bg-gray-200 rounded w-8"></div>
-                    </div>
-                    <div className="flex gap-1">
-                      <div className="h-6 bg-gray-200 rounded w-6"></div>
-                      <div className="h-6 bg-gray-200 rounded w-6"></div>
-                    </div>
-                  </div>
-                </div>
+      {/* Main Content */}
+      <main className="p-4 space-y-4">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatCard 
+            title="Total Stores" 
+            value={stats.total}
+            icon={StoreIcon}
+            color="blue"
+            description={`${stats.active} actifs`}
+          />
+          <StatCard 
+            title="Employés totaux" 
+            value={stats.totalEmployees}
+            icon={Users}
+            color="green"
+            description={`${stats.averageEmployees} en moyenne`}
+          />
+          <StatCard 
+            title="Produits en stock" 
+            value={stats.totalProducts}
+            icon={Package2}
+            color="purple"
+            description="Sur tous les stores"
+          />
+          <StatCard 
+            title="Taux d'activité" 
+            value={`${stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}%`}
+            icon={TrendingUp}
+            color="orange"
+          />
+        </div>
+
+        {/* Filters and Controls */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Rechercher un store..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
               </div>
-            ))
-          ) : filteredStores.length === 0 ? (
-            <div className="col-span-full bg-white rounded-2xl border border-gray-200 p-8 sm:p-12 text-center">
-              <div className="flex flex-col items-center justify-center text-gray-500">
-                <StoreIcon size={48} className="text-gray-300 mb-4" />
-                <p className="text-lg font-medium text-gray-900">Aucun store trouvé</p>
-                <p className="text-gray-600 mt-1 text-sm sm:text-base">
-                  {searchTerm || statusFilter !== 'all' 
-                    ? 'Aucun store ne correspond à vos critères de recherche.' 
-                    : 'Commencez par créer votre premier store.'}
-                </p>
-                {!searchTerm && statusFilter === 'all' && (
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className="flex items-center gap-1 px-3 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm"
+              >
+                <Filter size={16} />
+                Filtres
+              </button>
+              
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setCurrentView('grid')}
+                  className={`p-1.5 rounded transition-all ${
+                    currentView === 'grid' 
+                      ? 'bg-white text-blue-600 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="Vue grille"
+                >
+                  <Grid3x3 size={18} />
+                </button>
+                <button
+                  onClick={() => setCurrentView('list')}
+                  className={`p-1.5 rounded transition-all ${
+                    currentView === 'list' 
+                      ? 'bg-white text-blue-600 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                  title="Vue liste"
+                >
+                  <List size={18} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {showAdvancedFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-gray-200">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Statut
+                    </label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    >
+                      <option value="all">Tous les statuts</option>
+                      <option value="active">Actifs</option>
+                      <option value="inactive">Inactifs</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Type
+                    </label>
+                    <select
+                      value={selectedStoreType}
+                      onChange={(e) => setSelectedStoreType(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    >
+                      <option value="all">Tous les types</option>
+                      {storeTypes.map(type => (
+                        <option key={type.id} value={type.id.toString()}>{type.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Réseau
+                    </label>
+                    <select
+                      value={selectedNetwork}
+                      onChange={(e) => setSelectedNetwork(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    >
+                      <option value="all">Tous les réseaux</option>
+                      {storeNetworks.map(network => (
+                        <option key={network.id} value={network.id.toString()}>{network.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+            <div className="text-sm text-gray-600">
+              {filteredStores.length} store{filteredStores.length > 1 ? 's' : ''} trouvé{filteredStores.length > 1 ? 's' : ''}
+              {searchTerm && (
+                <span className="text-gray-900 font-medium"> pour "{searchTerm}"</span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 hidden sm:inline">Trier par:</span>
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                {[
+                  { field: 'name', label: 'Nom' },
+                  { field: 'created_at', label: 'Date' },
+                  { field: 'total_employees', label: 'Employés' },
+                  { field: 'total_products', label: 'Produits' }
+                ].map(({ field, label }) => (
                   <button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="mt-4 flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors shadow-sm font-medium"
+                    key={field}
+                    onClick={() => toggleSort(field as SortField)}
+                    className={`px-3 py-1 rounded text-xs transition-all ${
+                      sortBy === field
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
                   >
-                    <Plus size={20} />
-                    Créer un store
+                    {label}
                   </button>
-                )}
+                ))}
               </div>
             </div>
-          ) : (
-            filteredStores.map((store) => (
-              <StoreCard key={store.id} store={store} />
-            ))
-          )}
+          </div>
         </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => toggleSort('name')}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Building size={14} />
-                      <span className="hidden sm:inline">Store</span>
-                      <ArrowUpDown size={12} className="text-gray-400" />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider hidden sm:table-cell">
-                    Localisation
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider hidden lg:table-cell">
-                    Contact
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => toggleSort('total_employees')}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Users size={14} />
-                      <span className="hidden xs:inline">Employés</span>
-                      <ArrowUpDown size={12} className="text-gray-400" />
-                    </div>
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider hidden sm:table-cell"
-                    onClick={() => toggleSort('total_products')}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Package2 size={14} />
-                      <span className="hidden xs:inline">Stock</span>
-                      <ArrowUpDown size={12} className="text-gray-400" />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider hidden xl:table-cell">
-                    Statut
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {loading ? (
-                  Array.from({ length: 3 }).map((_, index) => (
-                    <tr key={index} className="animate-pulse">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
-                          <div className="space-y-2">
-                            <div className="h-4 bg-gray-200 rounded w-20"></div>
-                            <div className="h-3 bg-gray-200 rounded w-12"></div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell">
-                        <div className="space-y-2">
-                          <div className="h-4 bg-gray-200 rounded w-24"></div>
-                          <div className="h-3 bg-gray-200 rounded w-16"></div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 hidden lg:table-cell">
-                        <div className="space-y-2">
-                          <div className="h-4 bg-gray-200 rounded w-20"></div>
-                          <div className="h-3 bg-gray-200 rounded w-16"></div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="h-4 bg-gray-200 rounded w-8"></div>
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell">
-                        <div className="h-4 bg-gray-200 rounded w-8"></div>
-                      </td>
-                      <td className="px-4 py-3 hidden xl:table-cell">
-                        <div className="h-6 bg-gray-200 rounded w-12"></div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          <div className="h-6 bg-gray-200 rounded w-6"></div>
-                          <div className="h-6 bg-gray-200 rounded w-6"></div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : filteredStores.length === 0 ? (
+
+        {/* Stores Grid/List */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 size={32} className="text-blue-600 animate-spin mb-3" />
+            <p className="text-gray-600">Chargement des stores...</p>
+          </div>
+        ) : filteredStores.length === 0 ? (
+          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <StoreIcon className="text-blue-400" size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              {searchTerm || showAdvancedFilters ? 'Aucun résultat' : 'Aucun store'}
+            </h3>
+            <p className="text-gray-600 mb-6 text-sm">
+              {searchTerm 
+                ? `Aucun store ne correspond à "${searchTerm}".`
+                : 'Commencez par créer votre premier store.'}
+            </p>
+            <div className="flex gap-2 justify-center">
+              {(searchTerm || showAdvancedFilters) && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setSelectedStoreType('all');
+                    setSelectedNetwork('all');
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                >
+                  Réinitialiser
+                </button>
+              )}
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
+              >
+                Créer un store
+              </button>
+            </div>
+          </div>
+        ) : currentView === 'grid' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredStores.map(store => (
+              <StoreCard
+                key={store.id}
+                store={store}
+                onEdit={() => openEditModal(store)}
+                onDelete={() => openDeleteModal(store)}
+                onToggleStatus={() => handleToggleStatus(store.id)}
+                onView={() => openQuickView(store)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-full">
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-500">
-                        <StoreIcon size={32} className="text-gray-300 mb-2" />
-                        <p className="font-medium text-gray-900">Aucun store trouvé</p>
-                        <p className="text-gray-600 mt-1 text-sm">
-                          {searchTerm || statusFilter !== 'all' 
-                            ? 'Aucun store ne correspond à vos critères.' 
-                            : 'Créez votre premier store.'}
-                        </p>
-                      </div>
-                    </td>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900">
+                      Store
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 hidden sm:table-cell">
+                      Contact
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900">
+                      Statut
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900">
+                      Actions
+                    </th>
                   </tr>
-                ) : (
-                  filteredStores.map((store) => (
-                    <tr key={store.id} className="hover:bg-gray-50 transition-colors">
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredStores.map(store => (
+                    <tr key={store.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-semibold text-xs">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold">
                             {store.logo ? (
                               <img 
                                 src={store.logo} 
                                 alt={store.name}
-                                className="w-8 h-8 rounded-lg object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  const parent = target.parentElement;
-                                  if (parent) {
-                                    parent.innerHTML = `<span>${store.name.charAt(0)}</span>`;
-                                  }
-                                }}
+                                className="w-10 h-10 rounded-lg object-cover"
                               />
                             ) : (
                               store.name.charAt(0)
@@ -1719,60 +1559,24 @@ const StorePage = () => {
                           </div>
                           <div>
                             <p className="font-medium text-gray-900 text-sm">{store.name}</p>
-                            <p className="text-xs text-gray-500">{store.store_type_name || 'Non spécifié'}</p>
+                            <p className="text-xs text-gray-600">{store.address_details?.city || 'Non localisé'}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell">
-                        <div className="flex items-start gap-2">
-                          <MapPin size={14} className="text-gray-400 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-sm text-gray-900">{store.address_details?.city || 'Non spécifié'}</p>
-                            <p className="text-xs text-gray-500 line-clamp-1">
-                              {storeService.getFullAddress(store)}
-                            </p>
-                            {(store.latitude && store.longitude) && (
-                              <LocationDisplay 
-                                latitude={store.latitude} 
-                                longitude={store.longitude} 
-                                accuracy={(store as any).accuracy}
-                              />
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 hidden lg:table-cell">
                         <div className="space-y-1">
                           {store.phone && (
-                            <p className="text-sm text-gray-900 flex items-center gap-2">
-                              <Phone size={12} className="text-gray-400" />
-                              {store.phone}
-                            </p>
+                            <p className="text-sm text-gray-900">{store.phone}</p>
                           )}
                           {store.email && (
-                            <p className="text-sm text-gray-900 flex items-center gap-2">
-                              <Mail size={12} className="text-gray-400" />
-                              <span className="truncate max-w-[120px]">{store.email}</span>
-                            </p>
+                            <p className="text-sm text-gray-600 truncate max-w-[150px]">{store.email}</p>
                           )}
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2 text-sm text-gray-900">
-                          <Users size={14} className="text-gray-400" />
-                          {store.total_employees}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell">
-                        <div className="flex items-center gap-2 text-sm text-gray-900">
-                          <Package2 size={14} className="text-gray-400" />
-                          {store.total_products}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 hidden xl:table-cell">
                         <button
                           onClick={() => handleToggleStatus(store.id)}
-                          className={`px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                          className={`px-3 py-1 rounded-lg text-xs font-medium ${
                             store.is_active
                               ? 'bg-green-100 text-green-800 hover:bg-green-200'
                               : 'bg-red-100 text-red-800 hover:bg-red-200'
@@ -1784,176 +1588,278 @@ const StorePage = () => {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <button
+                            onClick={() => openQuickView(store)}
+                            className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
                             onClick={() => openEditModal(store)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="Modifier"
+                            className="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded"
                           >
                             <Edit size={16} />
                           </button>
                           <button
                             onClick={() => openDeleteModal(store)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Supprimer"
+                            className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
                           >
                             <Trash2 size={16} />
                           </button>
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Modal d'ajout */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
-          <div className="bg-white rounded-xl sm:rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="p-4 sm:p-6 border-b border-gray-200">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center gap-2">
-                <Plus size={20} />
-                Nouveau Store
-              </h2>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            
-            <ModalTabs />
-            
-            <form onSubmit={handleAddStore} className="p-4 sm:p-6">
-              {activeTab === 'info' && <InfoForm />}
-              {activeTab === 'hours' && <HoursForm />}
-              {activeTab === 'config' && <ConfigForm />}
-              
-              <div className="flex justify-end gap-2 sm:gap-3 pt-6 border-t border-gray-200 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAddModalOpen(false);
-                    resetForm();
-                  }}
-                  className="px-4 sm:px-6 py-2 sm:py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm sm:text-base"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={formLoading}
-                  className="px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                >
-                  {formLoading ? 'Création...' : 'Créer le store'}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+        )}
+      </main>
 
-      {/* Modal de modification */}
-      {isEditModalOpen && selectedStore && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
-          <div className="bg-white rounded-xl sm:rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="p-4 sm:p-6 border-b border-gray-200">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center gap-2">
-                <Edit size={20} />
-                Modifier le Store
-              </h2>
-            </div>
-            
-            <ModalTabs />
-            
-            <form onSubmit={handleEditStore} className="p-4 sm:p-6">
-              {activeTab === 'info' && <InfoForm />}
-              {activeTab === 'hours' && <HoursForm />}
-              {activeTab === 'config' && <ConfigForm />}
-              
-              <div className="flex justify-end gap-2 sm:gap-3 pt-6 border-t border-gray-200 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditModalOpen(false);
-                    resetForm();
-                  }}
-                  className="px-4 sm:px-6 py-2 sm:py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm sm:text-base"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={formLoading}
-                  className="px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                >
-                  {formLoading ? 'Modification...' : 'Modifier le store'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de suppression */}
-      {isDeleteModalOpen && selectedStore && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
-          <div className="bg-white rounded-xl sm:rounded-2xl w-full max-w-md">
-            <div className="p-4 sm:p-6 border-b border-gray-200">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center gap-2">
-                <Trash2 size={20} className="text-red-600" />
-                Supprimer le store
-              </h2>
-            </div>
-            <div className="p-4 sm:p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-semibold">
-                  {selectedStore.logo ? (
-                    <img 
-                      src={selectedStore.logo} 
-                      alt={selectedStore.name}
-                      className="w-12 h-12 rounded-lg object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent) {
-                          parent.innerHTML = `<span>${selectedStore.name.charAt(0)}</span>`;
-                        }
-                      }}
-                    />
-                  ) : (
-                    selectedStore.name.charAt(0)
-                  )}
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">{selectedStore.name}</p>
-                  <p className="text-sm text-gray-500">{selectedStore.store_type_name || 'Non spécifié'}</p>
+      {/* Modals */}
+      <AnimatePresence>
+        {/* Add/Edit Modal */}
+        {(isAddModalOpen || isEditModalOpen) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-xl w-full max-w-2xl my-8"
+            >
+              <div className="p-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-gray-900">
+                    {isEditModalOpen ? 'Modifier le Store' : 'Nouveau Store'}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      isEditModalOpen ? setIsEditModalOpen(false) : setIsAddModalOpen(false);
+                      resetForm();
+                    }}
+                    className="p-1 hover:bg-gray-100 rounded"
+                  >
+                    <X size={20} />
+                  </button>
                 </div>
               </div>
-              <p className="text-gray-600 text-sm sm:text-base">
-                Êtes-vous sûr de vouloir supprimer le store <strong>"{selectedStore.name}"</strong> ? 
-                Cette action est irréversible et supprimera toutes les données associées.
-              </p>
-            </div>
-            <div className="flex justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  setIsDeleteModalOpen(false);
-                  resetForm();
-                }}
-                className="px-4 sm:px-6 py-2 sm:py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm sm:text-base"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleDeleteStore}
-                disabled={formLoading}
-                className="px-4 sm:px-6 py-2 sm:py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-              >
-                {formLoading ? 'Suppression...' : 'Supprimer'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
+              <form onSubmit={isEditModalOpen ? handleEditStore : handleAddStore} className="p-4">
+                <CompactForm />
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Delete Modal */}
+        {isDeleteModalOpen && selectedStore && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white rounded-xl w-full max-w-sm"
+            >
+              <div className="p-4">
+                <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mx-auto mb-3">
+                  <Trash2 className="text-red-600" size={24} />
+                </div>
+                
+                <h3 className="text-lg font-bold text-gray-900 text-center mb-3">
+                  Supprimer le store
+                </h3>
+                
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold">
+                    {selectedStore.logo ? (
+                      <img 
+                        src={selectedStore.logo} 
+                        alt={selectedStore.name}
+                        className="w-10 h-10 rounded-lg object-cover"
+                      />
+                    ) : (
+                      selectedStore.name.charAt(0)
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{selectedStore.name}</p>
+                    <p className="text-sm text-gray-600">{selectedStore.address_details?.city}</p>
+                  </div>
+                </div>
+                
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="text-red-600 mt-0.5" size={16} />
+                    <p className="text-sm text-red-800">
+                      Cette action est irréversible. Toutes les données seront supprimées.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsDeleteModalOpen(false)}
+                    className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleDeleteStore}
+                    disabled={formLoading}
+                    className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium"
+                  >
+                    {formLoading ? 'Suppression...' : 'Supprimer'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Quick View Modal */}
+        {isQuickViewOpen && selectedStore && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-xl w-full max-w-md"
+            >
+              <div className="p-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold">
+                      {selectedStore.logo ? (
+                        <img 
+                          src={selectedStore.logo} 
+                          alt={selectedStore.name}
+                          className="w-12 h-12 rounded-xl object-cover"
+                        />
+                      ) : (
+                        selectedStore.name.charAt(0)
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900">{selectedStore.name}</h3>
+                      <p className="text-sm text-gray-600">{selectedStore.slogan || 'Aucun slogan'}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsQuickViewOpen(false)}
+                    className="p-1 hover:bg-gray-100 rounded"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-4">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Informations</h4>
+                    <div className="space-y-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <Building size={14} />
+                        {selectedStore.store_type_name || 'Non spécifié'}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Globe size={14} />
+                        {selectedStore.network_name || 'Aucun réseau'}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar size={14} />
+                        Créé le {new Date(selectedStore.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Contact</h4>
+                    <div className="space-y-2 text-sm text-gray-600">
+                      {selectedStore.phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone size={14} />
+                          {selectedStore.phone}
+                        </div>
+                      )}
+                      {selectedStore.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail size={14} />
+                          {selectedStore.email}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Adresse</h4>
+                    <div className="flex items-start gap-2 text-sm text-gray-600">
+                      <MapPin size={14} className="mt-0.5 flex-shrink-0" />
+                      <div>
+                        {selectedStore.address_details?.city && (
+                          <p>{selectedStore.address_details.city}</p>
+                        )}
+                        <p className="text-gray-500 text-xs">
+                          {storeService.getFullAddress(selectedStore)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Statistiques</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="text-center p-3 bg-blue-50 rounded-lg">
+                        <div className="text-lg font-bold text-blue-700">{selectedStore.total_employees}</div>
+                        <div className="text-xs text-blue-600">Employés</div>
+                      </div>
+                      <div className="text-center p-3 bg-green-50 rounded-lg">
+                        <div className="text-lg font-bold text-green-700">{selectedStore.total_products}</div>
+                        <div className="text-xs text-green-600">Produits</div>
+                      </div>
+                    </div>
+                  </div>
+                </div> 
+              </div>
+              
+              <div className="p-4 border-t border-gray-200">
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      setIsQuickViewOpen(false);
+                      openEditModal(selectedStore);
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                  >
+                    Modifier
+                  </button>
+                  <button
+                    onClick={() => window.open(`/stores/${selectedStore.id}`, '_blank')}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
+                  >
+                    Détails
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

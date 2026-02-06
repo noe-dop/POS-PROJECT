@@ -1,16 +1,15 @@
+// src/services/supplyService.ts
 import { api } from './api';
 
-// Types basés sur vos sérialiseurs Django
+// Types basés sur votre modèle Django
 
-// AJOUTEZ cette interface pour les magasins
 export interface Store {
   id: number;
   name: string;
-  address?: string;
+  slug: string;
   phone?: string;
   email?: string;
-  manager?: string;
-  is_active?: boolean;
+  is_active: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -23,9 +22,7 @@ export interface Supplier {
   emplacement?: string;
   contact_person?: string;
   payment_terms?: string;
-  store?: number;
-  store_name?: string;
-  total_supplies?: number;
+  store: number; // OBLIGATOIRE - ID du magasin
   address?: string;
   phone?: string;
   created_at?: string;
@@ -34,13 +31,11 @@ export interface Supplier {
 
 export interface RetailSupply {
   id: number;
-  supply?: number;
-  product?: number;
-  product_name?: string;
-  quantity: number;
-  unit_cost?: number;
-  batch_number?: string;
-  expiry_date?: string;
+  ref: number;
+  name_product: string;
+  qt_add: number;
+  total_pdx: number;
+  supply: number; // ID de l'approvisionnement
   supply_reference?: string;
   created_at?: string;
   updated_at?: string;
@@ -49,36 +44,42 @@ export interface RetailSupply {
 export interface Supply {
   id: number;
   ref_supply: string;
-  supplier?: Supplier;
+  supplier?: Supplier | null;
   supplier_name?: string;
-  store?: number;
-  store_object?: Store; // AJOUTÉ : Objet magasin complet
+  store: number; // ID du magasin
+  store_object?: Store;
   store_name?: string;
-  utilisateur?: any;
+  utilisateur: number; // OBLIGATOIRE - ID de l'Employee
+  utilisateur_object?: any;
   utilisateur_name?: string;
   total_command: number;
   date_supply: string;
   status: 'pending' | 'received' | 'cancelled';
   retail_items?: RetailSupply[];
   total_items?: number;
-  notes?: string;
   status_display?: string;
   created_at?: string;
   updated_at?: string;
-  created_by?: number;
-  updated_by?: number;
 }
 
+// CORRECTIF SELON MODÈLE DJANGO : AJOUTER UTILISATEUR OBLIGATOIRE
 export interface CreateSupplyData {
   ref_supply: string;
-  supplier: number;
-  store: number;
-  utilisateur: number;
+  supplier?: number | null; // Nullable selon le modèle
+  store: number; // OBLIGATOIRE - ID du magasin
   total_command: number;
-  date_supply: string;
+  utilisateur: number; // OBLIGATOIRE - ID de l'Employee
+  status: 'pending' | 'received' | 'cancelled';
+}
+
+// Ajouter un type pour la mise à jour (partial de CreateSupplyData)
+export interface UpdateSupplyData {
+  ref_supply?: string;
+  supplier?: number | null; // Nullable selon le modèle
+  store?: number; // ID du magasin
+  total_command?: number;
+  utilisateur?: number; // ID de l'Employee
   status?: 'pending' | 'received' | 'cancelled';
-  notes?: string;
-  retail_items?: Partial<RetailSupply>[];
 }
 
 export interface CreateSupplierData {
@@ -88,46 +89,65 @@ export interface CreateSupplierData {
   emplacement?: string;
   contact_person?: string;
   payment_terms?: string;
-  store: number;
+  store: number; // OBLIGATOIRE - ID du magasin
   address?: string;
   phone?: string;
 }
 
 class SupplyService {
   /**
-   * Récupérer tous les approvisionnements depuis la base de données réelle
+   * Récupérer tous les approvisionnements avec filtres optionnels
    */
   async getSupplies(params?: any): Promise<Supply[]> {
     try {
       console.log('📦 Chargement des approvisionnements depuis la base de données...', params);
       
-      const response = await api.get<any>('/supplies/', { params });
+      // Nettoyer les paramètres - supprimer les valeurs vides ou 'all'
+      const cleanParams: Record<string, any> = {};
+      if (params) {
+        Object.keys(params).forEach(key => {
+          const value = params[key];
+          if (value !== undefined && value !== null && value !== '' && value !== 'all') {
+            cleanParams[key] = value;
+          }
+        });
+      }
+      
+      console.log('🔧 Paramètres nettoyés:', cleanParams);
+      
+      const response = await api.get<any>('/supplies/', { params: cleanParams });
       
       console.log('📋 Réponse API approvisionnements:', response);
       
       let supplies: Supply[] = [];
       
+      // Gérer tous les formats de réponse possibles
       if (Array.isArray(response)) {
         supplies = response;
       } else if (response && Array.isArray(response.results)) {
         supplies = response.results;
       } else if (response && Array.isArray(response.data)) {
         supplies = response.data;
+      } else if (response && typeof response === 'object' && response.data && Array.isArray(response.data)) {
+        supplies = response.data;
+      } else if (response && typeof response === 'object') {
+        // Si c'est un objet unique, le convertir en tableau
+        supplies = [response];
       } else {
-        console.error('❌ Format de réponse inattendu:', response);
-        throw new Error('Format de réponse API invalide');
+        console.warn('❌ Format de réponse inattendu, retour tableau vide:', response);
+        supplies = [];
       }
       
       console.log(`✅ ${supplies.length} approvisionnement(s) chargé(s) depuis la base de données`);
       return supplies;
     } catch (error) {
       console.error('❌ Erreur lors du chargement des approvisionnements:', error);
-      throw new Error('Impossible de charger les approvisionnements depuis la base de données');
+      throw new Error('Impossible de charger les approvisionnements');
     }
   }
 
   /**
-   * Récupérer tous les fournisseurs depuis la base de données réelle
+   * Récupérer tous les fournisseurs
    */
   async getSuppliers(params?: any): Promise<Supplier[]> {
     try {
@@ -138,27 +158,31 @@ class SupplyService {
       
       let suppliers: Supplier[] = [];
       
+      // Gérer tous les formats de réponse possibles
       if (Array.isArray(response)) {
         suppliers = response;
       } else if (response && Array.isArray(response.results)) {
         suppliers = response.results;
       } else if (response && Array.isArray(response.data)) {
         suppliers = response.data;
+      } else if (response && typeof response === 'object') {
+        // Si c'est un objet unique, le convertir en tableau
+        suppliers = [response];
       } else {
-        console.error('❌ Format de réponse inattendu:', response);
-        throw new Error('Format de réponse API invalide');
+        console.warn('❌ Format de réponse inattendu, retour tableau vide:', response);
+        suppliers = [];
       }
       
       console.log(`✅ ${suppliers.length} fournisseur(s) chargé(s) depuis la base de données`);
       return suppliers;
     } catch (error) {
       console.error('❌ Erreur lors du chargement des fournisseurs:', error);
-      throw new Error('Impossible de charger les fournisseurs depuis la base de données');
+      throw new Error('Impossible de charger les fournisseurs');
     }
   }
 
   /**
-   * Récupérer tous les magasins depuis la base de données réelle - NOUVELLE MÉTHODE
+   * Récupérer tous les magasins
    */
   async getStores(): Promise<Store[]> {
     try {
@@ -169,41 +193,31 @@ class SupplyService {
       
       let stores: Store[] = [];
       
+      // Gérer tous les formats de réponse possibles
       if (Array.isArray(response)) {
         stores = response;
       } else if (response && Array.isArray(response.results)) {
         stores = response.results;
       } else if (response && Array.isArray(response.data)) {
         stores = response.data;
+      } else if (response && typeof response === 'object') {
+        // Si c'est un objet unique, le convertir en tableau
+        stores = [response];
       } else {
-        console.error('❌ Format de réponse inattendu pour les magasins:', response);
-        console.warn('⚠️ Utilisation de magasins par défaut...');
-        
-        // Retourner des magasins par défaut si l'API n'est pas disponible
-        return [
-          { id: 1, name: 'Magasin Principal', address: '123 Rue Principale, Ville', is_active: true },
-          { id: 2, name: 'Entrepôt Central', address: '456 Avenue Industrielle, Zone', is_active: true },
-          { id: 3, name: 'Boutique Ville', address: '789 Boulevard Commercial, Centre', is_active: true }
-        ];
+        console.warn('❌ Format de réponse inattendu, retour tableau vide:', response);
+        stores = [];
       }
       
       console.log(`✅ ${stores.length} magasin(s) chargé(s) depuis la base de données`);
       return stores;
     } catch (error) {
       console.error('❌ Erreur lors du chargement des magasins:', error);
-      console.warn('⚠️ Utilisation de magasins par défaut suite à une erreur...');
-      
-      // Retourner des magasins par défaut en cas d'erreur
-      return [
-        { id: 1, name: 'Magasin Principal', address: '123 Rue Principale, Ville', is_active: true },
-        { id: 2, name: 'Entrepôt Central', address: '456 Avenue Industrielle, Zone', is_active: true },
-        { id: 3, name: 'Boutique Ville', address: '789 Boulevard Commercial, Centre', is_active: true }
-      ];
+      throw new Error('Impossible de charger les magasins');
     }
   }
 
   /**
-   * Récupérer un approvisionnement par ID depuis la base de données réelle
+   * Récupérer un approvisionnement par ID
    */
   async getSupplyById(id: number): Promise<Supply> {
     try {
@@ -213,97 +227,231 @@ class SupplyService {
       return response;
     } catch (error) {
       console.error(`❌ Erreur récupération approvisionnement ${id}:`, error);
-      throw new Error(`Impossible de charger l'approvisionnement ${id} depuis la base de données`);
+      throw new Error(`Impossible de charger l'approvisionnement ${id}`);
     }
   }
 
   /**
-   * Créer un nouvel approvisionnement dans la base de données
+   * Créer un approvisionnement
    */
   async createSupply(supplyData: CreateSupplyData): Promise<Supply> {
     try {
-      const payload = {
-        ...supplyData,
+      // VÉRIFICATION DES DONNÉES OBLIGATOIRES
+      if (!supplyData.store || supplyData.store <= 0) {
+        throw new Error('Le magasin est obligatoire et doit être valide');
+      }
+      
+      if (!supplyData.utilisateur || supplyData.utilisateur <= 0) {
+        throw new Error('L\'utilisateur (employé) est obligatoire');
+      }
+      
+      if (!supplyData.total_command || supplyData.total_command < 0) {
+        throw new Error('Le total de la commande doit être un nombre positif');
+      }
+      
+      // FORMATAGE CORRECT POUR DJANGO
+      const payload: Record<string, any> = {
+        ref_supply: supplyData.ref_supply,
+        store: supplyData.store,
+        utilisateur: supplyData.utilisateur,
+        total_command: Number(supplyData.total_command),
         status: supplyData.status || 'pending',
-        date_supply: supplyData.date_supply || new Date().toISOString(),
-        retail_items: supplyData.retail_items || []
       };
 
-      console.log('📤 Création approvisionnement dans la base de données:', payload);
+      // Gérer correctement supplier (peut être null ou undefined)
+      if (supplyData.supplier !== undefined && supplyData.supplier !== null) {
+        const supplierId = Number(supplyData.supplier);
+        if (!isNaN(supplierId) && supplierId > 0) {
+          payload.supplier = supplierId;
+        } else {
+          console.warn('⚠️ ID fournisseur non valide, ignoré:', supplyData.supplier);
+        }
+      }
+
+      console.log('📤 Création approvisionnement - Payload final:');
+      console.log('Données envoyées:', JSON.stringify(payload, null, 2));
+      
       const response = await api.post<Supply>('/supplies/', payload);
-      console.log('✅ Approvisionnement créé dans la base de données:', response);
+      console.log('✅ Approvisionnement créé avec succès');
       return response;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erreur création approvisionnement:', error);
-      throw new Error('Impossible de créer l\'approvisionnement dans la base de données');
+      
+      // Afficher les détails de l'erreur Django
+      if (error.response?.data) {
+        console.error('📋 ERREURS DE VALIDATION DJANGO:');
+        console.error(JSON.stringify(error.response.data, null, 2));
+        
+        // Formater les erreurs pour l'affichage
+        if (typeof error.response.data === 'object') {
+          const errors: string[] = [];
+          Object.keys(error.response.data).forEach(key => {
+            const value = error.response.data[key];
+            if (Array.isArray(value)) {
+              errors.push(`${key}: ${value.join(', ')}`);
+            } else if (typeof value === 'string') {
+              errors.push(value);
+            }
+          });
+          
+          if (errors.length > 0) {
+            throw new Error(`Erreurs de validation: ${errors.join('; ')}`);
+          }
+        }
+      }
+      
+      throw new Error(`Impossible de créer l'approvisionnement: ${error.response?.data?.detail || error.message}`);
     }
   }
 
   /**
-   * Mettre à jour un approvisionnement dans la base de données
+   * Mettre à jour un approvisionnement - CORRIGÉ
    */
-  async updateSupply(id: number, supplyData: Partial<Supply>): Promise<Supply> {
+  async updateSupply(id: number, supplyData: Partial<CreateSupplyData>): Promise<Supply> {
     try {
-      const payload = {
-        ...supplyData,
-        supplier: supplyData.supplier?.id || supplyData.supplier,
-        store: supplyData.store?.id || supplyData.store,
-        utilisateur: supplyData.utilisateur?.id || supplyData.utilisateur
-      };
+      console.log('🔄 Mise à jour de l\'approvisionnement:', { id, supplyData });
+      
+      const payload: Record<string, any> = {};
+      
+      // Ajouter seulement les champs fournis avec formatage approprié
+      if (supplyData.supplier !== undefined) {
+        if (supplyData.supplier === null || supplyData.supplier === '') {
+          payload.supplier = null;
+        } else {
+          const supplierId = Number(supplyData.supplier);
+          if (!isNaN(supplierId) && supplierId > 0) {
+            payload.supplier = supplierId;
+          }
+        }
+      }
+      
+      if (supplyData.store !== undefined) {
+        const storeId = Number(supplyData.store);
+        if (!isNaN(storeId) && storeId > 0) {
+          payload.store = storeId;
+        }
+      }
+      
+      if (supplyData.total_command !== undefined) {
+        payload.total_command = Number(supplyData.total_command);
+      }
+      
+      if (supplyData.status !== undefined) {
+        payload.status = supplyData.status;
+      }
+      
+      if (supplyData.utilisateur !== undefined) {
+        const utilisateurId = Number(supplyData.utilisateur);
+        if (!isNaN(utilisateurId) && utilisateurId > 0) {
+          payload.utilisateur = utilisateurId;
+        }
+      }
+      
+      if (supplyData.ref_supply !== undefined) {
+        payload.ref_supply = supplyData.ref_supply;
+      }
 
-      console.log('📤 Mise à jour approvisionnement dans la base de données:', payload);
+      console.log('📤 Payload envoyé pour mise à jour:', JSON.stringify(payload, null, 2));
+      
       const response = await api.patch<Supply>(`/supplies/${id}/`, payload);
-      console.log('✅ Approvisionnement mis à jour dans la base de données:', response);
+      console.log('✅ Approvisionnement mis à jour avec succès');
       return response;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ Erreur mise à jour approvisionnement ${id}:`, error);
-      throw new Error(`Impossible de mettre à jour l'approvisionnement ${id} dans la base de données`);
+      
+      // Afficher les détails de l'erreur
+      if (error.response) {
+        console.error('📋 Détails de l\'erreur:', {
+          status: error.response.status,
+          data: error.response.data
+        });
+        
+        // Formater un message d'erreur plus utile
+        let errorMessage = `Impossible de mettre à jour l'approvisionnement ${id}`;
+        
+        if (error.response.status === 400) {
+          if (error.response.data) {
+            const errors = [];
+            for (const [key, value] of Object.entries(error.response.data)) {
+              if (Array.isArray(value)) {
+                errors.push(`${key}: ${value.join(', ')}`);
+              } else if (typeof value === 'string') {
+                errors.push(value);
+              }
+            }
+            if (errors.length > 0) {
+              errorMessage = `Erreurs de validation: ${errors.join('; ')}`;
+            }
+          }
+        } else if (error.response.status === 404) {
+          errorMessage = `L'approvisionnement ${id} n'existe pas`;
+        } else if (error.response.status === 403) {
+          errorMessage = 'Vous n\'avez pas la permission de modifier cet approvisionnement';
+        } else if (error.response.status === 401) {
+          errorMessage = 'Veuillez vous reconnecter';
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      throw new Error(`Impossible de mettre à jour l'approvisionnement ${id}`);
     }
   }
 
   /**
-   * Supprimer un approvisionnement de la base de données
+   * Supprimer un approvisionnement
    */
   async deleteSupply(id: number): Promise<void> {
     try {
-      console.log('🗑️ Suppression approvisionnement de la base de données:', id);
+      console.log('🗑️ Suppression approvisionnement:', id);
       await api.delete(`/supplies/${id}/`);
-      console.log('✅ Approvisionnement supprimé de la base de données');
+      console.log('✅ Approvisionnement supprimé');
     } catch (error) {
       console.error(`❌ Erreur suppression approvisionnement ${id}:`, error);
-      throw new Error(`Impossible de supprimer l'approvisionnement ${id} de la base de données`);
+      throw new Error(`Impossible de supprimer l'approvisionnement ${id}`);
     }
   }
 
   /**
-   * Rechercher des approvisionnements dans la base de données - MIS À JOUR
+   * Rechercher des approvisionnements - CORRIGÉ
    */
-  async searchSupplies(searchTerm: string, status?: string, store?: number): Promise<Supply[]> {
+  async searchSupplies(searchTerm: string, status?: string, store?: number | string): Promise<Supply[]> {
     try {
-      const params: any = {};
+      const params: Record<string, any> = {};
       
-      if (searchTerm && searchTerm.trim()) {
+      // Recherche textuelle
+      if (searchTerm && searchTerm.trim() !== '') {
         params.search = searchTerm.trim();
       }
       
-      if (status && status !== 'all') {
+      // Filtre par statut
+      if (status && status !== 'all' && status !== '' && status !== undefined) {
         params.status = status;
       }
-
-      if (store && store !== 'all') {
-        params.store = store;
+      
+      // Filtre par magasin
+      if (store && store !== 'all' && store !== '' && store !== undefined) {
+        const storeId = typeof store === 'string' ? parseInt(store, 10) : store;
+        if (!isNaN(storeId) && storeId > 0) {
+          params.store = storeId;
+        }
       }
 
-      console.log('🔍 Recherche approvisionnements dans la base de données:', params);
-      return this.getSupplies(params);
+      console.log('🔍 Recherche approvisionnements avec params:', params);
+      
+      // Utiliser getSupplies qui gère déjà les paramètres
+      const results = await this.getSupplies(params);
+      console.log(`🔍 ${results.length} résultat(s) trouvé(s)`);
+      
+      return results;
     } catch (error) {
       console.error('❌ Erreur recherche approvisionnements:', error);
-      throw new Error('Impossible de rechercher les approvisionnements dans la base de données');
+      throw new Error('Impossible de rechercher les approvisionnements');
     }
   }
 
   /**
-   * Récupérer les statistiques depuis la base de données réelle
+   * Récupérer les statistiques
    */
   async getSupplyStats(): Promise<{
     total_pending: number;
@@ -314,14 +462,16 @@ class SupplyService {
     monthly_trend: number;
   }> {
     try {
-      // Charger tous les approvisionnements pour calculer les stats
       const supplies = await this.getSupplies();
       
-      const total_supplies = supplies.length;
-      const total_pending = supplies.filter(s => s.status === 'pending').length;
-      const total_received = supplies.filter(s => s.status === 'received').length;
-      const total_cancelled = supplies.filter(s => s.status === 'cancelled').length;
-      const total_amount = supplies.reduce((sum, supply) => sum + (supply.total_command || 0), 0);
+      // S'assurer que supplies est un tableau
+      const suppliesArray = Array.isArray(supplies) ? supplies : [];
+      
+      const total_supplies = suppliesArray.length;
+      const total_pending = suppliesArray.filter(s => s.status === 'pending').length;
+      const total_received = suppliesArray.filter(s => s.status === 'received').length;
+      const total_cancelled = suppliesArray.filter(s => s.status === 'cancelled').length;
+      const total_amount = suppliesArray.reduce((sum, supply) => sum + (supply.total_command || 0), 0);
       
       const stats = {
         total_supplies,
@@ -329,15 +479,15 @@ class SupplyService {
         total_received,
         total_cancelled,
         total_amount,
-        monthly_trend: this.calculateMonthlyTrend(supplies)
+        monthly_trend: this.calculateMonthlyTrend(suppliesArray)
       };
 
-      console.log('📊 Statistiques calculées depuis la base de données:', stats);
+      console.log('📊 Statistiques calculées:', stats);
       return stats;
     } catch (error) {
-      console.error('Erreur calcul stats depuis la base de données:', error);
+      console.error('Erreur calcul stats:', error);
       
-      // Retourner des valeurs par défaut au bon format
+      // Retourner des valeurs par défaut en cas d'erreur
       return {
         total_supplies: 0,
         total_pending: 0,
@@ -350,147 +500,67 @@ class SupplyService {
   }
 
   /**
-   * Mettre à jour le statut d'un approvisionnement dans la base de données
+   * Mettre à jour le statut d'un approvisionnement
    */
   async updateSupplyStatus(id: number, status: Supply['status']): Promise<Supply> {
     try {
-      console.log('🔄 Mise à jour statut dans la base de données:', { id, status });
+      console.log('🔄 Mise à jour statut:', { id, status });
       const response = await api.patch<Supply>(`/supplies/${id}/`, { status });
-      console.log('✅ Statut mis à jour dans la base de données:', response);
+      console.log('✅ Statut mis à jour');
       return response;
     } catch (error) {
       console.error(`❌ Erreur mise à jour statut ${id}:`, error);
-      throw new Error(`Impossible de mettre à jour le statut de l'approvisionnement ${id} dans la base de données`);
+      throw new Error(`Impossible de mettre à jour le statut de l'approvisionnement ${id}`);
     }
   }
 
   /**
-   * Ajouter un produit à un approvisionnement dans la base de données
-   */
-  async addSupplyItem(supplyId: number, itemData: Partial<RetailSupply>): Promise<RetailSupply> {
-    try {
-      const payload = {
-        ...itemData,
-        supply: supplyId
-      };
-
-      console.log('📤 Ajout produit à approvisionnement dans la base de données:', payload);
-      const response = await api.post<RetailSupply>('/retail-supplies/', payload);
-      console.log('✅ Produit ajouté dans la base de données:', response);
-      return response;
-    } catch (error) {
-      console.error(`❌ Erreur ajout produit à l'approvisionnement ${supplyId}:`, error);
-      throw new Error(`Impossible d'ajouter le produit à l'approvisionnement ${supplyId} dans la base de données`);
-    }
-  }
-
-  /**
-   * Mettre à jour un produit dans un approvisionnement dans la base de données
-   */
-  async updateSupplyItem(itemId: number, itemData: Partial<RetailSupply>): Promise<RetailSupply> {
-    try {
-      console.log('📤 Mise à jour produit dans la base de données:', { itemId, itemData });
-      const response = await api.patch<RetailSupply>(`/retail-supplies/${itemId}/`, itemData);
-      console.log('✅ Produit mis à jour dans la base de données:', response);
-      return response;
-    } catch (error) {
-      console.error(`❌ Erreur mise à jour produit ${itemId}:`, error);
-      throw new Error(`Impossible de mettre à jour le produit ${itemId} dans la base de données`);
-    }
-  }
-
-  /**
-   * Supprimer un produit d'un approvisionnement de la base de données
-   */
-  async deleteSupplyItem(itemId: number): Promise<void> {
-    try {
-      console.log('🗑️ Suppression produit de la base de données:', itemId);
-      await api.delete(`/retail-supplies/${itemId}/`);
-      console.log('✅ Produit supprimé de la base de données');
-    } catch (error) {
-      console.error(`❌ Erreur suppression produit ${itemId}:`, error);
-      throw new Error(`Impossible de supprimer le produit ${itemId} de la base de données`);
-    }
-  }
-
-  /**
-   * Créer un nouveau fournisseur dans la base de données
+   * Créer un nouveau fournisseur
    */
   async createSupplier(supplierData: CreateSupplierData): Promise<Supplier> {
     try {
-      console.log('📤 Création fournisseur dans la base de données:', supplierData);
+      // VÉRIFICATION : store est obligatoire
+      if (!supplierData.store || supplierData.store <= 0) {
+        throw new Error('Le magasin est obligatoire et doit être valide');
+      }
+      
+      if (!supplierData.name || !supplierData.name.trim()) {
+        throw new Error('Le nom du fournisseur est requis');
+      }
+      
+      console.log('📤 Création fournisseur:', supplierData);
       const response = await api.post<Supplier>('/suppliers/', supplierData);
-      console.log('✅ Fournisseur créé dans la base de données:', response);
+      console.log('✅ Fournisseur créé');
       return response;
     } catch (error) {
       console.error('❌ Erreur création fournisseur:', error);
-      throw new Error('Impossible de créer le fournisseur dans la base de données');
+      throw new Error('Impossible de créer le fournisseur');
     }
   }
 
   /**
-   * Mettre à jour un fournisseur dans la base de données
-   */
-  async updateSupplier(id: number, supplierData: Partial<Supplier>): Promise<Supplier> {
-    try {
-      console.log('📤 Mise à jour fournisseur dans la base de données:', { id, supplierData });
-      const response = await api.patch<Supplier>(`/suppliers/${id}/`, supplierData);
-      console.log('✅ Fournisseur mis à jour dans la base de données:', response);
-      return response;
-    } catch (error) {
-      console.error(`❌ Erreur mise à jour fournisseur ${id}:`, error);
-      throw new Error(`Impossible de mettre à jour le fournisseur ${id} dans la base de données`);
-    }
-  }
-
-  /**
-   * Supprimer un fournisseur de la base de données
+   * Supprimer un fournisseur
    */
   async deleteSupplier(id: number): Promise<void> {
     try {
-      console.log('🗑️ Suppression fournisseur de la base de données:', id);
+      console.log('🗑️ Suppression fournisseur:', id);
       await api.delete(`/suppliers/${id}/`);
-      console.log('✅ Fournisseur supprimé de la base de données');
+      console.log('✅ Fournisseur supprimé');
     } catch (error) {
       console.error(`❌ Erreur suppression fournisseur ${id}:`, error);
-      throw new Error(`Impossible de supprimer le fournisseur ${id} de la base de données`);
+      throw new Error(`Impossible de supprimer le fournisseur ${id}`);
     }
   }
 
   /**
-   * Créer un nouveau magasin dans la base de données - NOUVELLE MÉTHODE (optionnelle)
-   */
-  async createStore(storeData: Omit<Store, 'id'>): Promise<Store> {
-    try {
-      console.log('📤 Création magasin dans la base de données:', storeData);
-      const response = await api.post<Store>('/stores/', storeData);
-      console.log('✅ Magasin créé dans la base de données:', response);
-      return response;
-    } catch (error) {
-      console.error('❌ Erreur création magasin:', error);
-      throw new Error('Impossible de créer le magasin dans la base de données');
-    }
-  }
-
-  /**
-   * Supprimer un magasin de la base de données - NOUVELLE MÉTHODE (optionnelle)
-   */
-  async deleteStore(id: number): Promise<void> {
-    try {
-      console.log('🗑️ Suppression magasin de la base de données:', id);
-      await api.delete(`/stores/${id}/`);
-      console.log('✅ Magasin supprimé de la base de données');
-    } catch (error) {
-      console.error(`❌ Erreur suppression magasin ${id}:`, error);
-      throw new Error(`Impossible de supprimer le magasin ${id} de la base de données`);
-    }
-  }
-
-  /**
-   * Calculer la tendance mensuelle basée sur les données réelles
+   * Calculer la tendance mensuelle
    */
   private calculateMonthlyTrend(supplies: Supply[]): number {
     try {
+      if (!supplies || supplies.length === 0) {
+        return 0;
+      }
+      
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
       
@@ -524,6 +594,36 @@ class SupplyService {
     } catch (error) {
       console.error('Erreur calcul tendance mensuelle:', error);
       return 0;
+    }
+  }
+
+  /**
+   * Récupérer l'employé connecté
+   */
+  async getCurrentEmployee(): Promise<{ id: number; user: number; store: number; }> {
+    try {
+      console.log('👤 Récupération de l\'employé connecté...');
+      const response = await api.get('/employees/current/');
+      console.log('✅ Employé récupéré');
+      return response;
+    } catch (error) {
+      console.error('❌ Erreur récupération employé:', error);
+      throw new Error('Impossible de récupérer l\'employé connecté');
+    }
+  }
+
+  /**
+   * Récupérer les employés d'un magasin
+   */
+  async getEmployeesByStore(storeId: number): Promise<Array<{ id: number; name: string; user: number }>> {
+    try {
+      console.log(`👥 Récupération des employés du magasin ${storeId}...`);
+      const response = await api.get(`/employees/?store=${storeId}`);
+      console.log(`✅ ${response?.length || 0} employé(s) récupéré(s)`);
+      return response || [];
+    } catch (error) {
+      console.error('❌ Erreur récupération employés:', error);
+      throw new Error('Impossible de récupérer les employés');
     }
   }
 }

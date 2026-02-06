@@ -12,7 +12,6 @@ export const productCategoryService = {
   
   getAllCategories: async (filters?: ProductCategoryFilter): Promise<ProductCategory[]> => {
     try {
-      // Votre api.get() retourne directement les données
       return await api.get<ProductCategory[]>('categories/', { params: filters });
     } catch (error) {
       console.error('❌ Service: Erreur getAllCategories', error);
@@ -33,9 +32,7 @@ export const productCategoryService = {
     try {
       return await api.get<ProductCategory[]>('categories/tree/');
     } catch (error: any) {
-      // Endpoint optionnel
       if (error.response?.status === 404) {
-        // Fallback: obtenir toutes les catégories et construire l'arbre côté client
         const allCategories = await productCategoryService.getAllCategories();
         return productCategoryService.buildCategoryTree(allCategories);
       }
@@ -48,7 +45,6 @@ export const productCategoryService = {
     try {
       return await api.get<any>('categories/stats/');
     } catch (error: any) {
-      // Endpoint optionnel
       if (error.response?.status === 404) {
         return {
           total_categories: 0,
@@ -68,9 +64,7 @@ export const productCategoryService = {
         params: { limit }
       });
     } catch (error: any) {
-      // Endpoint optionnel
       if (error.response?.status === 404) {
-        // Fallback: obtenir toutes les catégories et trier par nombre de produits
         const allCategories = await productCategoryService.getAllCategories();
         return allCategories
           .sort((a, b) => (b.products_count || 0) - (a.products_count || 0))
@@ -81,16 +75,27 @@ export const productCategoryService = {
     }
   },
 
+  // ⭐⭐ CORRECTION CRITIQUE ICI - createCategory
   createCategory: async (data: CreateProductCategoryDto): Promise<ProductCategory> => {
     try {
+      // ⭐ VÉRIFICATION OBLIGATOIRE - sub_category doit être présent
+      if (!data.sub_category || data.sub_category.trim().length === 0) {
+        throw new Error('Le champ "sub_category" est obligatoire');
+      }
+
       // Nettoyer les données avant l'envoi
       const cleanData: CreateProductCategoryDto = {
         ...data,
-        parent: data.parent || null, // S'assurer que parent est null si vide
+        name: data.name.trim(),
+        sub_category: data.sub_category.trim(), // ⭐ CONSERVER ET NETTOYER
+        description: data.description ? data.description.trim() : '',
+        parent: data.parent || null,
         metadata: data.metadata || {},
         sort_order: data.sort_order || 0,
         is_active: data.is_active !== undefined ? data.is_active : true
       };
+
+      console.log('📤 Service: Envoi création catégorie', cleanData);
       
       return await api.post<ProductCategory>('categories/', cleanData);
     } catch (error) {
@@ -99,13 +104,30 @@ export const productCategoryService = {
     }
   },
 
+  // ⭐ CORRECTION AUSSI ICI - updateCategory
   updateCategory: async (id: number, data: UpdateProductCategoryDto): Promise<ProductCategory> => {
     try {
       // Nettoyer les données avant l'envoi
-      const cleanData: UpdateProductCategoryDto = {
-        ...data,
-        metadata: data.metadata || {}
-      };
+      const cleanData: UpdateProductCategoryDto = { ...data };
+      
+      // ⭐ Si sub_category est fourni, le nettoyer
+      if (cleanData.sub_category !== undefined) {
+        cleanData.sub_category = cleanData.sub_category.trim();
+      }
+      
+      // ⭐ Si name est fourni, le nettoyer
+      if (cleanData.name !== undefined) {
+        cleanData.name = cleanData.name.trim();
+      }
+      
+      // ⭐ Si description est fourni, le nettoyer
+      if (cleanData.description !== undefined) {
+        cleanData.description = cleanData.description.trim();
+      }
+      
+      cleanData.metadata = cleanData.metadata || {};
+
+      console.log(`📤 Service: Envoi mise à jour catégorie ${id}`, cleanData);
       
       return await api.patch<ProductCategory>(`categories/${id}/`, cleanData);
     } catch (error) {
@@ -168,7 +190,7 @@ export const productCategoryService = {
       const categories = await productCategoryService.getAllCategories();
       return categories.filter(cat => 
         cat.id !== excludeId && 
-        (!cat.parent || cat.parent !== excludeId) // Éviter les références circulaires
+        (!cat.parent || cat.parent !== excludeId)
       );
     } catch (error) {
       console.error('❌ Service: Erreur getPossibleParents', error);
@@ -177,7 +199,6 @@ export const productCategoryService = {
   },
 
   buildCategoryTree: (categories: ProductCategory[]): ProductCategory[] => {
-    // Interface pour catégories avec enfants
     interface CategoryWithChildren extends ProductCategory {
       children?: CategoryWithChildren[];
     }
@@ -185,12 +206,10 @@ export const productCategoryService = {
     const categoryMap = new Map<number, CategoryWithChildren>();
     const rootCategories: CategoryWithChildren[] = [];
 
-    // Créer une map pour un accès rapide
     categories.forEach(category => {
       categoryMap.set(category.id, { ...category, children: [] });
     });
 
-    // Organiser les catégories en arbre
     categories.forEach(category => {
       const categoryWithChildren = categoryMap.get(category.id);
       if (categoryWithChildren) {
@@ -229,17 +248,26 @@ export const productCategoryService = {
     }
   },
 
-  // ==================== VALIDATION ====================
-  
+  // ⭐⭐ CORRECTION AUSSI ICI - validateCategoryData
   validateCategoryData: (data: CreateProductCategoryDto | UpdateProductCategoryDto): string[] => {
     const errors: string[] = [];
 
-    if ('name' in data && (!data.name || data.name.trim().length === 0)) {
-      errors.push('Le nom est obligatoire');
+    // Validation pour la création
+    if ('name' in data) {
+      if (!data.name || data.name.trim().length === 0) {
+        errors.push('Le nom est obligatoire');
+      } else if (data.name.length > 150) { // ⭐ 150 caractères max comme dans Django
+        errors.push('Le nom ne doit pas dépasser 150 caractères');
+      }
     }
 
-    if (data.name && data.name.length > 100) {
-      errors.push('Le nom ne doit pas dépasser 100 caractères');
+    // ⭐ VALIDATION CRITIQUE - sub_category obligatoire pour création
+    if ('sub_category' in data) {
+      if (!data.sub_category || data.sub_category.trim().length === 0) {
+        errors.push('Le type de catégorie (sub_category) est obligatoire');
+      } else if (data.sub_category.length > 150) { // ⭐ 150 caractères max
+        errors.push('Le type de catégorie ne doit pas dépasser 150 caractères');
+      }
     }
 
     if (data.description && data.description.length > 500) {
@@ -277,5 +305,19 @@ export const productCategoryService = {
       console.error('❌ Service: Erreur getCategoryAnalytics', error);
       throw error;
     }
+  },
+
+  // ⭐ NOUVELLE MÉTHODE UTILE - Générer un slug cohérent
+  generateSlug: (name: string, subCategory: string): string => {
+    const base = `${name}-${subCategory}`
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+    
+    return base.substring(0, 50); // Limiter la longueur
   }
 };

@@ -1,35 +1,40 @@
 // src/types/productTypes.ts
 
-// Catégorie de produit
+// Catégorie de produit - CORRESPOND EXACTEMENT AU MODÈLE DJANGO
 export interface ProductCategory {
-  data: ProductCategory | PromiseLike<ProductCategory>;
   id: number;
-  name: string;
-  slug: string;
-  parent: number | null;
-  description: string | null;
-  image: string | null;
-  sort_order: number;
+  name: string;                   // CharField max_length=150
+  sub_category: string;           // ⭐ CHARFIELD OBLIGATOIRE - max_length=150
+  slug: string;                   // SlugField unique
+  parent: number | null;          // ForeignKey à 'self'
+  description: string;            // TextField (blank=True)
+  image: string | null;           // ImageField (blank=True, null=True)
+  sort_order: number;             // IntegerField default=0
   created_at: string;
   updated_at: string;
   is_active: boolean;
   metadata: Record<string, any> | null;
   created_by: number;
   updated_by: number;
+  
+  // Champs calculés/relations
   products_count?: number;
+  children?: ProductCategory[];   // related_name='children'
+  parent_name?: string | null;
   created_by_name?: string;
   updated_by_name?: string;
-  parent_name?: string | null;
-  children?: ProductCategory[];
 }
 
-// DTO pour la création
+// DTO pour la création - CHAMPS OBLIGATOIRES POUR DJANGO
 export interface CreateProductCategoryDto {
-  name: string;
+  name: string;                   // ⭐ OBLIGATOIRE
+  sub_category: string;           // ⭐ OBLIGATOIRE - CharField dans Django
+  // slug est optionnel - Django peut le générer automatiquement
   description?: string;
   parent?: number | null;
-  is_active?: boolean;
+  image?: string | null;
   sort_order?: number;
+  is_active?: boolean;
   metadata?: Record<string, any>;
 }
 
@@ -60,6 +65,7 @@ export interface CategoryStats {
 // Pour les formulaires UI
 export interface CategoryFormData {
   name: string;
+  sub_category: string;           // ⭐ OBLIGATOIRE
   description: string;
   parent: number | null;
   is_active: boolean;

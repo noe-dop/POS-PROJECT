@@ -1,24 +1,40 @@
-// src/pages/SupplyPage.tsx
-import React, { useState, useMemo, useCallback } from 'react';
-import { Plus, Search, Menu, X, AlertCircle, UserPlus, ChevronLeft, ChevronRight, Eye, Trash2, Package, Clock, CheckCircle, Truck, Box, Store as StoreIcon } from 'lucide-react';
-import { useSupplies, useSuppliers, useSupplyStats, useStores } from '../hooks/useSupply';
-import { Supply as SupplyType, Supplier, Store, CreateSupplyData, CreateSupplierData } from '../services/supplyService';
+// src/pages/Supply.tsx
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { 
+  Plus, Search, Menu, X, AlertCircle, UserPlus, ChevronLeft, 
+  ChevronRight, Eye, Trash2, Package, Clock, CheckCircle, 
+  Truck, Box, Store as StoreIcon, Filter 
+} from 'lucide-react';
+import { 
+  useSupplies, 
+  useSuppliers, 
+  useSupplyStats, 
+  useStores 
+} from '../hooks/useSupply';
+import { useAuth } from '../hooks/useAuth';
+import { 
+  Supply as SupplyType, 
+  Supplier, 
+  Store, 
+  CreateSupplyData, 
+  CreateSupplierData 
+} from '../services/supplyService';
 
 // ============================================================================
-// COMPOSANTS RÉUTILISABLES - RESPONSIVE
+// COMPOSANTS RÉUTILISABLES
 // ============================================================================
 
 const StatusBadge: React.FC<{ status: SupplyType['status'] }> = React.memo(({ status }) => {
   const getStatusConfig = useCallback(() => {
     switch (status) {
       case 'received':
-        return { text: 'Livrée', className: 'text-green-600', icon: CheckCircle };
+        return { text: 'Livrée', className: 'text-green-600 bg-green-50 border-green-200', icon: CheckCircle };
       case 'pending':
-        return { text: 'En attente', className: 'text-yellow-600', icon: Clock };
+        return { text: 'En attente', className: 'text-yellow-600 bg-yellow-50 border-yellow-200', icon: Clock };
       case 'cancelled':
-        return { text: 'Annulée', className: 'text-red-600', icon: X };
+        return { text: 'Annulée', className: 'text-red-600 bg-red-50 border-red-200', icon: X };
       default:
-        return { text: status, className: 'text-gray-600', icon: Package };
+        return { text: status, className: 'text-gray-600 bg-gray-50 border-gray-200', icon: Package };
     }
   }, [status]);
 
@@ -26,9 +42,9 @@ const StatusBadge: React.FC<{ status: SupplyType['status'] }> = React.memo(({ st
   const Icon = config.icon;
 
   return (
-    <span className={`font-medium text-xs xs:text-sm ${config.className} flex items-center`}>
-      <Icon className="w-3 h-3 xs:w-4 xs:h-4 mr-1" />
-      {config.text}
+    <span className={`font-medium text-xs xs:text-sm ${config.className} flex items-center px-2 py-1 rounded-full border`}>
+      <Icon className="w-3 h-3 xs:w-4 xs:h-4 mr-1 flex-shrink-0" />
+      <span className="truncate">{config.text}</span>
     </span>
   );
 });
@@ -85,9 +101,9 @@ const DeliveryStatusBadge: React.FC<{ supply: SupplyType }> = React.memo(({ supp
   const Icon = config.icon;
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>
-      <Icon className="w-3 h-3 mr-1" />
-      {config.text}
+    <span className={`inline-flex items-center px-2 py-0.5 xs:px-3 xs:py-1 rounded-full text-xs font-medium border ${config.className} truncate`}>
+      <Icon className="w-3 h-3 mr-1 flex-shrink-0" />
+      <span className="truncate">{config.text}</span>
     </span>
   );
 });
@@ -116,10 +132,10 @@ const StatCard: React.FC<{
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-3 xs:p-4 sm:p-5 md:p-6 transition-all hover:shadow-sm">
-      <h3 className="text-sm xs:text-base sm:text-lg font-semibold text-gray-900 truncate">{title}</h3>
-      <p className="text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mt-1 xs:mt-2">{value}</p>
-      <p className={`text-xs xs:text-sm font-medium mt-1 xs:mt-2 ${colorClasses[color]} truncate`}>
+    <div className="bg-white border border-gray-200 rounded-xl p-3 xs:p-4 sm:p-5 md:p-6 transition-all hover:shadow-sm h-full">
+      <h3 className="text-xs xs:text-sm sm:text-base font-semibold text-gray-900 truncate mb-1">{title}</h3>
+      <p className="text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-1 xs:mb-2">{value}</p>
+      <p className={`text-xs xs:text-sm font-medium ${colorClasses[color]} truncate`}>
         {subtitle}
       </p>
     </div>
@@ -127,7 +143,7 @@ const StatCard: React.FC<{
 });
 
 // ============================================================================
-// MODAL DE CRÉATION D'APPROVISIONNEMENT - RESPONSIVE
+// MODAL DE CRÉATION
 // ============================================================================
 
 interface CreateSupplyModalProps {
@@ -147,17 +163,14 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
   onSupplierCreate,
   suppliers,
   stores,
-  loading: externalLoading
+  loading: externalLoading,
 }) => {
   const [formData, setFormData] = useState({
     ref_supply: '',
     supplier: '',
-    store: '',
-    utilisateur: '',
+    store: stores.length > 0 ? stores[0].id.toString() : '',
     total_command: '0',
-    date_supply: new Date().toISOString().split('T')[0],
     status: 'pending' as 'pending' | 'received' | 'cancelled',
-    notes: ''
   });
 
   const [internalLoading, setInternalLoading] = useState(false);
@@ -170,14 +183,14 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
     emplacement: '',
     contact_person: '',
     payment_terms: '',
-    store: 1,
+    store: stores.length > 0 ? stores[0].id : 1,
     address: '',
     phone: ''
   });
 
   const loading = externalLoading || internalLoading;
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       const now = new Date();
       const timestamp = now.getTime();
@@ -186,12 +199,9 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
       setFormData({
         ref_supply: `SUP-${dateStr}-${timestamp.toString().slice(-6)}`,
         supplier: '',
-        store: '',
-        utilisateur: '',
+        store: stores.length > 0 ? stores[0].id.toString() : '',
         total_command: '0',
-        date_supply: now.toISOString().split('T')[0],
         status: 'pending',
-        notes: ''
       });
       setError('');
       setShowNewSupplierForm(false);
@@ -202,12 +212,12 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
         emplacement: '',
         contact_person: '',
         payment_terms: '',
-        store: 1,
+        store: stores.length > 0 ? stores[0].id : 1,
         address: '',
         phone: ''
       });
     }
-  }, [isOpen]);
+  }, [isOpen, stores]);
 
   const handleInputChange = useCallback((
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -269,30 +279,20 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
     setError('');
 
     try {
-      if (!formData.supplier) {
-        throw new Error('Veuillez sélectionner un fournisseur');
-      }
-
       if (!formData.store) {
         throw new Error('Veuillez sélectionner un magasin');
       }
 
-      if (!formData.utilisateur) {
-        throw new Error('Veuillez sélectionner un utilisateur');
-      }
-
+      // Convertir les valeurs - NE PAS inclure utilisateur
       const supplyData: CreateSupplyData = {
         ref_supply: formData.ref_supply,
-        supplier: parseInt(formData.supplier),
+        supplier: formData.supplier ? parseInt(formData.supplier) : null,
         store: parseInt(formData.store),
-        utilisateur: parseInt(formData.utilisateur),
         total_command: parseFloat(formData.total_command) || 0,
-        date_supply: formData.date_supply,
         status: formData.status,
-        notes: formData.notes,
-        retail_items: []
       };
 
+      console.log('📤 Données envoyées (sans utilisateur):', supplyData);
       await onCreate(supplyData);
       onClose();
     } catch (err) {
@@ -307,39 +307,41 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 xs:p-3 sm:p-4 z-50">
-      <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto mx-2 xs:mx-3">
-        <div className="flex items-center justify-between p-3 xs:p-4 sm:p-5 md:p-6 border-b border-gray-200">
-          <div className="min-w-0">
-            <h2 className="text-base xs:text-lg sm:text-xl font-semibold text-gray-900 truncate">
-              {showNewSupplierForm ? 'Nouveau Fournisseur' : 'Nouvel approvisionnement'}
-            </h2>
-            <p className="text-xs text-gray-600 mt-1 truncate">
-              {showNewSupplierForm ? 'Ajoutez un nouveau fournisseur' : 'Créez une nouvelle commande'}
-            </p>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 xs:p-3 sm:p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-lg w-full max-w-md mx-2 xs:mx-3 my-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
+          <div className="flex items-center justify-between p-3 xs:p-4 sm:p-5">
+            <div className="min-w-0">
+              <h2 className="text-base xs:text-lg sm:text-xl font-semibold text-gray-900 truncate">
+                {showNewSupplierForm ? 'Nouveau Fournisseur' : 'Nouvel approvisionnement'}
+              </h2>
+              <p className="text-xs text-gray-600 mt-1 truncate">
+                {showNewSupplierForm ? 'Ajoutez un nouveau fournisseur' : 'Créez une nouvelle commande'}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1 ml-2 flex-shrink-0"
+              aria-label="Fermer"
+              disabled={loading}
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 ml-2 flex-shrink-0"
-            aria-label="Fermer"
-            disabled={loading}
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-3 xs:p-4 sm:p-5 md:p-6">
+        <form onSubmit={handleSubmit} className="p-3 xs:p-4 sm:p-5 max-h-[calc(100vh-200px)] overflow-y-auto">
           {error && (
-            <div className={`mb-3 xs:mb-4 p-2 xs:p-3 sm:p-4 rounded-lg ${error.includes('ajouté') ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+            <div className={`mb-3 xs:mb-4 p-2 xs:p-3 rounded-lg ${error.includes('ajouté') ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
               <div className="flex items-start">
                 <AlertCircle className={`w-4 h-4 xs:w-5 xs:h-5 ${error.includes('ajouté') ? 'text-green-400' : 'text-red-400'} mt-0.5 mr-2 flex-shrink-0`} />
-                <p className={`text-xs xs:text-sm ${error.includes('ajouté') ? 'text-green-700' : 'text-red-700'}`}>{error}</p>
+                <p className={`text-xs xs:text-sm ${error.includes('ajouté') ? 'text-green-700' : 'text-red-700'} break-words`}>{error}</p>
               </div>
             </div>
           )}
 
           {showNewSupplierForm ? (
-            <div className="space-y-2 xs:space-y-3 mb-3 xs:mb-4">
+            <div className="space-y-3 mb-4">
               <div>
                 <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
                   Nom du fournisseur <span className="text-red-500">*</span>
@@ -356,22 +358,7 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
                 />
               </div>
 
-              <div>
-                <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
-                  Numéro de fournisseur
-                </label>
-                <input
-                  type="text"
-                  name="num_supplier"
-                  value={newSupplierData.num_supplier}
-                  onChange={handleNewSupplierInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                  placeholder="Ex: SUP-001"
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 xs:gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
                     Personne de contact
@@ -408,7 +395,7 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 xs:gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
                     Email
@@ -442,21 +429,6 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
 
               <div>
                 <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
-                  Emplacement/Contact
-                </label>
-                <input
-                  type="text"
-                  name="emplacement"
-                  value={newSupplierData.emplacement}
-                  onChange={handleNewSupplierInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                  placeholder="Informations de contact supplémentaires"
-                  disabled={loading}
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
                   Adresse
                 </label>
                 <textarea
@@ -469,24 +441,9 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
                   disabled={loading}
                 />
               </div>
-
-              <div>
-                <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
-                  Conditions de paiement
-                </label>
-                <input
-                  type="text"
-                  name="payment_terms"
-                  value={newSupplierData.payment_terms}
-                  onChange={handleNewSupplierInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                  placeholder="Ex: 30 jours net"
-                  disabled={loading}
-                />
-              </div>
             </div>
           ) : (
-            <div className="space-y-2 xs:space-y-3 mb-3 xs:mb-4">
+            <div className="space-y-3 mb-4">
               <div>
                 <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
                   Référence
@@ -503,7 +460,7 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs xs:text-sm font-medium text-gray-700">
-                    Fournisseur <span className="text-red-500">*</span>
+                    Fournisseur (optionnel)
                   </label>
                   <button
                     type="button"
@@ -513,6 +470,7 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
                   >
                     <UserPlus className="w-3 h-3 mr-1" />
                     <span className="hidden xs:inline">Nouveau</span>
+                    <span className="xs:hidden">+</span>
                   </button>
                 </div>
                 <select
@@ -520,10 +478,9 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
                   value={formData.supplier}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                  required
                   disabled={loading}
                 >
-                  <option value="">Sélectionner un fournisseur</option>
+                  <option value="">Aucun fournisseur (optionnel)</option>
                   {suppliers.map(supplier => (
                     <option key={supplier.id} value={supplier.id}>
                       {supplier.name} {supplier.num_supplier && `(${supplier.num_supplier})`}
@@ -532,61 +489,10 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 xs:gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
-                    Date de commande
-                  </label>
-                  <input
-                    type="date"
-                    name="date_supply"
-                    value={formData.date_supply}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
-                    Total commande (€)
-                  </label>
-                  <input
-                    type="text"
-                    name="total_command"
-                    value={formData.total_command}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                    placeholder="0.00"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 xs:gap-3">
-                <div>
-                  <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
-                    Statut
-                  </label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                    required
-                    disabled={loading}
-                  >
-                    <option value="pending">En attente</option>
-                    <option value="received">Reçu</option>
-                    <option value="cancelled">Annulé</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
-                    Magasin
+                    Magasin <span className="text-red-500">*</span>
                   </label>
                   <select
                     name="store"
@@ -604,51 +510,51 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
                     ))}
                   </select>
                 </div>
+
+                <div>
+                  <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
+                    Total commande (€) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="total_command"
+                    value={formData.total_command}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                    placeholder="0.00"
+                    required
+                    disabled={loading}
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
-                  Utilisateur
+                  Statut
                 </label>
                 <select
-                  name="utilisateur"
-                  value={formData.utilisateur}
+                  name="status"
+                  value={formData.status}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
                   required
                   disabled={loading}
                 >
-                  <option value="">Sélectionner un utilisateur</option>
-                  <option value="1">Utilisateur 1</option>
-                  <option value="2">Utilisateur 2</option>
-                  <option value="3">Utilisateur 3</option>
+                  <option value="pending">En attente</option>
+                  <option value="received">Reçu</option>
+                  <option value="cancelled">Annulé</option>
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-xs xs:text-sm font-medium text-gray-700 mb-1">
-                  Notes et instructions
-                </label>
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none text-sm"
-                  placeholder="Informations supplémentaires, instructions spéciales..."
-                  disabled={loading}
-                />
               </div>
             </div>
           )}
 
-          <div className="flex flex-col xs:flex-row justify-end space-y-2 xs:space-y-0 xs:space-x-2 pt-3 xs:pt-4 border-t border-gray-200">
+          <div className="flex flex-col xs:flex-row justify-end space-y-2 xs:space-y-0 xs:space-x-2 pt-4 border-t border-gray-200">
             {showNewSupplierForm ? (
               <>
                 <button
                   type="button"
                   onClick={() => setShowNewSupplierForm(false)}
-                  className="w-full xs:w-auto px-3 xs:px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full xs:w-auto px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={loading}
                 >
                   Retour
@@ -657,7 +563,7 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
                   type="button"
                   onClick={handleAddNewSupplier}
                   disabled={loading || !newSupplierData.name.trim()}
-                  className="w-full xs:w-auto px-3 xs:px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm flex items-center justify-center"
+                  className="w-full xs:w-auto px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm flex items-center justify-center"
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
                   Ajouter
@@ -668,7 +574,7 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full xs:w-auto px-3 xs:px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full xs:w-auto px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={loading}
                 >
                   Annuler
@@ -676,7 +582,7 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full xs:w-auto px-3 xs:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm flex items-center justify-center"
+                  className="w-full xs:w-auto px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm flex items-center justify-center"
                 >
                   {loading ? (
                     <>
@@ -697,7 +603,7 @@ const CreateSupplyModal: React.FC<CreateSupplyModalProps> = React.memo(({
 });
 
 // ============================================================================
-// MODAL DE DÉTAILS D'APPROVISIONNEMENT - RESPONSIVE
+// MODAL DE DÉTAILS
 // ============================================================================
 
 interface SupplyDetailsModalProps {
@@ -739,20 +645,6 @@ const SupplyDetailsModal: React.FC<SupplyDetailsModalProps> = React.memo(({
     }
   }, []);
 
-  const calculateDeliveryDate = useCallback((orderDate: string) => {
-    try {
-      const date = new Date(orderDate);
-      date.setDate(date.getDate() + 7);
-      return date.toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
-    } catch {
-      return 'Date inconnue';
-    }
-  }, []);
-
   const handleStatusUpdate = useCallback(async (status: SupplyType['status']) => {
     if (!supply) return;
     await onUpdateStatus(supply.id, status);
@@ -777,48 +669,47 @@ const SupplyDetailsModal: React.FC<SupplyDetailsModalProps> = React.memo(({
                 { id: supply.store, name: supply.store_name || `Magasin ${supply.store}` };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 xs:p-3 sm:p-4 z-50">
-      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-2 xs:mx-3">
-        <div className="flex items-center justify-between p-3 xs:p-4 sm:p-5 md:p-6 border-b border-gray-200">
-          <div className="min-w-0">
-            <h2 className="text-base xs:text-lg sm:text-xl font-semibold text-gray-900 truncate">
-              Détails de la commande
-            </h2>
-            <p className="text-xs text-gray-600 mt-1 truncate">
-              {supply.ref_supply}
-            </p>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 xs:p-3 sm:p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-lg w-full max-w-2xl mx-2 xs:mx-3 my-auto max-h-[90vh] flex flex-col">
+        <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
+          <div className="flex items-center justify-between p-3 xs:p-4 sm:p-5">
+            <div className="min-w-0">
+              <h2 className="text-base xs:text-lg sm:text-xl font-semibold text-gray-900 truncate">
+                Détails de la commande
+              </h2>
+              <p className="text-xs text-gray-600 mt-1 truncate">
+                {supply.ref_supply}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1 ml-2 flex-shrink-0"
+              aria-label="Fermer"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 ml-2 flex-shrink-0"
-            aria-label="Fermer"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
         
-        <div className="p-3 xs:p-4 sm:p-5 md:p-6">
-          <div className={`mb-4 xs:mb-6 p-3 xs:p-4 rounded-lg ${deliveryStatus.bgColor} flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 xs:gap-0`}>
-            <div className="flex items-center">
-              <Icon className={`w-4 h-4 xs:w-5 xs:h-5 ${deliveryStatus.color} mr-2 flex-shrink-0`} />
-              <div className="min-w-0">
-                <h3 className={`font-medium ${deliveryStatus.color} text-sm xs:text-base truncate`}>
-                  Statut: {deliveryStatus.text}
-                </h3>
-                {supply.status === 'pending' && (
-                  <p className="text-xs text-gray-600 mt-1">
-                    Livraison estimée: {calculateDeliveryDate(supply.date_supply)}
-                  </p>
-                )}
+        <div className="flex-1 overflow-y-auto p-3 xs:p-4 sm:p-5">
+          <div className={`mb-4 p-3 xs:p-4 rounded-lg ${deliveryStatus.bgColor}`}>
+            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 xs:gap-0">
+              <div className="flex items-center">
+                <Icon className={`w-4 h-4 xs:w-5 xs:h-5 ${deliveryStatus.color} mr-2 flex-shrink-0`} />
+                <div className="min-w-0">
+                  <h3 className={`font-medium ${deliveryStatus.color} text-sm xs:text-base truncate`}>
+                    Statut: {deliveryStatus.text}
+                  </h3>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center space-x-2 text-xs xs:text-sm text-gray-600 mt-2 xs:mt-0">
-              <Clock className="w-3 h-3 xs:w-4 xs:h-4 text-gray-400 flex-shrink-0" />
-              <span>Commandé le {formatDate(supply.date_supply)}</span>
+              <div className="flex items-center space-x-2 text-xs xs:text-sm text-gray-600">
+                <Clock className="w-3 h-3 xs:w-4 xs:h-4 text-gray-400 flex-shrink-0" />
+                <span>Commandé le {formatDate(supply.date_supply)}</span>
+              </div>
             </div>
           </div>
 
-          <div className="mb-4 xs:mb-6">
+          <div className="mb-4">
             <div className="flex flex-wrap gap-2">
               {supply.status === 'pending' && (
                 <button
@@ -829,35 +720,12 @@ const SupplyDetailsModal: React.FC<SupplyDetailsModalProps> = React.memo(({
                   {updatingStatus === supply.id ? (
                     <>
                       <div className="animate-spin rounded-full h-3 w-3 xs:h-4 xs:w-4 border-b-2 border-white mr-2"></div>
-                      <span className="hidden xs:inline">Mise à jour...</span>
-                      <span className="xs:hidden">...</span>
+                      Mise à jour...
                     </>
                   ) : (
                     <>
                       <CheckCircle className="w-3 h-3 xs:w-4 xs:h-4 mr-1 xs:mr-2" />
-                      <span className="hidden xs:inline">Marquer reçu</span>
-                      <span className="xs:hidden">Reçu</span>
-                    </>
-                  )}
-                </button>
-              )}
-              {supply.status === 'received' && (
-                <button
-                  onClick={() => handleStatusUpdate('pending')}
-                  disabled={updatingStatus === supply.id}
-                  className="px-3 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-xs xs:text-sm flex items-center justify-center"
-                >
-                  {updatingStatus === supply.id ? (
-                    <>
-                      <div className="animate-spin rounded-full h-3 w-3 xs:h-4 xs:w-4 border-b-2 border-white mr-2"></div>
-                      <span className="hidden xs:inline">Mise à jour...</span>
-                      <span className="xs:hidden">...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Clock className="w-3 h-3 xs:w-4 xs:h-4 mr-1 xs:mr-2" />
-                      <span className="hidden xs:inline">Revenir attente</span>
-                      <span className="xs:hidden">Attente</span>
+                      Marquer reçu
                     </>
                   )}
                 </button>
@@ -870,14 +738,12 @@ const SupplyDetailsModal: React.FC<SupplyDetailsModalProps> = React.memo(({
                 {updatingStatus === supply.id ? (
                   <>
                     <div className="animate-spin rounded-full h-3 w-3 xs:h-4 xs:w-4 border-b-2 border-white mr-2"></div>
-                    <span className="hidden xs:inline">Mise à jour...</span>
-                    <span className="xs:hidden">...</span>
+                    Mise à jour...
                   </>
                 ) : (
                   <>
                     <X className="w-3 h-3 xs:w-4 xs:h-4 mr-1 xs:mr-2" />
-                    <span className="hidden xs:inline">Annuler</span>
-                    <span className="xs:hidden">Annulé</span>
+                    Annuler commande
                   </>
                 )}
               </button>
@@ -911,18 +777,6 @@ const SupplyDetailsModal: React.FC<SupplyDetailsModalProps> = React.memo(({
                     <p className="text-sm font-medium text-gray-900 truncate">{store.name}</p>
                   </div>
                 </div>
-                {supply.utilisateur_name && (
-                  <div>
-                    <p className="text-xs text-gray-500">Utilisateur</p>
-                    <p className="text-sm font-medium text-gray-900 truncate">{supply.utilisateur_name}</p>
-                  </div>
-                )}
-                {supply.total_items !== undefined && (
-                  <div>
-                    <p className="text-xs text-gray-500">Nombre d'articles</p>
-                    <p className="text-sm font-medium text-gray-900">{supply.total_items}</p>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -935,12 +789,6 @@ const SupplyDetailsModal: React.FC<SupplyDetailsModalProps> = React.memo(({
                     {supply.supplier?.name || supply.supplier_name || 'Non spécifié'}
                   </p>
                 </div>
-                {supply.supplier?.num_supplier && (
-                  <div>
-                    <p className="text-xs text-gray-500">Numéro de fournisseur</p>
-                    <p className="text-sm font-medium text-gray-900 truncate">{supply.supplier.num_supplier}</p>
-                  </div>
-                )}
                 {supply.supplier?.email && (
                   <div>
                     <p className="text-xs text-gray-500">Email</p>
@@ -953,139 +801,36 @@ const SupplyDetailsModal: React.FC<SupplyDetailsModalProps> = React.memo(({
                     <p className="text-sm font-medium text-gray-900 truncate">{supply.supplier.phone}</p>
                   </div>
                 )}
-                {supply.supplier?.emplacement && (
-                  <div>
-                    <p className="text-xs text-gray-500">Emplacement</p>
-                    <p className="text-sm font-medium text-gray-900 truncate">{supply.supplier.emplacement}</p>
-                  </div>
-                )}
-                {supply.supplier?.contact_person && (
-                  <div>
-                    <p className="text-xs text-gray-500">Personne de contact</p>
-                    <p className="text-sm font-medium text-gray-900 truncate">{supply.supplier.contact_person}</p>
-                  </div>
-                )}
                 {supply.supplier?.address && (
                   <div>
                     <p className="text-xs text-gray-500">Adresse</p>
                     <p className="text-sm font-medium text-gray-900 truncate">{supply.supplier.address}</p>
                   </div>
                 )}
-                {supply.supplier?.payment_terms && (
-                  <div>
-                    <p className="text-xs text-gray-500">Conditions de paiement</p>
-                    <p className="text-sm font-medium text-gray-900 truncate">{supply.supplier.payment_terms}</p>
-                  </div>
-                )}
               </div>
             </div>
           </div>
 
-          {supply.notes && (
-            <div className="mb-4 xs:mb-6">
-              <h3 className="text-xs xs:text-sm font-medium text-gray-500 mb-2">Notes</h3>
-              <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">{supply.notes}</p>
-            </div>
-          )}
-
-          {supply.retail_items && supply.retail_items.length > 0 && (
-            <div>
-              <h3 className="text-xs xs:text-sm font-medium text-gray-500 mb-3">
-                Produits commandés ({supply.retail_items.length})
-              </h3>
-              <div className="overflow-x-auto -mx-3 xs:-mx-4 md:-mx-6">
-                <div className="inline-block min-w-full align-middle">
-                  <table className="min-w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 whitespace-nowrap">Produit</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 whitespace-nowrap">Qté</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 whitespace-nowrap hidden xs:table-cell">Coût unit.</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 whitespace-nowrap">Total</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 whitespace-nowrap hidden lg:table-cell">Réf.</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {supply.retail_items.map((item, index) => (
-                        <tr key={index}>
-                          <td className="px-3 py-2 text-sm text-gray-900 whitespace-nowrap">
-                            {item.product_name || `Produit ${index + 1}`}
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-900 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <Box className="w-3 h-3 xs:w-4 xs:h-4 text-gray-400 mr-1" />
-                              {item.quantity}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-900 whitespace-nowrap hidden xs:table-cell">
-                            {item.unit_cost ? formatCurrency(item.unit_cost) : '-'}
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-900 font-medium whitespace-nowrap">
-                            {item.unit_cost && item.quantity ? formatCurrency(item.unit_cost * item.quantity) : '-'}
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-500 whitespace-nowrap hidden lg:table-cell">
-                            {item.supply_reference || '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-gray-50">
-                      <tr>
-                        <td colSpan={3} className="px-3 py-2 text-right text-sm font-medium text-gray-700 whitespace-nowrap">
-                          Total général:
-                        </td>
-                        <td className="px-3 py-2 text-sm font-bold text-gray-900 whitespace-nowrap">
-                          {formatCurrency(supply.total_command)}
-                        </td>
-                        <td className="px-3 py-2 hidden lg:table-cell"></td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {supply.created_at && (
-            <div className="mt-4 xs:mt-6 pt-4 xs:pt-6 border-t border-gray-200">
-              <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 xs:gap-4 text-xs text-gray-500">
-                <div>
-                  <p className="font-medium">Information de suivi:</p>
-                  <p className="mt-1">Créé le: {formatDate(supply.created_at)}</p>
-                  {supply.created_by && (
-                    <p>Par: Utilisateur #{supply.created_by}</p>
-                  )}
-                </div>
-                {supply.updated_at && (
-                  <div>
-                    <p className="font-medium">Dernière mise à jour:</p>
-                    <p className="mt-1">Mis à jour le: {formatDate(supply.updated_at)}</p>
-                    {supply.updated_by && (
-                      <p>Par: Utilisateur #{supply.updated_by}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Retirer la section notes car pas dans le modèle */}
         </div>
 
-        <div className="px-3 xs:px-4 sm:px-6 py-3 xs:py-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex justify-end space-x-2">
-            <button
-              onClick={() => handleStatusUpdate('received')}
-              disabled={updatingStatus === supply.id || supply.status === 'received'}
-              className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-xs xs:text-sm"
-            >
-              <span className="hidden xs:inline">Marquer reçu</span>
-              <span className="xs:hidden">Reçu</span>
-            </button>
-            <button
-              onClick={onClose}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium text-xs xs:text-sm"
-            >
-              Fermer
-            </button>
+        <div className="sticky bottom-0 bg-white border-t border-gray-200">
+          <div className="px-3 xs:px-4 sm:px-6 py-3 xs:py-4">
+            <div className="flex flex-col xs:flex-row justify-end space-y-2 xs:space-y-0 xs:space-x-2">
+              <button
+                onClick={() => handleStatusUpdate('received')}
+                disabled={updatingStatus === supply.id || supply.status === 'received'}
+                className="w-full xs:w-auto px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-xs xs:text-sm"
+              >
+                Marquer reçu
+              </button>
+              <button
+                onClick={onClose}
+                className="w-full xs:w-auto px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium text-xs xs:text-sm"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1094,10 +839,12 @@ const SupplyDetailsModal: React.FC<SupplyDetailsModalProps> = React.memo(({
 });
 
 // ============================================================================
-// PAGE PRINCIPALE - RESPONSIVE COMPLETE
+// PAGE PRINCIPALE
 // ============================================================================
 
 const SupplyPage: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'received' | 'cancelled'>('all');
   const [storeFilter, setStoreFilter] = useState<number | 'all'>('all');
@@ -1105,8 +852,29 @@ const SupplyPage: React.FC = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedSupply, setSelectedSupply] = useState<SupplyType | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
+  // Détection responsive simple
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+  
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth <= 640);
+      setIsTablet(window.innerWidth <= 768);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+  
+  useEffect(() => {
+    setItemsPerPage(isMobile ? 5 : isTablet ? 8 : 10);
+  }, [isMobile, isTablet]);
   
   const filters = useMemo(() => {
     const baseFilters: any = {};
@@ -1173,18 +941,35 @@ const SupplyPage: React.FC = () => {
   const handleCreateSupply = useCallback(async (supplyData: CreateSupplyData) => {
     setCreatingSupply(true);
     try {
+      // Vérifier l'authentification
+      if (!isAuthenticated) {
+        throw new Error('Vous devez être connecté pour créer une commande. Veuillez vous reconnecter.');
+      }
+      
+      console.log('🟡 Création en cours...');
       await createSupply(supplyData);
       await refetchSupplies();
       await refetchStats();
-      await refetchStores();
       setShowCreateSupply(false);
     } catch (error) {
-      console.error('Erreur création:', error);
+      console.error('❌ Erreur création:', error);
+      
+      // Gérer les erreurs d'authentification
+      if (error instanceof Error && (
+        error.message.includes('authentification') || 
+        error.message.includes('401') ||
+        error.message.includes('non autorisé')
+      )) {
+        // Rediriger vers la page de connexion
+        window.location.href = '/login';
+        return;
+      }
+      
       throw error;
     } finally {
       setCreatingSupply(false);
     }
-  }, [createSupply, refetchSupplies, refetchStats, refetchStores]);
+  }, [isAuthenticated, createSupply, refetchSupplies, refetchStats]);
 
   const handleCreateSupplier = useCallback(async (supplierData: CreateSupplierData) => {
     setCreatingSupplier(true);
@@ -1239,30 +1024,42 @@ const SupplyPage: React.FC = () => {
   const handlePageChange = useCallback((page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (isMobile) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
-  }, [totalPages]);
+  }, [totalPages, isMobile]);
 
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
+    setCurrentPage(1);
   }, []);
 
   const handleStatusFilterChange = useCallback((filter: 'all' | 'pending' | 'received' | 'cancelled') => {
     setStatusFilter(filter);
     setCurrentPage(1);
-  }, []);
+    if (isMobile) {
+      setShowFiltersDrawer(false);
+    }
+  }, [isMobile]);
 
   const handleStoreFilterChange = useCallback((filter: number | 'all') => {
     setStoreFilter(filter);
     setCurrentPage(1);
-  }, []);
+    if (isMobile) {
+      setShowFiltersDrawer(false);
+    }
+  }, [isMobile]);
 
   const handleResetFilters = useCallback(() => {
     setSearchTerm('');
     setStatusFilter('all');
     setStoreFilter('all');
     setCurrentPage(1);
-  }, []);
+    if (isMobile) {
+      setShowFiltersDrawer(false);
+    }
+  }, [isMobile]);
 
   const toggleMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(prev => !prev);
@@ -1295,39 +1092,44 @@ const SupplyPage: React.FC = () => {
 
     return (
       <tr key={supply.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-gray-900 whitespace-nowrap">
-          <span className="font-medium text-xs xs:text-sm block truncate max-w-[80px] xs:max-w-none">
-            {supply.ref_supply}
+        <td className="px-2 xs:px-3 sm:px-4 py-3">
+          <span className="font-medium text-xs xs:text-sm block truncate max-w-[70px] xs:max-w-none">
+            {isMobile && supply.ref_supply.length > 8 
+              ? `${supply.ref_supply.substring(0, 6)}...` 
+              : supply.ref_supply}
           </span>
         </td>
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-gray-900 whitespace-nowrap">
-          <div className="max-w-[100px] xs:max-w-none">
+        <td className="px-2 xs:px-3 sm:px-4 py-3">
+          <div className="max-w-[80px] xs:max-w-none">
             <span className="text-xs xs:text-sm block truncate">
-              {supply.supplier_name || supply.supplier?.name || 'Non spécifié'}
+              {isMobile && supply.supplier_name && supply.supplier_name.length > 12
+                ? `${supply.supplier_name.substring(0, 10)}...`
+                : supply.supplier_name || supply.supplier?.name || 'Non spécifié'}
             </span>
-            {supply.supplier?.num_supplier && (
-              <span className="block text-xs text-gray-500 truncate">
-                {supply.supplier.num_supplier}
-              </span>
-            )}
           </div>
         </td>
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-gray-900 whitespace-nowrap">
-          <div className="flex items-center max-w-[80px] xs:max-w-none">
-            <StoreIcon className="w-3 h-3 text-gray-400 mr-1 flex-shrink-0" />
-            <span className="text-xs xs:text-sm truncate">{store.name}</span>
-          </div>
-        </td>
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-gray-900 whitespace-nowrap text-xs xs:text-sm">
-          {formatDate(supply.date_supply)}
-        </td>
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 whitespace-nowrap">
+        {!isMobile && (
+          <td className="px-2 xs:px-3 sm:px-4 py-3">
+            <div className="flex items-center max-w-[80px] xs:max-w-none">
+              <StoreIcon className="w-3 h-3 text-gray-400 mr-1 flex-shrink-0" />
+              <span className="text-xs xs:text-sm truncate">{store.name}</span>
+            </div>
+          </td>
+        )}
+        {!isMobile && (
+          <td className="px-2 xs:px-3 sm:px-4 py-3 text-xs xs:text-sm">
+            {formatDate(supply.date_supply)}
+          </td>
+        )}
+        <td className="px-2 xs:px-3 sm:px-4 py-3">
           <StatusBadge status={supply.status} />
         </td>
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-gray-900 whitespace-nowrap text-xs xs:text-sm hidden sm:table-cell">
-          <span className="font-medium">{formatCurrency(supply.total_command || 0)}</span>
-        </td>
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 whitespace-nowrap">
+        {!isTablet && (
+          <td className="px-2 xs:px-3 sm:px-4 py-3 text-xs xs:text-sm">
+            <span className="font-medium">{formatCurrency(supply.total_command || 0)}</span>
+          </td>
+        )}
+        <td className="px-2 xs:px-3 sm:px-4 py-3">
           <div className="flex items-center space-x-1">
             <button
               onClick={() => handleViewDetails(supply)}
@@ -1354,53 +1156,49 @@ const SupplyPage: React.FC = () => {
         </td>
       </tr>
     );
-  }, [stores, formatDate, formatCurrency, handleViewDetails, handleDeleteSupply]);
+  }, [stores, formatDate, formatCurrency, handleViewDetails, handleDeleteSupply, isMobile, isTablet]);
 
   const TrackingTableRow = useCallback(({ supply }: { supply: SupplyType }) => {
     const store = stores.find(s => s.id === supply.store) || 
                   supply.store_object || 
                   { id: supply.store, name: supply.store_name || `Magasin ${supply.store}` };
 
-    const estimatedDeliveryDate = useMemo(() => {
-      const orderDate = new Date(supply.date_supply);
-      orderDate.setDate(orderDate.getDate() + 7);
-      return formatDate(orderDate.toISOString());
-    }, [supply.date_supply, formatDate]);
-
     return (
       <tr key={supply.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-gray-900 whitespace-nowrap">
+        <td className="px-2 xs:px-3 sm:px-4 py-3">
           <div className="flex items-center">
             <Package className="w-3 h-3 xs:w-4 xs:h-4 text-gray-400 mr-1 xs:mr-2 flex-shrink-0" />
-            <span className="font-medium text-xs xs:text-sm block truncate max-w-[70px] xs:max-w-none">
-              {supply.ref_supply}
+            <span className="font-medium text-xs xs:text-sm block truncate max-w-[60px] xs:max-w-none">
+              {isMobile && supply.ref_supply.length > 8 
+                ? `${supply.ref_supply.substring(0, 6)}...` 
+                : supply.ref_supply}
             </span>
           </div>
         </td>
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-gray-900 whitespace-nowrap">
-          <span className="text-xs xs:text-sm block truncate max-w-[80px] xs:max-w-none">
-            {supply.supplier_name || supply.supplier?.name || 'Non spécifié'}
+        <td className="px-2 xs:px-3 sm:px-4 py-3">
+          <span className="text-xs xs:text-sm block truncate max-w-[70px] xs:max-w-none">
+            {isMobile && supply.supplier_name && supply.supplier_name.length > 12
+              ? `${supply.supplier_name.substring(0, 10)}...`
+              : supply.supplier_name || supply.supplier?.name || 'Non spécifié'}
           </span>
         </td>
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-gray-900 whitespace-nowrap">
-          <div className="flex items-center max-w-[70px] xs:max-w-none">
-            <StoreIcon className="w-3 h-3 text-gray-400 mr-1 flex-shrink-0" />
-            <span className="text-xs xs:text-sm truncate">{store.name}</span>
-          </div>
-        </td>
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-gray-900 whitespace-nowrap text-xs xs:text-sm hidden sm:table-cell">
-          {formatDate(supply.date_supply)}
-        </td>
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-gray-900 whitespace-nowrap text-xs xs:text-sm hidden md:table-cell">
-          {estimatedDeliveryDate}
-        </td>
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 whitespace-nowrap">
+        {!isMobile && (
+          <td className="px-2 xs:px-3 sm:px-4 py-3">
+            <div className="flex items-center max-w-[60px] xs:max-w-none">
+              <StoreIcon className="w-3 h-3 text-gray-400 mr-1 flex-shrink-0" />
+              <span className="text-xs xs:text-sm truncate">{store.name}</span>
+            </div>
+          </td>
+        )}
+        {!isMobile && (
+          <td className="px-2 xs:px-3 sm:px-4 py-3 text-xs xs:text-sm">
+            {formatDate(supply.date_supply)}
+          </td>
+        )}
+        <td className="px-2 xs:px-3 sm:px-4 py-3">
           <DeliveryStatusBadge supply={supply} />
         </td>
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-gray-900 whitespace-nowrap text-xs xs:text-sm hidden lg:table-cell">
-          <span className="font-medium">{formatCurrency(supply.total_command || 0)}</span>
-        </td>
-        <td className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 whitespace-nowrap">
+        <td className="px-2 xs:px-3 sm:px-4 py-3">
           <div className="flex items-center space-x-1">
             <button
               onClick={() => handleViewDetails(supply)}
@@ -1425,13 +1223,13 @@ const SupplyPage: React.FC = () => {
         </td>
       </tr>
     );
-  }, [stores, formatDate, formatCurrency, handleViewDetails, handleUpdateStatus, updatingStatus]);
+  }, [stores, formatDate, handleViewDetails, handleUpdateStatus, updatingStatus, isMobile]);
 
   const LoadingRow = useCallback(({ colSpan }: { colSpan: number }) => (
     <tr>
-      <td colSpan={colSpan} className="px-3 xs:px-4 md:px-6 py-6 xs:py-8 md:py-12 text-center">
+      <td colSpan={colSpan} className="px-3 xs:px-4 py-6 xs:py-8 text-center">
         <div className="flex flex-col xs:flex-row justify-center items-center space-y-2 xs:space-y-0 xs:space-x-3">
-          <div className="animate-spin rounded-full h-5 w-5 xs:h-6 xs:w-6 md:h-8 md:w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-5 w-5 xs:h-6 xs:w-6 border-b-2 border-blue-600"></div>
           <span className="text-gray-600 text-sm xs:text-base">Chargement des commandes...</span>
         </div>
       </td>
@@ -1440,12 +1238,12 @@ const SupplyPage: React.FC = () => {
 
   const ErrorRow = useCallback(({ colSpan, message }: { colSpan: number; message: string }) => (
     <tr>
-      <td colSpan={colSpan} className="px-3 xs:px-4 md:px-6 py-6 xs:py-8 md:py-12 text-center">
+      <td colSpan={colSpan} className="px-3 xs:px-4 py-6 xs:py-8 text-center">
         <div className="text-red-600">
           <div className="flex flex-col items-center">
-            <AlertCircle className="w-8 h-8 xs:w-10 xs:h-10 md:w-12 md:h-12 mb-2 xs:mb-3 md:mb-4 text-red-400" />
+            <AlertCircle className="w-8 h-8 xs:w-10 xs:h-10 mb-2 xs:mb-3 text-red-400" />
             <p className="font-medium text-sm xs:text-base">Erreur de chargement</p>
-            <p className="text-xs xs:text-sm mt-1 max-w-md text-center">{message}</p>
+            <p className="text-xs xs:text-sm mt-1 max-w-md text-center px-4">{message}</p>
           </div>
         </div>
       </td>
@@ -1454,7 +1252,7 @@ const SupplyPage: React.FC = () => {
 
   const EmptyRow = useCallback(({ colSpan, message = 'Aucune commande trouvée' }: { colSpan: number; message?: string }) => (
     <tr>
-      <td colSpan={colSpan} className="px-3 xs:px-4 md:px-6 py-6 xs:py-8 md:py-12 text-center">
+      <td colSpan={colSpan} className="px-3 xs:px-4 py-6 xs:py-8 text-center">
         <div className="text-gray-500">
           <p className="font-medium text-sm xs:text-base">{message}</p>
           <p className="text-xs xs:text-sm mt-1">Commencez par créer une nouvelle commande</p>
@@ -1465,71 +1263,75 @@ const SupplyPage: React.FC = () => {
 
   const renderTableHeaders = useCallback(() => (
     <>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
+      <th className="px-2 xs:px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
         RÉFÉRENCE
       </th>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
+      <th className="px-2 xs:px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
         FOURNISSEUR
       </th>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
-        MAGASIN
-      </th>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
-        DATE
-      </th>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
+      {!isMobile && (
+        <th className="px-2 xs:px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
+          MAGASIN
+        </th>
+      )}
+      {!isMobile && (
+        <th className="px-2 xs:px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
+          DATE
+        </th>
+      )}
+      <th className="px-2 xs:px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
         STATUT
       </th>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap hidden sm:table-cell">
-        TOTAL
-      </th>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
+      {!isTablet && (
+        <th className="px-2 xs:px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
+          TOTAL
+        </th>
+      )}
+      <th className="px-2 xs:px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
         ACTIONS
       </th>
     </>
-  ), []);
+  ), [isMobile, isTablet]);
 
   const renderTrackingTableHeaders = useCallback(() => (
     <>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
+      <th className="px-2 xs:px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
         RÉFÉRENCE
       </th>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
+      <th className="px-2 xs:px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
         FOURNISSEUR
       </th>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
-        MAGASIN
+      {!isMobile && (
+        <th className="px-2 xs:px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
+          MAGASIN
+        </th>
+      )}
+      {!isMobile && (
+        <th className="px-2 xs:px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
+          DATE
+        </th>
+      )}
+      <th className="px-2 xs:px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
+        STATUT
       </th>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap hidden sm:table-cell">
-        DATE COMMANDE
-      </th>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap hidden md:table-cell">
-        LIVRAISON ESTIMÉE
-      </th>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
-        STATUT LIVRAISON
-      </th>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap hidden lg:table-cell">
-        TOTAL
-      </th>
-      <th className="px-2 xs:px-3 sm:px-4 md:px-6 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
+      <th className="px-2 xs:px-3 sm:px-4 py-3 text-left font-semibold text-gray-700 text-xs xs:text-sm whitespace-nowrap">
         ACTIONS
       </th>
     </>
-  ), []);
+  ), [isMobile]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-2 xs:p-3 sm:p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header de la page */}
-        <header className="mb-3 xs:mb-4 sm:mb-6 md:mb-8">
+        <header className="mb-3 xs:mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 xs:gap-3">
             <div className="flex items-center justify-between w-full sm:w-auto">
               <div className="min-w-0">
-                <h1 className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">
+                <h1 className="text-lg xs:text-xl sm:text-2xl font-bold text-gray-900 truncate">
                   Gestion des Approvisionnements
                 </h1>
-                <p className="text-gray-600 mt-1 text-xs xs:text-sm md:text-base hidden sm:block">
+                <p className="text-gray-600 mt-1 text-xs xs:text-sm hidden sm:block">
                   Suivez et gérez vos commandes fournisseurs
                 </p>
               </div>
@@ -1547,28 +1349,28 @@ const SupplyPage: React.FC = () => {
               </button>
             </div>
 
-            <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} sm:block w-full sm:w-auto mt-2 xs:mt-0`}>
+            <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} sm:block w-full sm:w-auto`}>
               <button 
                 onClick={() => setShowCreateSupply(true)}
-                className="w-full sm:w-auto flex items-center justify-center px-3 xs:px-4 sm:px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm xs:text-base shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto flex items-center justify-center px-3 xs:px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm xs:text-base shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={suppliersLoading || storesLoading || creatingSupply || creatingSupplier}
               >
                 <Plus className="w-4 h-4 xs:w-5 xs:h-5 mr-1 xs:mr-2" />
                 <span className="hidden xs:inline">
                   {suppliersLoading || storesLoading ? 'Chargement...' : 'Nouvelle Commande'}
                 </span>
-                <span className="xs:hidden">+</span>
+                <span className="xs:hidden">Nouveau</span>
               </button>
             </div>
           </div>
           
-          <p className="text-gray-600 mt-1 text-xs xs:text-sm md:text-base sm:hidden">
+          <p className="text-gray-600 mt-1 text-xs xs:text-sm sm:hidden">
             Suivez et gérez vos commandes fournisseurs
           </p>
         </header>
 
         {/* Cartes de statistiques */}
-        <section className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-2 xs:gap-3 sm:gap-4 md:gap-6 mb-3 xs:mb-4 sm:mb-6">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 xs:gap-3 sm:gap-4 mb-3 xs:mb-4 sm:mb-6">
           <StatCard
             title="Commandes en cours"
             value={stats?.total_pending || 0}
@@ -1593,17 +1395,17 @@ const SupplyPage: React.FC = () => {
         </section>
 
         {/* Barre de recherche et filtres */}
-        <section className="bg-white border border-gray-200 rounded-xl p-2 xs:p-3 sm:p-4 md:p-6 mb-3 xs:mb-4 sm:mb-6">
+        <section className="bg-white border border-gray-200 rounded-xl p-2 xs:p-3 sm:p-4 mb-3 xs:mb-4 sm:mb-6">
           <div className="flex flex-col lg:flex-row gap-2 xs:gap-3 md:gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-2 xs:left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 xs:w-5 xs:h-5" />
+                <Search className="absolute left-2 xs:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 xs:w-5 xs:h-5" />
                 <input
                   type="text"
                   placeholder="Rechercher une commande..."
                   value={searchTerm}
                   onChange={handleSearchChange}
-                  className="w-full pl-8 xs:pl-10 sm:pl-12 pr-2 xs:pr-3 sm:pr-4 py-2 xs:py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm xs:text-base"
+                  className="w-full pl-8 xs:pl-10 pr-2 xs:pr-3 py-2 xs:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm xs:text-base"
                 />
               </div>
             </div>
@@ -1628,35 +1430,48 @@ const SupplyPage: React.FC = () => {
                 >
                   Reçues
                 </button>
+                {isMobile && (
+                  <button
+                    onClick={() => setShowFiltersDrawer(true)}
+                    className="px-2 xs:px-3 py-1.5 xs:py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-xs xs:text-sm font-medium flex items-center"
+                  >
+                    <Filter className="w-3 h-3 mr-1" />
+                    Filtres
+                  </button>
+                )}
               </div>
               
-              <div className="flex flex-wrap gap-1 xs:gap-2">
-                <button
-                  onClick={() => handleStoreFilterChange('all')}
-                  className={`px-2 xs:px-3 py-1.5 xs:py-2 rounded-lg text-xs xs:text-sm font-medium transition-colors ${storeFilter === 'all' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                >
-                  Tous les magasins
-                </button>
-              </div>
-              
-              <button
-                onClick={handleResetFilters}
-                className="px-2 xs:px-3 py-1.5 xs:py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-xs xs:text-sm font-medium"
-              >
-                Réinitialiser
-              </button>
+              {!isMobile && (
+                <>
+                  <div className="flex flex-wrap gap-1 xs:gap-2">
+                    <button
+                      onClick={() => handleStoreFilterChange('all')}
+                      className={`px-2 xs:px-3 py-1.5 xs:py-2 rounded-lg text-xs xs:text-sm font-medium transition-colors ${storeFilter === 'all' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    >
+                      Tous les magasins
+                    </button>
+                  </div>
+                  
+                  <button
+                    onClick={handleResetFilters}
+                    className="px-2 xs:px-3 py-1.5 xs:py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-xs xs:text-sm font-medium"
+                  >
+                    Réinitialiser
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </section>
 
         {/* Section Suivi des livraisons */}
         <section className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-3 xs:mb-4 sm:mb-6">
-          <div className="px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 border-b border-gray-200">
+          <div className="px-2 xs:px-3 sm:px-4 py-2 xs:py-3 border-b border-gray-200">
             <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 xs:gap-0">
               <div className="min-w-0">
                 <div className="flex items-center">
                   <Truck className="w-4 h-4 xs:w-5 xs:h-5 text-blue-600 mr-1 xs:mr-2 flex-shrink-0" />
-                  <h2 className="text-sm xs:text-base sm:text-lg font-semibold text-gray-900 truncate">
+                  <h2 className="text-sm xs:text-base font-semibold text-gray-900 truncate">
                     Suivi des livraisons
                   </h2>
                 </div>
@@ -1689,15 +1504,15 @@ const SupplyPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {suppliesLoading || storesLoading ? (
-                    <LoadingRow colSpan={8} />
+                    <LoadingRow colSpan={isMobile ? 4 : 6} />
                   ) : suppliesError ? (
-                    <ErrorRow colSpan={8} message={suppliesError} />
+                    <ErrorRow colSpan={isMobile ? 4 : 6} message={suppliesError} />
                   ) : pendingSupplies.length === 0 ? (
-                    <EmptyRow colSpan={8} message="Aucune commande en cours de livraison" />
+                    <EmptyRow colSpan={isMobile ? 4 : 6} message="Aucune commande en cours de livraison" />
                   ) : (
                     pendingSupplies
                       .sort((a, b) => new Date(a.date_supply).getTime() - new Date(b.date_supply).getTime())
-                      .slice(0, 10)
+                      .slice(0, isMobile ? 3 : 5)
                       .map(supply => <TrackingTableRow key={supply.id} supply={supply} />)
                   )}
                 </tbody>
@@ -1705,8 +1520,8 @@ const SupplyPage: React.FC = () => {
             </div>
           </div>
 
-          {pendingSupplies.length > 10 && (
-            <div className="px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 border-t border-gray-200 bg-gray-50">
+          {pendingSupplies.length > (isMobile ? 3 : 5) && (
+            <div className="px-2 xs:px-3 py-2 border-t border-gray-200 bg-gray-50">
               <div className="flex justify-center">
                 <button
                   onClick={() => handleStatusFilterChange('pending')}
@@ -1722,8 +1537,8 @@ const SupplyPage: React.FC = () => {
 
         {/* Tableau principal des commandes */}
         <section className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-3 xs:mb-4 sm:mb-6">
-          <div className="px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 border-b border-gray-200">
-            <h2 className="text-sm xs:text-base sm:text-lg font-semibold text-gray-900">
+          <div className="px-2 xs:px-3 sm:px-4 py-2 xs:py-3 border-b border-gray-200">
+            <h2 className="text-sm xs:text-base font-semibold text-gray-900">
               Toutes les commandes ({supplies.length})
             </h2>
             <p className="text-gray-600 text-xs xs:text-sm mt-1">
@@ -1741,11 +1556,11 @@ const SupplyPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {suppliesLoading || storesLoading ? (
-                    <LoadingRow colSpan={7} />
+                    <LoadingRow colSpan={isMobile ? 4 : (isTablet ? 5 : 7)} />
                   ) : suppliesError ? (
-                    <ErrorRow colSpan={7} message={suppliesError} />
+                    <ErrorRow colSpan={isMobile ? 4 : (isTablet ? 5 : 7)} message={suppliesError} />
                   ) : currentSupplies.length === 0 ? (
-                    <EmptyRow colSpan={7} />
+                    <EmptyRow colSpan={isMobile ? 4 : (isTablet ? 5 : 7)} />
                   ) : (
                     currentSupplies.map(supply => <TableRow key={supply.id} supply={supply} />)
                   )}
@@ -1756,7 +1571,7 @@ const SupplyPage: React.FC = () => {
 
           {/* Pagination */}
           {totalPages > 1 && !suppliesLoading && !suppliesError && !storesLoading && (
-            <div className="px-2 xs:px-3 sm:px-4 md:px-6 py-2 xs:py-3 sm:py-4 border-t border-gray-200 bg-gray-50">
+            <div className="px-2 xs:px-3 py-2 xs:py-3 border-t border-gray-200 bg-gray-50">
               <div className="flex flex-col xs:flex-row items-center justify-between gap-2 xs:gap-0">
                 <div className="text-xs xs:text-sm text-gray-600">
                   {startIndex + 1}-{Math.min(endIndex, supplies.length)} sur {supplies.length}
@@ -1766,13 +1581,13 @@ const SupplyPage: React.FC = () => {
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="p-1 xs:p-1.5 md:p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-1 xs:p-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     aria-label="Page précédente"
                   >
-                    <ChevronLeft className="w-3 h-3 xs:w-4 xs:h-4 md:w-5 md:h-5" />
+                    <ChevronLeft className="w-3 h-3 xs:w-4 xs:h-4" />
                   </button>
                   
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  {Array.from({ length: Math.min(isMobile ? 3 : 5, totalPages) }, (_, i) => {
                     let pageNum;
                     if (totalPages <= 5) {
                       pageNum = i + 1;
@@ -1788,7 +1603,11 @@ const SupplyPage: React.FC = () => {
                       <button
                         key={pageNum}
                         onClick={() => handlePageChange(pageNum)}
-                        className={`w-6 h-6 xs:w-8 xs:h-8 md:w-10 md:h-10 rounded-lg text-xs xs:text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                        className={`w-6 h-6 xs:w-8 xs:h-8 rounded-lg text-xs xs:text-sm font-medium transition-colors ${
+                          currentPage === pageNum 
+                            ? 'bg-blue-600 text-white' 
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
                       >
                         {pageNum}
                       </button>
@@ -1798,10 +1617,10 @@ const SupplyPage: React.FC = () => {
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="p-1 xs:p-1.5 md:p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="p-1 xs:p-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     aria-label="Page suivante"
                   >
-                    <ChevronRight className="w-3 h-3 xs:w-4 xs:h-4 md:w-5 md:h-5" />
+                    <ChevronRight className="w-3 h-3 xs:w-4 xs:h-4" />
                   </button>
                 </div>
               </div>
@@ -1832,6 +1651,74 @@ const SupplyPage: React.FC = () => {
         onUpdateStatus={handleUpdateStatus}
         updatingStatus={updatingStatus}
       />
+
+      {/* Drawer de filtres mobile */}
+      {isMobile && showFiltersDrawer && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowFiltersDrawer(false)} />
+          <div className="absolute right-0 top-0 h-full w-64 bg-white shadow-xl">
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Filtres</h3>
+                <button
+                  onClick={() => setShowFiltersDrawer(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-4 space-y-6">
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Statut</h4>
+                <div className="space-y-2">
+                  {(['all', 'pending', 'received', 'cancelled'] as const).map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusFilterChange(status)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm ${statusFilter === status ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      {status === 'all' && 'Tous les statuts'}
+                      {status === 'pending' && 'En attente'}
+                      {status === 'received' && 'Reçues'}
+                      {status === 'cancelled' && 'Annulées'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Magasin</h4>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => handleStoreFilterChange('all')}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm ${storeFilter === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    Tous les magasins
+                  </button>
+                  {stores.map(store => (
+                    <button
+                      key={store.id}
+                      onClick={() => handleStoreFilterChange(store.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm ${storeFilter === store.id ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      {store.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <button
+                onClick={handleResetFilters}
+                className="w-full px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+              >
+                Réinitialiser les filtres
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
