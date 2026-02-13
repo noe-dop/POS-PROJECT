@@ -1,8 +1,9 @@
 # views.py
-from rest_framework import viewsets, status, filters, generics
+from rest_framework import viewsets, status, filters, generics,permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
@@ -16,6 +17,7 @@ import csv
 from datetime import datetime
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .permissions import IsAdminOrOwner
 # Import des modèles
 from .models import (
     User, Owner, Shareholder, Customer, Address, Currency,
@@ -55,10 +57,13 @@ class LoginView(APIView):
         if not serializer.is_valid():
             return Response({
                 "success": False,
-                "errors": serializer.errors
+                "message": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
         
         user = serializer.validated_data['user']
+        # Mettre a jour le Last_login
+        user.last_login = timezone.now()
+        user.save(update_fields = ["last_login"]) # Pour ne sauvegarder que ce champ
         # Générer les tokens JWT (Simple JWT) 
         refresh = RefreshToken.for_user(user)
 
@@ -127,23 +132,57 @@ class LogoutView(APIView):
     def post(self, request, *args, **kwargs):
         # Supprimer le token
         try:
-            refresh_token = request.data.get("refresh")
+            refresh_token = request.data.get('refresh')
             if refresh_token:
                 token = RefreshToken(refresh_token)
                 token.blacklist()  
 
-            return Response({
-                "success": True,
-                "message": "Déconnexion réussie"
-            }, status=status.HTTP_205_RESET_CONTENT)
-        
+                return Response({
+                    "success": True,
+                    "message": "Déconnexion réussie"
+                }, status=status.HTTP_205_RESET_CONTENT)
+            else:
+                return Response({
+                    "success": False,
+                    "message": "Token de rafraîchissement manquant"
+                }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({
                 "success": False,
                 "message": str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
         
+class PasswordResetRequestView(generics.GenericAPIView):
+    serializer_class = PasswordResetRequestSerializer
     
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+        
+        return Response({
+            "success": True,
+            "message": "Email de réinitialisation envoyé.",
+            "uid": result['uid'],
+            "token": result['token'],  # En dev seulement!
+        }, status=status.HTTP_200_OK)
+
+class PasswordResetConfirmView(generics.GenericAPIView):
+    serializer_class = PasswordResetConfirmSerializer
+    
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        return Response({
+            "success": True,
+            "message": "Mot de passe réinitialisé avec succès."
+        }, status=status.HTTP_200_OK)
+    
+# ===========================
+# VUE DES PROFILS UTILISATEURS
+# ===========================
 
 class UserProfileView(APIView):
     """
@@ -672,10 +711,10 @@ class RequestsAPIView(APIView):
 # =============================================================================
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.select_related('user_type')
+    queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
-    filterset_fields = ['user_type', 'is_active', 'is_staff']
+    filterset_fields = ['is_active', 'is_staff']
     search_fields = ['username', 'first_name', 'last_name', 'email', 'phone']
     ordering_fields = ['date_joined', 'last_login']
     
@@ -707,6 +746,10 @@ class OwnerViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return OwnerCreateSerializer
         return OwnerSerializer
+    
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
 class ShareholderViewSet(viewsets.ModelViewSet):
     queryset = Shareholder.objects.select_related('user')
@@ -718,13 +761,31 @@ class ShareholderViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return ShareholderCreateSerializer
         return ShareholderSerializer
+    
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.select_related('user')
-    serializer_class = CustomerSerializer
     permission_classes = [AllowAny]
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return CustomerCreateSerializer
+        return CustomerSerializer
     filterset_fields = ['loyalty_points']
     search_fields = ['user__first_name', 'user__last_name', 'user__email']
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        # Utilise le sérialiseur de création (CustomerCreateSerializer)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        customer = serializer.save()  # retourne une instance Customer
+
+        # Utilise le sérialiseur de lecture (CustomerSerializer) pour la réponse
+        response_serializer = CustomerSerializer(customer, context=self.get_serializer_context())
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['get'])
     def purchase_history(self, request, pk=None):
@@ -758,51 +819,248 @@ class StoreNetworkViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
 class StoreViewSet(viewsets.ModelViewSet):
-    queryset = Store.objects.select_related('store_type', 'network', 'address').filter(is_active=True)
-    serializer_class = StoreSerializer
-    permission_classes = [AllowAny]
-    filterset_fields = ['store_type', 'network', 'is_active']
-    search_fields = ['name', 'slug', 'email', 'phone']
+    queryset = Store.objects.select_related('store_type', 'network', 'address').all()
+    
+    def get_serializer_class(self):
+        # Utiliser StoreCreateSerializer pour la création
+        if self.action == 'create':
+            return StoreCreateSerializer
+        elif self.action in ["update", "partial_update"]:
+            return StoreUpdateSerializer
+        # StoreSerializer pour les autres actions
+        return StoreSerializer
+    
+    def get_permissions(self):
+        """Permissions adaptées à chaque action"""
+        if self.action in ['list', 'retrieve', 'nearby']:
+            # Public: voir les boutiques
+            return [permissions.AllowAny()]
+        elif self.action in ['my_accessible_stores', 'dashboard']:
+            # Connecté: voir ses boutiques accessibles
+            return [permissions.IsAuthenticated()]
+        else:
+            # Création/modification: admin ou propriétaire
+            return [permissions.IsAuthenticated(), IsAdminOrOwner()]
+    
+    def get_queryset(self):
+        """Filtrer selon le rôle et les permissions"""
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        # Pour les actions publiques: seulement boutiques actives
+        if self.action in ['list', 'retrieve', 'nearby']:
+            return queryset.filter(is_active=True)
+        
+        # Pour utilisateur non connecté
+        if not user.is_authenticated:
+            return queryset.none()
+        
+        # Superuser voit tout
+        if user.is_superuser:
+            return queryset
+        
+        # Propriétaire: voit ses boutiques
+        if hasattr(user, 'owner'):
+            owner = user.owner
+            store_ids = StoreOwnership.objects.filter(owner=owner).values_list('store_id', flat=True)
+            return queryset.filter(id__in=store_ids)
+        
+        # Employé: voit les boutiques où il a des permissions
+        if hasattr(user, 'employee'):
+            employee = user.employee
+            # Récupérer les boutiques où l'employé a des permissions actives
+            store_ids = StorePermission.objects.filter(
+                employee=employee,
+                is_active=True,
+                valid_until__gte=timezone.now().date()
+            ).values_list('store_id', flat=True)
+            return queryset.filter(id__in=store_ids)
+        
+        return queryset.none()
+    
+    @action(detail=False, methods=['get'])
+    def my_accessible_stores(self, request):
+        """
+        Retourne toutes les boutiques accessibles à l'utilisateur connecté
+        avec le niveau de permission pour chaque boutique
+        """
+        user = request.user
+        
+        if not user.is_authenticated:
+            return Response({'error': 'Authentification requise'}, status=401)
+        
+        stores = self.get_queryset()
+        
+        # Pour chaque boutique, déterminer le niveau d'accès
+        stores_with_permissions = []
+        for store in stores:
+            store_data = StoreSerializer(store).data
+            
+            # Déterminer le rôle/permissions
+            if user.is_superuser:
+                role = 'superadmin'
+                permissions = ['all']
+            elif hasattr(user, 'owner'):
+                # Vérifier si c'est le propriétaire principal
+                is_primary = StoreOwnership.objects.filter(
+                    store=store,
+                    owner=user.owner,
+                    is_primary=True
+                ).exists()
+                role = 'owner_primary' if is_primary else 'owner'
+                permissions = ['all']
+            elif hasattr(user, 'employee'):
+                employee = user.employee
+                store_permission = StorePermission.objects.filter(
+                    employee=employee,
+                    store=store,
+                    is_active=True
+                ).first()
+                
+                if store_permission:
+                    role = store_permission.permission_type
+                    permissions = []
+                    if store_permission.can_manage_employees:
+                        permissions.append('manage_employees')
+                    if store_permission.can_manage_products:
+                        permissions.append('manage_products')
+                    if store_permission.can_manage_sales:
+                        permissions.append('manage_sales')
+                    if store_permission.can_view_reports:
+                        permissions.append('view_reports')
+                else:
+                    continue  # L'employé n'a pas accès à cette boutique
+            else:
+                continue
+            
+            stores_with_permissions.append({
+                **store_data,
+                'access_role': role,
+                'permissions': permissions,
+            })
+        
+        return Response(stores_with_permissions)
     
     @action(detail=True, methods=['get'])
-    def statistics(self, request, pk=None):
-        """Statistiques d'une boutique"""
+    def dashboard(self, request, pk=None):
+        """Dashboard d'une boutique avec vérification des permissions"""
         store = self.get_object()
+        user = request.user
+        
+        # Vérifier les permissions d'accès à cette boutique
+        if not self._has_store_access(user, store):
+            raise PermissionDenied("Vous n'avez pas accès à cette boutique")
+        
+        # Récupérer les permissions spécifiques
+        user_permissions = self._get_user_store_permissions(user, store)
+        
+        # Statistiques selon les permissions
+        dashboard_data = {
+            'store': StoreSerializer(store).data,
+            'user_permissions': user_permissions,
+            'statistics': self._get_store_statistics(store, user_permissions),
+        }
+        
+        return Response(dashboard_data)
+    
+    def _has_store_access(self, user, store):
+        """Vérifie si l'utilisateur a accès à la boutique"""
+        if user.is_superuser:
+            return True
+        
+        if hasattr(user, 'owner_profile'):
+            return StoreOwnership.objects.filter(
+                owner=user.owner_profile,
+                store=store
+            ).exists()
+        
+        if hasattr(user, 'employee_profile'):
+            return StorePermission.objects.filter(
+                employee=user.employee_profile,
+                store=store,
+                is_active=True,
+                valid_until__gte=timezone.now().date()
+            ).exists()
+        
+        return False
+    
+    def _get_user_store_permissions(self, user, store):
+        """Retourne les permissions spécifiques de l'utilisateur pour cette boutique"""
+        if user.is_superuser:
+            return {
+                'role': 'superadmin',
+                'can_manage_all': True,
+                'permissions': ['all']
+            }
+        
+        if hasattr(user, 'owner_profile'):
+            is_primary = StoreOwnership.objects.filter(
+                store=store,
+                owner=user.owner_profile,
+                is_primary=True
+            ).exists()
+            return {
+                'role': 'owner_primary' if is_primary else 'owner',
+                'can_manage_all': True,
+                'permissions': ['all']
+            }
+        
+        if hasattr(user, 'employee_profile'):
+            permission = StorePermission.objects.filter(
+                employee=user.employee_profile,
+                store=store,
+                is_active=True
+            ).first()
+            
+            if permission:
+                return {
+                    'role': permission.permission_type,
+                    'can_manage_employees': permission.can_manage_employees,
+                    'can_manage_products': permission.can_manage_products,
+                    'can_manage_sales': permission.can_manage_sales,
+                    'can_view_reports': permission.can_view_reports,
+                    'valid_until': permission.valid_until,
+                }
+        
+        return {'role': 'no_access'}
+    
+    def _get_store_statistics(self, store, user_permissions):
+        """Retourne les statistiques selon les permissions de l'utilisateur"""
         today = timezone.now().date()
+        stats = {}
         
-        # Ventes
-        daily_sales = Sale.objects.filter(
-            store=store,
-            sale_date__date=today
-        ).aggregate(
-            total_amount=Sum('total_amount'),
-            count_sales=Count('id')
-        )
-        
-        # Commandes
-        daily_orders = Order.objects.filter(
-            store=store,
-            order_date__date=today
-        ).aggregate(
-            total_amount=Sum('total_amount'),
-            count_orders=Count('id')
-        )
-        
-        low_stock = Stock.objects.filter(
-            store=store,
-            quantity_available__lte=F('min_stock_threshold')
+        # Statistiques de base (toujours visibles)
+        stats['active_employees'] = Employee.objects.filter(
+            store=store, 
+            is_active=True
         ).count()
         
-        active_employees = Employee.objects.filter(store=store, is_active=True).count()
+        stats['total_products'] = store.store_products.filter(
+            is_active=True
+        ).count()
         
-        return Response({
-            'daily_sales': daily_sales['total_amount'] or 0,
-            'daily_sales_count': daily_sales['count_sales'] or 0,
-            'daily_orders': daily_orders['total_amount'] or 0,
-            'daily_orders_count': daily_orders['count_orders'] or 0,
-            'low_stock_items': low_stock,
-            'active_employees': active_employees
-        })
+        # Statistiques conditionnelles
+        if user_permissions.get('can_view_reports') or user_permissions.get('role') in ['owner', 'owner_primary', 'superadmin']:
+            # Ventes du jour
+            daily_sales = Sale.objects.filter(
+                store=store,
+                sale_date__date=today
+            ).aggregate(
+                total_amount=Sum('total_amount'),
+                count_sales=Count('id')
+            )
+            
+            stats['daily_sales'] = daily_sales['total_amount'] or 0
+            stats['daily_sales_count'] = daily_sales['count_sales'] or 0
+        
+        if user_permissions.get('can_manage_products') or user_permissions.get('role') in ['owner', 'owner_primary', 'superadmin']:
+            # Stock bas
+            stats['low_stock_items'] = Stock.objects.filter(
+                store=store,
+                quantity_available__lte=F('min_stock_threshold')
+            ).count()
+        
+        return stats
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.select_related('store', 'manager__user')
@@ -824,6 +1082,10 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.select_related('user', 'store', 'role', 'department')
     serializer_class = EmployeeSerializer
     permission_classes = [AllowAny]
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+    
     filterset_fields = ['store', 'department', 'role', 'is_active']
     search_fields = ['user__first_name', 'user__last_name', 'user__email']
     

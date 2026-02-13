@@ -1,3 +1,5 @@
+import secrets
+import string
 from django.db import models
 from django.db.models import JSONField, Index, UniqueConstraint
 from django.utils import timezone
@@ -73,7 +75,7 @@ class User(AbstractUser):
 # -----------------------------
 
 class Owner(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, db_index=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, db_index=True,related_name="owner")
     photo = models.ImageField(upload_to='profiles/owners/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     
@@ -124,7 +126,7 @@ class Address(models.Model):
     address_line2 = models.CharField("Complément", max_length=255, blank=True, null=True)
     city = models.CharField("Ville", max_length=100, db_index=True)
     state = models.CharField("Région", max_length=100)
-    postal_code = models.CharField("Code postal", max_length=20, db_index=True)
+    postal_code = models.CharField("Code postal", max_length=20, db_index=True,null=True,blank=True)
     country = models.CharField("Pays", max_length=100, default="Sénégal", db_index=True)
     latitude = models.DecimalField("Latitude", max_digits=9, decimal_places=6, blank=True, null=True)
     longitude = models.DecimalField("Longitude", max_digits=9, decimal_places=6, blank=True, null=True)
@@ -144,7 +146,6 @@ class Address(models.Model):
 # -----------------------------
 
 class StoreType(models.Model):
-    code = models.CharField("Code", max_length=20, unique=True, db_index=True)
     name = models.CharField("Nom", max_length=100)
     description = models.TextField("Description", blank=True, null=True)
     
@@ -170,8 +171,8 @@ class Store(models.Model):
     store_type = models.ForeignKey(StoreType, on_delete=models.PROTECT, null=True, blank=True, db_index=True)
     network = models.ForeignKey(StoreNetwork, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
     address = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True, db_index=True)
-    phone = models.CharField("Téléphone", max_length=15, null=True, blank=True)
-    email = models.EmailField("Email", blank=True, null=True)
+    phone = models.CharField("Téléphone", max_length=15, null=True, blank=True,unique=True)
+    email = models.EmailField("Email", blank=True, null=True,unique=True)
     opening_hours = JSONField("Heures d'ouverture", default=dict)
     is_active = models.BooleanField("Active", default=True, db_index=True)
     logo = models.ImageField(upload_to='store/logos/', blank=True, null=True)
@@ -179,7 +180,7 @@ class Store(models.Model):
     slogan = models.TextField("Slogan", blank=True)
     configuration = JSONField("Paramètres Boutique", default=dict)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    
+    updated_at = models.DateTimeField(auto_now=True)
     owners = models.ManyToManyField(Owner, through='StoreOwnership')
     
     class Meta:
@@ -189,7 +190,7 @@ class Store(models.Model):
         indexes = [
             models.Index(fields=['name']),
             models.Index(fields=['is_active']),
-            models.Index(fields=['created_at']),
+            models.Index(fields=['created_at','updated_at']),
             models.Index(fields=['store_type', 'is_active']),
         ]
 
@@ -224,6 +225,38 @@ class StoreShareholder(models.Model):
         verbose_name_plural = "Parts actionnaires"
         ordering = ['store__name', 'shareholder__user__username']
 
+class StorePermission(models.Model):
+    """Permissions spécifiques par boutique pour les employés"""
+    
+    class PermissionType(models.TextChoices):
+        MANAGER = 'manager', 'Gérant'
+        CASHIER = 'cashier', 'Caissier'
+        STOCK_MANAGER = 'stock_manager', 'Responsable stock'
+        VIEWER = 'viewer', 'Consultant'
+    
+    employee = models.ForeignKey('Employee', on_delete=models.CASCADE, related_name='store_permissions')
+    store = models.ForeignKey(Store, on_delete=models.CASCADE)
+    permission_type = models.CharField(
+        max_length=20,
+        choices=PermissionType.choices,
+        default=PermissionType.VIEWER
+    )
+    can_manage_employees = models.BooleanField(default=False)
+    can_manage_products = models.BooleanField(default=False)
+    can_manage_sales = models.BooleanField(default=False)
+    can_view_reports = models.BooleanField(default=False)
+    valid_from = models.DateField(default=timezone.now)
+    valid_until = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        unique_together = ('employee', 'store')
+        verbose_name = "Permission boutique"
+        verbose_name_plural = "Permissions boutiques"
+    
+    def __str__(self):
+        return f"{self.employee.user.get_full_name()} - {self.store.name} ({self.permission_type})"
+
 class Department(models.Model):
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='departments', db_index=True)
     name = models.CharField("Nom du rayon", max_length=100, db_index=True)
@@ -246,6 +279,194 @@ class Department(models.Model):
             models.Index(fields=['store', 'name']),
         ]
 
+
+# =================
+# Gestion des Boutiques et Appareils pour utilisation de QR Codes
+# =================
+
+class StoreDevice(models.Model):
+    """
+    Modèle pour gérer les appareils connectés à une boutique
+    (Tablettes, caisses enregistreuses, smartphones du personnel)
+    """
+    
+    class DeviceType(models.TextChoices):
+        CASH_REGISTER = 'CAISSE', 'Caisse enregistreuse'
+        TABLET = 'TABLETTE', 'Tablette'
+        MOBILE = 'MOBILE', 'Mobile personnel'
+        KIOSK = 'KIOSK', 'Kiosk client'
+        OTHER = 'AUTRE', 'Autre appareil'
+    
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='devices')
+    device_id = models.CharField("ID Appareil", max_length=100, unique=True, db_index=True)
+    device_name = models.CharField("Nom de l'appareil", max_length=100)
+    device_type = models.CharField("Type", max_length=20, choices=DeviceType.choices, default=DeviceType.TABLET)
+    
+    # Authentification par QR code
+    pairing_code = models.CharField("Code d'appairage", max_length=25, unique=True, db_index=True, blank=True)
+    qr_code_token = models.CharField("Token QR Code", max_length=64, unique=True, db_index=True, null=True, blank=True)
+    pairing_expires_at = models.DateTimeField("Expiration du code", null=True, blank=True)
+    paired_at = models.DateTimeField("Appairé le", null=True, blank=True)
+    
+    # Informations de session
+    last_login = models.DateTimeField("Dernière connexion", null=True, blank=True)
+    current_session = models.CharField("Session actuelle", max_length=100, null=True, blank=True)
+    is_active = models.BooleanField("Actif", default=True, db_index=True)
+    
+    # Appareil info
+    device_model = models.CharField("Modèle", max_length=100, blank=True)
+    os_version = models.CharField("Version OS", max_length=50, blank=True)
+    app_version = models.CharField("Version App", max_length=50, blank=True)
+    
+    # Permissions spécifiques à l'appareil
+    permissions = JSONField("Permissions", default=dict)
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Appareil boutique"
+        verbose_name_plural = "Appareils boutique"
+        ordering = ['store__name', '-last_login']
+        indexes = [
+            models.Index(fields=['store', 'is_active']),
+            models.Index(fields=['pairing_code']),
+            models.Index(fields=['qr_code_token']),
+            models.Index(fields=['pairing_expires_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.device_name} - {self.store.name}"
+    
+    def generate_pairing_code(self):
+        """Génère un code d'appairage lisible"""
+        # Format: ABC-DEF-GHI (plus facile à saisir)
+        alphabet = string.ascii_uppercase + string.digits
+        code = '-'.join([
+            ''.join(secrets.choice(alphabet) for _ in range(3)),
+            ''.join(secrets.choice(alphabet) for _ in range(3)),
+            ''.join(secrets.choice(alphabet) for _ in range(3))
+        ])
+        
+        self.pairing_code = code
+        self.qr_code_token = secrets.token_urlsafe(32)
+        self.pairing_expires_at = timezone.now() + timezone.timedelta(minutes=15)
+        self.paired_at = None
+        self.save()
+        
+        return {
+            'code': self.pairing_code,
+            'token': self.qr_code_token,
+            'expires_at': self.pairing_expires_at,
+            'qr_data': f"storepair:{self.store.id}:{self.qr_code_token}"
+        }
+    
+    def verify_pairing(self, token):
+        """Vérifie si le token est valide pour l'appairage"""
+        if (self.qr_code_token == token and 
+            self.pairing_expires_at and 
+            timezone.now() < self.pairing_expires_at):
+            
+            self.paired_at = timezone.now()
+            self.pairing_expires_at = None
+            self.save()
+            return True
+        return False
+
+class StoreSession(models.Model):
+    """
+    Sessions actives pour les appareils connectés
+    """
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='sessions')
+    device = models.ForeignKey(StoreDevice, on_delete=models.CASCADE, related_name='sessions')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    session_token = models.CharField("Token session", max_length=64, unique=True, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    
+    is_active = models.BooleanField("Session active", default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    expires_at = models.DateTimeField(db_index=True)
+    last_activity = models.DateTimeField(auto_now=True, db_index=True)
+    
+    class Meta:
+        verbose_name = "Session boutique"
+        verbose_name_plural = "Sessions boutique"
+        ordering = ['-last_activity']
+        indexes = [
+            models.Index(fields=['store', 'is_active']),
+            models.Index(fields=['device', 'is_active']),
+            models.Index(fields=['expires_at', 'is_active']),
+        ]
+
+class StoreQRCode(models.Model):
+    """
+    Modèle pour les QR codes spécifiques aux boutiques
+    (Pour paiement, accès rapide, etc.)
+    """
+    class QRCodeType(models.TextChoices):
+        PAYMENT = 'PAIEMENT', 'QR Code de paiement'
+        CONNECTION = 'CONNEXION', 'QR Code de connexion'
+        PROMOTION = 'PROMOTION', 'QR Code promotionnel'
+        MENU = 'MENU', 'QR Code menu digital'
+        DELIVERY = 'LIVRAISON', 'QR Code livraison'
+    
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='qrcodes')
+    name = models.CharField("Nom du QR Code", max_length=100)
+    qr_type = models.CharField("Type", max_length=20, choices=QRCodeType.choices, default=QRCodeType.PAYMENT)
+    
+    # Données encodées
+    qr_data = models.TextField("Données QR")
+    qr_token = models.CharField("Token QR", max_length=64, unique=True, db_index=True)
+    
+    # Pour les paiements
+    amount = models.DecimalField("Montant fixe", max_digits=10, decimal_places=2, null=True, blank=True)
+    currency = models.CharField("Devise", max_length=3, default='XOF')
+    
+    # Usage tracking
+    scan_count = models.PositiveIntegerField("Nombre de scans", default=0)
+    last_scan = models.DateTimeField("Dernier scan", null=True, blank=True)
+    
+    # Expiration
+    is_active = models.BooleanField("Actif", default=True, db_index=True)
+    valid_from = models.DateTimeField("Valide du", auto_now_add=True)
+    valid_until = models.DateTimeField("Valide jusqu'au", null=True, blank=True, db_index=True)
+    
+    # Métadonnées
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    
+    class Meta:
+        verbose_name = "QR Code boutique"
+        verbose_name_plural = "QR Codes boutique"
+        ordering = ['store__name', '-created_at']
+        indexes = [
+            models.Index(fields=['store', 'qr_type', 'is_active']),
+            models.Index(fields=['qr_token']),
+            models.Index(fields=['valid_until', 'is_active']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} - {self.store.name}"
+    
+    def generate_payment_qr(self, amount=None):
+        """Génère un QR code pour paiement"""
+        self.qr_token = secrets.token_urlsafe(32)
+        
+        if amount:
+            self.amount = amount
+        
+        # Format: storepay://{store_id}/{token}?amount={amount}
+        self.qr_data = f"storepay://{self.store.id}/{self.qr_token}"
+        
+        if self.amount:
+            self.qr_data += f"?amount={self.amount}&currency={self.currency}"
+        
+        self.save()
+        return self.qr_data
+
 # -----------------------------
 # Employés et Rôles OPTIMISÉS
 # -----------------------------
@@ -262,7 +483,7 @@ class EmployeeRole(models.Model):
         ordering = ['name']
 
 class Employee(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, db_index=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, db_index=True,related_name="employee")
     store = models.ForeignKey(Store, on_delete=models.CASCADE, db_index=True)
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
     role = models.ForeignKey(EmployeeRole, on_delete=models.PROTECT, db_index=True)

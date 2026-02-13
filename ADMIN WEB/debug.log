@@ -60349,3 +60349,347 @@ Traceback (most recent call last):
     )
 TypeError: 'Meta.fields' must not contain non-model field names: supplier, status
 ERROR 2025-12-10 14:34:23,839 basehttp "GET /swagger/?format=openapi HTTP/1.1" 500 184671
+ERROR 2025-12-17 11:30:36,516 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2025-12-17 11:34:59,666 log Internal Server Error: /api/auth/register
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\utils\deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\middleware\common.py", line 108, in process_response
+    return self.response_redirect_class(self.get_full_path_with_slash(request))
+                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\middleware\common.py", line 87, in get_full_path_with_slash
+    raise RuntimeError(
+    ...<9 lines>...
+    )
+RuntimeError: You called this URL via POST, but the URL doesn't end in a slash and you have APPEND_SLASH set. Django can't redirect to the slash URL while maintaining POST data. Change your form to point to 127.0.0.1:8000/api/auth/register/ (note the trailing slash), or set APPEND_SLASH=False in your Django settings.
+ERROR 2025-12-17 11:34:59,671 basehttp "POST /api/auth/register HTTP/1.1" 500 79566
+ERROR 2025-12-17 16:20:35,587 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2025-12-17 17:23:16,564 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2025-12-17 17:34:53,461 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2025-12-18 09:55:17,638 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2025-12-18 13:13:46,527 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2025-12-18 13:39:37,174 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-01-21 15:30:39,946 log Internal Server Error: /api/auth/register/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: ERREUR:  la relation « api_boutique_core_user » n'existe pas
+LINE 1: SELECT 1 AS "a" FROM "api_boutique_core_user" WHERE "api_bou...
+                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\generics.py", line 194, in post
+    return self.create(request, *args, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 57, in create
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 444, in run_validation
+    value = self.to_internal_value(data)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 501, in to_internal_value
+    validated_value = field.run_validation(primitive_value)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 757, in run_validation
+    return super().run_validation(data)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 539, in run_validation
+    self.run_validators(value)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 551, in run_validators
+    validator(value, self)
+    ~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\validators.py", line 86, in __call__
+    if qs_exists(queryset):
+       ~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\validators.py", line 23, in qs_exists
+    return queryset.exists()
+           ~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\query.py", line 1296, in exists
+    return self.query.has_results(using=self.db)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\sql\query.py", line 674, in has_results
+    return compiler.has_results()
+           ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1591, in has_results
+    return bool(self.execute_sql(SINGLE))
+                ~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: ERREUR:  la relation « api_boutique_core_user » n'existe pas
+LINE 1: SELECT 1 AS "a" FROM "api_boutique_core_user" WHERE "api_bou...
+                             ^
+
+ERROR 2026-01-21 15:30:39,979 basehttp "POST /api/auth/register/ HTTP/1.1" 500 209442
+ERROR 2026-01-27 13:51:45,913 log Internal Server Error: /api/owner/register/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.NotNullViolation: ERREUR:  une valeur NULL viole la contrainte NOT NULL de la colonne « user_type_id » dans la relation « api_boutique_core_user »
+DETAIL:  La ligne en échec contient (1, , null, f, vlaly493, vignon, laly, lalyvignon@gmail.com, f, t, 0103742646, null, , 2026-01-27 13:51:45.602237+00, 2026-01-27 13:51:45.60225+00, null).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\generics.py", line 194, in post
+    return self.create(request, *args, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 57, in create
+    owner = serializer.save()
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 323, in create
+    user = super().create(validated_data)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 311, in create
+    user = User.objects.create(**validated_data)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\contrib\auth\base_user.py", line 65, in save
+    super().save(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, fields, returning_fields, raw
+    )
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\query.py", line 1868, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.IntegrityError: ERREUR:  une valeur NULL viole la contrainte NOT NULL de la colonne « user_type_id » dans la relation « api_boutique_core_user »
+DETAIL:  La ligne en échec contient (1, , null, f, vlaly493, vignon, laly, lalyvignon@gmail.com, f, t, 0103742646, null, , 2026-01-27 13:51:45.602237+00, 2026-01-27 13:51:45.60225+00, null).
+
+ERROR 2026-01-27 13:51:45,925 basehttp "POST /api/owner/register/ HTTP/1.1" 500 221580
+ERROR 2026-01-27 14:01:39,893 log Internal Server Error: /api/owner/register/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\generics.py", line 194, in post
+    return self.create(request, *args, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 63, in create
+    "id": owner.user.id,
+          ^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'user'
+ERROR 2026-01-27 14:01:39,899 basehttp "POST /api/owner/register/ HTTP/1.1" 500 108330
+ERROR 2026-01-27 14:06:45,738 log Internal Server Error: /api/owner/register/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\generics.py", line 194, in post
+    return self.create(request, *args, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 64, in create
+    "user_id": owner.user_id,
+               ^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'user_id'
+ERROR 2026-01-27 14:06:45,742 basehttp "POST /api/owner/register/ HTTP/1.1" 500 108382
+ERROR 2026-01-27 15:12:13,308 log Internal Server Error: /api/owner/register/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\generics.py", line 194, in post
+    return self.create(request, *args, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 64, in create
+    "user_id": owner.user.id,
+               ^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'user'
+ERROR 2026-01-27 15:12:13,313 basehttp "POST /api/owner/register/ HTTP/1.1" 500 108358
+ERROR 2026-01-27 15:19:15,844 log Internal Server Error: /api/owner/register/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\generics.py", line 194, in post
+    return self.create(request, *args, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 68, in create
+    "photo_url": owner.user.photo.url if owner.user.photo else None
+                                         ^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'photo'. Did you mean: 'phone'?
+ERROR 2026-01-27 15:19:15,849 basehttp "POST /api/owner/register/ HTTP/1.1" 500 108541
