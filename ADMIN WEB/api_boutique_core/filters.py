@@ -24,7 +24,6 @@ class DateRangeFilter(django_filters.FilterSet):
 class UserFilter(django_filters.FilterSet):
     search = django_filters.CharFilter(method='filter_search')
     is_active = django_filters.BooleanFilter(field_name='is_active')
-    user_type = django_filters.ModelChoiceFilter(queryset=UserType.objects.all())
     date_joined_range = django_filters.DateFromToRangeFilter(field_name='date_joined')
 
     class Meta:

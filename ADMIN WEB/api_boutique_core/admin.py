@@ -138,8 +138,8 @@ class CurrencyAdmin(admin.ModelAdmin):
 
 @admin.register(StoreType)
 class StoreTypeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'code', 'description')
-    search_fields = ('name', 'code')
+    list_display = ('name', 'description')
+    search_fields = ['name']
 
 @admin.register(StoreNetwork)
 class StoreNetworkAdmin(admin.ModelAdmin):

@@ -1,0 +1,53 @@
+INFO 2026-01-29 11:25:47,529 autoreload Watching for file changes with StatReloader
+INFO 2026-01-29 11:26:16,840 basehttp "POST /api/auth/login/ HTTP/1.1" 200 489
+INFO 2026-01-29 11:27:22,372 autoreload C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py changed, reloading.
+INFO 2026-01-29 11:27:23,153 autoreload Watching for file changes with StatReloader
+INFO 2026-01-29 11:28:11,600 basehttp "POST /api/auth/login/ HTTP/1.1" 200 489
+INFO 2026-01-29 11:30:05,030 autoreload C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py changed, reloading.
+INFO 2026-01-29 11:30:05,841 autoreload Watching for file changes with StatReloader
+INFO 2026-01-29 11:30:21,233 autoreload C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py changed, reloading.
+INFO 2026-01-29 11:30:22,014 autoreload Watching for file changes with StatReloader
+INFO 2026-01-29 11:30:37,047 basehttp "POST /api/auth/login/ HTTP/1.1" 200 489
+INFO 2026-01-29 11:30:56,851 autoreload C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py changed, reloading.
+INFO 2026-01-29 11:30:57,698 autoreload Watching for file changes with StatReloader
+INFO 2026-01-29 11:31:52,307 autoreload C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py changed, reloading.
+INFO 2026-01-29 11:31:53,054 autoreload Watching for file changes with StatReloader
+INFO 2026-01-29 11:31:57,790 autoreload Watching for file changes with StatReloader
+INFO 2026-01-29 11:32:34,862 autoreload Watching for file changes with StatReloader
+INFO 2026-01-29 11:32:42,721 basehttp "POST /api/auth/login/ HTTP/1.1" 200 489
+INFO 2026-01-29 11:35:35,271 autoreload C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\backend_boutique\urls.py changed, reloading.
+INFO 2026-01-29 11:35:36,202 autoreload Watching for file changes with StatReloader
+DEBUG 2026-01-29 11:35:46,754 views Login request received: {'username': 'vlaly493', 'password': 'Azerty@123'}
+ERROR 2026-01-29 11:35:46,936 log Internal Server Error: /api/auth/login/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 60, in post
+    raise Exception("DEBUG: LoginVie called!")
+Exception: DEBUG: LoginVie called!
+ERROR 2026-01-29 11:35:46,940 basehttp "POST /api/auth/login/ HTTP/1.1" 500 102051
+INFO 2026-01-29 11:36:05,632 autoreload C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py changed, reloading.
+INFO 2026-01-29 11:36:06,489 autoreload Watching for file changes with StatReloader
+DEBUG 2026-01-29 11:36:13,779 views Login request received: {'username': 'vlaly493', 'password': 'Azerty@123'}
+DEBUG 2026-01-29 11:36:14,565 views User found: vlaly493, lalyvignon@gmail.com
+DEBUG 2026-01-29 11:36:14,579 views Response data prepared for user vlaly493
+DEBUG 2026-01-29 11:36:14,579 views Response Data: {'success': True, 'message': 'Connexion réussie', 'access': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY5NzcyOTc0LCJpYXQiOjE3Njk2ODY1NzQsImp0aSI6IjNiMDIyMmQxZjdlYTQxMjRhZjJkYzNhMmNlZWFlZTFmIiwidXNlcl9pZCI6IjUifQ.9FZr9VgUzi2vtg379kOVvlpvqccGQxqUaVcTn8ncHlo', 'refresh': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3MDI5MTM3NCwiaWF0IjoxNzY5Njg2NTc0LCJqdGkiOiI3NTBiNDg1NjBiMjE0MTMwYTE2YmJjOThjOTMxMzZiYSIsInVzZXJfaWQiOiI1In0.vpa-ZhqCObhNo-L10RQ_fG4-3zSckksedOhki-f5wDg', 'user': {'id': 5, 'username': 'vlaly493', 'email': 'lalyvignon@gmail.com', 'first_name': 'vignon', 'last_name': 'laly', 'full_name': 'vignon laly', 'phone': '0103742646', 'is_staff': False, 'is_superuser': False}, 'token_type': 'Bearer', 'expires_in': 86400.0}
+DEBUG 2026-01-29 11:36:14,585 views Final response data for user vlaly493: {'success': True, 'message': 'Connexion réussie', 'access': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY5NzcyOTc0LCJpYXQiOjE3Njk2ODY1NzQsImp0aSI6IjNiMDIyMmQxZjdlYTQxMjRhZjJkYzNhMmNlZWFlZTFmIiwidXNlcl9pZCI6IjUifQ.9FZr9VgUzi2vtg379kOVvlpvqccGQxqUaVcTn8ncHlo', 'refresh': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3MDI5MTM3NCwiaWF0IjoxNzY5Njg2NTc0LCJqdGkiOiI3NTBiNDg1NjBiMjE0MTMwYTE2YmJjOThjOTMxMzZiYSIsInVzZXJfaWQiOiI1In0.vpa-ZhqCObhNo-L10RQ_fG4-3zSckksedOhki-f5wDg', 'user': {'id': 5, 'username': 'vlaly493', 'email': 'lalyvignon@gmail.com', 'first_name': 'vignon', 'last_name': 'laly', 'full_name': 'vignon laly', 'phone': '0103742646', 'is_staff': False, 'is_superuser': False, 'role': 'owner', 'owner_id': 5, 'photo': None}, 'token_type': 'Bearer', 'expires_in': 86400.0}
+INFO 2026-01-29 11:36:14,587 basehttp "POST /api/auth/login/ HTTP/1.1" 200 814
+INFO 2026-01-29 11:36:28,705 autoreload C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\backend_boutique\settings.py changed, reloading.

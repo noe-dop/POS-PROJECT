@@ -1,0 +1,167 @@
+{
+  "logout": "Déconnexion",
+  "login": {
+    "title": "Connexion",
+    "info": "Connectez-vous à votre compte pour continuer",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "login_button": "Se connecter",
+    "no_account": "Pas encore de compte ?",
+    "register": "S'inscrire",
+    "forgot_password": "Mot de passe oublié ?",
+    "username": "Nom d'utilisateur",
+    "errors": {
+      "username_required": "Veuillez entrer votre nom d'utilisateur",
+      "username_short": "Le nom d'utilisateur est trop court",
+      "email_required": "Veuillez entrer votre email",
+      "email_invalid": "Email invalide",
+      "password_required": "Veuillez entrer votre mot de passe",
+      "password_short": "Mot de passe trop court"
+    },
+    "success_message": "Connexion reussie",
+    "error_message": "Échec de la connexion."
+  },
+  "common": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "search": "Recherche",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "backtolist": "Retour à la liste",
+    "years": "Années",
+    "hours": "Heures",
+    "minutes": "Minutes",
+    "seconds": "Secondes",
+    "rating": "Note",
+    "statistics": "Statistiques"
+  },
+  "register": {
+    "title": "Créer un compte",
+    "info": "Entrez vos informations ci-dessous pour créer un nouveau compte.",
+    "surname": "Nom de famille",
+    "name": "Prénom",
+    "username": "Nom d'utilisateur",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "phone1": "Numéro de téléphone 1",
+    "phone2": "Numéro de téléphone 2",
+    "hint_phone1": "principal",
+    "hint_phone2": "secondaire (optionnel)",
+    "address": "Adresse",
+    "confirm_password": "Confirmer le mot de passe",
+    "register_button": "S'inscrire",
+    "already_account": "Vous avez déjà un compte ?",
+    "login": "Se connecter",
+    "generate_username": "Générer",
+    "errors": {
+      "surname_required": "Veuillez entrer votre nom de famille",
+      "name_required": "Veuillez entrer votre prénom",
+      "username_required": "Veuillez entrer votre nom d'utilisateur",
+      "email_required": "Veuillez entrer votre email",
+      "email_invalid": "Email invalide",
+      "password_required": "Veuillez entrer votre mot de passe",
+      "confirm_password_required": "Veuillez confirmer votre mot de passe",
+      "password_no_matching": "Les mots de passe ne correspondent pas",
+      "password_short": "Le mot de passe doit contenir au moins 6 caractères",
+      "phone1_required": "Veuillez entrer votre numéro de téléphone principal"
+    },
+    "success_message": "Inscription réussie ! Veuillez vous connecter."
+  },
+  "validation": {
+    "incorrect_form": "Veuillez corriger les erreurs dans le formulaire",
+    "required": "Champs requis",
+    "email_invalid": "Veuillez entrer un email valide",
+    "min_length": "Doit contenir au moins {min} caractères",
+    "max_length": "Doit contenir au plus {max} caractères"
+  },
+  "dashboard": {
+    "title": "Tableau de bord"
+  },
+  "product": {
+    "title": "Produits"
+  },
+  "type_products": {
+    "title": "Types de Produits",
+    "description": "Gérez les différents types de produits disponibles dans votre inventaire."
+  },
+  "settings": {
+    "title": "Paramètres"
+  },
+  "employees": {
+    "title": "Gestion des Employés",
+    "description": "Gérez l'ensemble des informations de vos employés,leurs rôles et statuts.",
+    "profiletitle": "Profil de l'employé",
+    "profiledescription": "Informations detaillées et gestion du profil.",
+    "no_employee_selected": "Aucun employé sélectionné",
+    "employee_not_found": "Employé non trouvé",
+    "select_employee_to_view_details": "Sélectionnez un employé pour voir les détails",
+    "employee_name": "Nom de l'employé",
+    "role": "Rôle",
+    "status": "Statut",
+    "store": "Boutique",
+    "add_employee_title": "Ajouter un employé",
+    "edit_profile_title": "Modifier l'employé",
+    "delete_profile_title": "Supprimer l'employé",
+    "delete_employee_message": "Êtes-vous sûr de vouloir supprimer l'employé {} ? Cette action est irréversible.",
+    "email": "Adresse email",
+    "phone": "Numéro de téléphone",
+    "salary": "Salaire",
+    "profileImage": "Photo de profil"
+  },
+  "store": {
+    "title": "Boutiques",
+    "description": "Gérez les informations de vos boutiques, emplacements et horaires d'ouverture.",
+    "profiletitle": "Profil de la boutique",
+    "profiledescription": "Informations détaillées et gestion du profil de la boutique.",
+    "no_store_selected": "Aucune boutique sélectionnée",
+    "location": "Emplacement",
+    "opening_hours": "Heures d'ouverture",
+    "creation": {
+      "boutique_name": "Nom de la boutique",
+      "slogan": "Slogan",
+      "boutique_type": "Type de boutique",
+      "address": "Adresse",
+      "phone": "Téléphone",
+      "email": "Email",
+      "opening_time": "Heure d'ouverture",
+      "closing_time": "Heure de fermeture",
+      "schedule": "Horaires",
+      "geographic_coordinates": "Coordonnées géographiques",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "create_boutique": "Créer la boutique",
+      "create_new_boutique": "Créer une nouvelle boutique",
+      "boutique_created_success": "Boutique créée avec succès",
+      "error_creating_boutique": "Erreur lors de la création de la boutique. Veuillez réessayer.",
+      "required_field": "Ce champ est requis.",
+      "invalid_phone": "Numéro de téléphone invalide",
+      "invalid_email": "Adresse email invalide",
+      "select_type": "Sélectionnez un type",
+      "basic_information": "Informations de base",
+      "contact_information": "Informations de contact",
+      "add_logo": "Ajouter un logo",
+      "take_photo": "Prendre une photo",
+      "choose_from_gallery": "Choisir depuis la galerie",
+      "enter_url": "Entrer une URL",
+      "enter_logo_url": "Entrer l'URL du logo",
+      "logo": "Logo",
+      "map_preview": "Aperçu de la carte"
+    }
+  },
+  "sales": "Ventes",
+  "generate_password": "Générer un mot de passe",
+  "network": {
+    "server_unreachable": "Serveur inaccessible. Veuillez reessayer plus tard."
+  },
+  "roles": {
+    "all_roles": "Tous les rôles",
+    "admin": "Administrateur",
+    "owner": "Propriétaire",
+    "manager": "Gestionnaire",
+    "employee": "Employé(e)",
+    "staff": "Personnel"
+  }
+}

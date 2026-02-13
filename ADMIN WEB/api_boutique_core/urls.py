@@ -215,6 +215,9 @@ custom_urlpatterns = [
     # 🔐 AUTHENTIFICATION JWT
     path('auth/login/', views.LoginView.as_view(), name='login'),
     path('auth/logout/', views.LogoutView.as_view(), name='logout'),
+    path('auth/password-reset/', views.PasswordResetRequestView.as_view(), name='password-reset'),
+    path('auth/password-reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+
     path('auth/profile/', views.UserProfileView.as_view(), name='user-profile'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
@@ -223,7 +226,6 @@ custom_urlpatterns = [
     path('owner/register/', views.OwnerRegisterView.as_view(), name='owner-register'),
     path('employee/register/', views.EmployeeRegisterView.as_view(), name='employee-register'),
     path('shareholder/register/', views.ShareholderRegisterView.as_view(), name='shareholder-register'),
-    
     # 🎯 DASHBOARD - CORRIGÉ : DashboardDataView au lieu de DashboardView
     path('dashboard/', views.DashboardDataView.as_view(), name='dashboard-data'),
     
