@@ -1,5 +1,5 @@
 // src/pages/Stock.tsx
-// PAGE DE GESTION DES STOCKS - VERSION COMPLÈTE ET CORRIGÉE
+// PAGE DE GESTION DES STOCKS - VERSION COMPLÈTE SANS DONNÉES MOCKÉES
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Search, Filter, Plus, AlertTriangle, Package, 
@@ -14,24 +14,16 @@ import {
 import { toast } from 'react-toastify';
 import stockService from '@/services/StockService';
 import productService from '@/services/productService';
+import storeService from '@/services/storeService';
 import { Stock, StockStats, StockFilters } from '@/types/stock.types.ts';
 import { Product } from '@/types/product';
+import { Store } from '@/types/Store';
 
 // =============================================================================
 // TYPES LOCAUX
 // =============================================================================
 
 type StockStatus = 'in_stock' | 'low_stock' | 'out_of_stock' | 'over_stock';
-
-interface SimpleStore {
-  id: number;
-  name: string;
-}
-
-interface SimpleWarehouse {
-  id: number;
-  name: string;
-}
 
 interface ExportOptions {
   format: 'json' | 'csv' | 'excel';
@@ -40,7 +32,7 @@ interface ExportOptions {
 }
 
 // =============================================================================
-// HOOK PERSONNALISÉ POUR LES STOCKS (AMÉLIORÉ)
+// HOOK PERSONNALISÉ POUR LES STOCKS (SANS DONNÉES MOCKÉES)
 // =============================================================================
 
 const useStock = (options: { autoRefresh?: boolean; refreshInterval?: number; initialLoad?: boolean } = {}) => {
@@ -52,16 +44,16 @@ const useStock = (options: { autoRefresh?: boolean; refreshInterval?: number; in
     stocks: false,
     stats: false,
     all: false,
-    products: false
+    products: false,
+    stores: false
   });
   const [error, setError] = useState<{ message: string; details?: any } | null>(null);
   const [apiStatus, setApiStatus] = useState<string>('Connexion en cours...');
   const [totalCount, setTotalCount] = useState(0);
   const [products, setProducts] = useState<Product[]>([]);
-  const [stores, setStores] = useState<SimpleStore[]>([]);
-  const [warehouses, setWarehouses] = useState<SimpleWarehouse[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
 
-  // Charger les données complémentaires
+  // Charger les données complémentaires depuis l'API
   const loadAdditionalData = useCallback(async () => {
     try {
       // Charger les produits
@@ -73,31 +65,28 @@ const useStock = (options: { autoRefresh?: boolean; refreshInterval?: number; in
       
       if (Array.isArray(productsData)) {
         setProducts(productsData);
-        console.log(`✅ ${productsData.length} produits chargés`);
+        console.log(`✅ ${productsData.length} produits chargés depuis l'API`);
       }
-      
-      // Simuler les magasins et entrepôts
-      const mockStores: SimpleStore[] = [
-        { id: 1, name: 'Magasin Principal - Paris' },
-        { id: 2, name: 'Boutique Centre-Ville - Lyon' },
-        { id: 3, name: 'Supermarché Électronique - Marseille' },
-        { id: 4, name: 'Boutique Premium - Lille' },
-        { id: 5, name: 'Dépôt Vente - Bordeaux' },
-      ];
-      setStores(mockStores);
-      
-      const mockWarehouses: SimpleWarehouse[] = [
-        { id: 1, name: 'Entrepôt Principal - IDF' },
-        { id: 3, name: 'Dépôt Logistique - Est' },
-        { id: 4, name: 'Centre de Distribution - Ouest' },
-        { id: 5, name: 'Stock Froid - Nord' },
-      ];
-      setWarehouses(mockWarehouses);
-      
     } catch (error) {
-      console.error('Erreur chargement données complémentaires:', error);
+      console.error('Erreur chargement produits:', error);
+      toast.error('Impossible de charger la liste des produits');
     } finally {
       setLoading(prev => ({ ...prev, products: false }));
+    }
+
+    try {
+      // Charger les magasins
+      setLoading(prev => ({ ...prev, stores: true }));
+      const storesData = await storeService.getAllStores();
+      if (Array.isArray(storesData)) {
+        setStores(storesData);
+        console.log(`✅ ${storesData.length} magasins chargés depuis l'API`);
+      }
+    } catch (error) {
+      console.error('Erreur chargement magasins:', error);
+      toast.error('Impossible de charger la liste des magasins');
+    } finally {
+      setLoading(prev => ({ ...prev, stores: false }));
     }
   }, []);
 
@@ -109,19 +98,20 @@ const useStock = (options: { autoRefresh?: boolean; refreshInterval?: number; in
       const result = await stockService.getStocks(filters);
       setStocks(result.data);
       setTotalCount(result.total);
-      console.log('📊 Stocks chargés:', result.data.length, 'sur', result.total);
+      console.log('📊 Stocks chargés depuis l\'API:', result.data.length, 'sur', result.total);
       
       // Debug: vérifier les données reçues
       if (result.data.length > 0) {
         const sample = result.data[0];
-        console.log('🔍 Exemple de données reçues:', {
+        console.log('🔍 Exemple de données reçues de l\'API:', {
+          id: sample.id,
           productId: sample.product,
-          productName: sample.product_details?.name || 'NON DISPONIBLE',
-          storeName: sample.store_details?.name || 'NON DISPONIBLE',
-          warehouseName: sample.warehouse_details?.name || 'NON DISPONIBLE',
-          hasProductDetails: !!sample.product_details,
-          hasStoreDetails: !!sample.store_details,
-          hasWarehouseDetails: !!sample.warehouse_details
+          productName: sample.product_details?.name,
+          storeId: sample.store,
+          storeName: sample.store_details?.name,
+          warehouseId: sample.warehouse,
+          warehouseName: sample.warehouse_details?.name,
+          quantity: sample.quantity_on_hand
         });
       }
     } catch (err: any) {
@@ -155,7 +145,7 @@ const useStock = (options: { autoRefresh?: boolean; refreshInterval?: number; in
       setApiStatus(result.message);
       return result;
     } catch (err: any) {
-      setApiStatus('Impossible de se connecter');
+      setApiStatus('Impossible de se connecter à l\'API');
       return { success: false, message: 'Erreur connexion' };
     }
   }, []);
@@ -165,14 +155,14 @@ const useStock = (options: { autoRefresh?: boolean; refreshInterval?: number; in
     setError(null);
     
     try {
-      await Promise.all([fetchStocks(), fetchStats()]);
+      await Promise.all([fetchStocks(), fetchStats(), loadAdditionalData()]);
       setApiStatus(`Connecté - ${stocks.length} stocks`);
       toast.success('Données rafraîchies avec succès');
     } catch (err: any) {
       setApiStatus('Erreur rafraîchissement');
       toast.error('Erreur lors du rafraîchissement');
     }
-  }, [fetchStocks, fetchStats, stocks.length]);
+  }, [fetchStocks, fetchStats, loadAdditionalData, stocks.length]);
 
   const getLowStockProducts = useCallback(() => {
     return stocks.filter(stock => 
@@ -200,17 +190,17 @@ const useStock = (options: { autoRefresh?: boolean; refreshInterval?: number; in
   }, [stores]);
 
   const getWarehouseName = useCallback((warehouseId: number) => {
-    const warehouse = warehouses.find(w => w.id === warehouseId);
-    return warehouse?.name || `Entrepôt #${warehouseId}`;
-  }, [warehouses]);
+    // On utilise les données des détails du stock si disponibles
+    const stock = stocks.find(s => s.warehouse === warehouseId);
+    return stock?.warehouse_details?.name || `Entrepôt #${warehouseId}`;
+  }, [stocks]);
 
   useEffect(() => {
     if (initialLoad) {
       refreshAll();
       testConnection();
-      loadAdditionalData();
     }
-  }, [initialLoad, refreshAll, testConnection, loadAdditionalData]);
+  }, [initialLoad, refreshAll, testConnection]);
 
   // Auto-refresh
   useEffect(() => {
@@ -230,7 +220,6 @@ const useStock = (options: { autoRefresh?: boolean; refreshInterval?: number; in
     stockStats,
     products,
     stores,
-    warehouses,
     loading,
     error,
     apiStatus,
@@ -249,7 +238,7 @@ const useStock = (options: { autoRefresh?: boolean; refreshInterval?: number; in
 };
 
 // =============================================================================
-// COMPOSANT MODAL POUR AJOUTER/MODIFIER UN STOCK (CORRIGÉ)
+// COMPOSANT MODAL POUR AJOUTER/MODIFIER UN STOCK (SANS DÉPENDANCE WAREHOUSE)
 // =============================================================================
 
 interface StockModalProps {
@@ -259,8 +248,7 @@ interface StockModalProps {
   initialData?: Stock;
   isEditing?: boolean;
   products: Product[];
-  stores: SimpleStore[];
-  warehouses: SimpleWarehouse[];
+  stores: Store[];
 }
 
 const StockModal: React.FC<StockModalProps> = ({ 
@@ -270,8 +258,7 @@ const StockModal: React.FC<StockModalProps> = ({
   initialData, 
   isEditing = false,
   products,
-  stores,
-  warehouses
+  stores
 }) => {
   const [formData, setFormData] = useState({
     product: '',
@@ -295,7 +282,6 @@ const StockModal: React.FC<StockModalProps> = ({
   const [availableQuantity, setAvailableQuantity] = useState(0);
   const [selectedProductName, setSelectedProductName] = useState('');
   const [selectedStoreName, setSelectedStoreName] = useState('');
-  const [selectedWarehouseName, setSelectedWarehouseName] = useState('');
 
   const stockStatusOptions = [
     { value: 'in_stock', label: 'En stock', color: 'green' },
@@ -331,7 +317,7 @@ const StockModal: React.FC<StockModalProps> = ({
         const available = Math.max(0, onHand - reserved);
         setAvailableQuantity(available);
         
-        // Mettre à jour les noms
+        // Mettre à jour les noms à partir des données API
         if (initialData.product) {
           setSelectedProductName(initialData.product_details?.name || 
             products.find(p => p.id === initialData.product)?.name || 
@@ -342,20 +328,12 @@ const StockModal: React.FC<StockModalProps> = ({
             stores.find(s => s.id === initialData.store)?.name || 
             `Magasin #${initialData.store}`);
         }
-        if (initialData.warehouse) {
-          setSelectedWarehouseName(initialData.warehouse_details?.name || 
-            warehouses.find(w => w.id === initialData.warehouse)?.name || 
-            `Entrepôt #${initialData.warehouse}`);
-        }
       } else {
-        // Définir des valeurs par défaut
-        const defaultWarehouse = warehouses.length > 0 ? warehouses[0].id.toString() : '1';
-        const defaultStore = stores.length > 0 ? stores[0].id.toString() : '1';
-        
+        // Formulaire vide pour la création
         setFormData({
           product: '',
-          store: defaultStore,
-          warehouse: defaultWarehouse,
+          store: '',
+          warehouse: '1', // Valeur par défaut temporaire
           quantity_on_hand: '0',
           quantity_reserved: '0',
           quantity_package: '0',
@@ -370,12 +348,11 @@ const StockModal: React.FC<StockModalProps> = ({
         });
         setAvailableQuantity(0);
         setSelectedProductName('');
-        setSelectedStoreName(stores.find(s => s.id === parseInt(defaultStore))?.name || '');
-        setSelectedWarehouseName(warehouses.find(w => w.id === parseInt(defaultWarehouse))?.name || '');
+        setSelectedStoreName('');
       }
       setErrors({});
     }
-  }, [isOpen, isEditing, initialData, warehouses, stores, products]);
+  }, [isOpen, isEditing, initialData, products, stores]);
 
   const calculateAvailable = (onHand: number, reserved: number) => {
     return Math.max(0, onHand - reserved);
@@ -389,16 +366,13 @@ const StockModal: React.FC<StockModalProps> = ({
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }));
 
-    // Mettre à jour les noms
+    // Mettre à jour les noms à partir des vraies données
     if (name === 'product') {
       const selectedProduct = products.find(p => p.id === parseInt(value));
       setSelectedProductName(selectedProduct?.name || `Produit #${value}`);
     } else if (name === 'store') {
       const selectedStore = stores.find(s => s.id === parseInt(value));
       setSelectedStoreName(selectedStore?.name || `Magasin #${value}`);
-    } else if (name === 'warehouse') {
-      const selectedWarehouse = warehouses.find(w => w.id === parseInt(value));
-      setSelectedWarehouseName(selectedWarehouse?.name || `Entrepôt #${value}`);
     }
 
     if (name === 'quantity_on_hand' || name === 'quantity_reserved') {
@@ -422,63 +396,42 @@ const StockModal: React.FC<StockModalProps> = ({
     
     if (!formData.product) {
       newErrors.product = 'Le produit est requis';
-    } else if (parseInt(formData.product) <= 0) {
-      newErrors.product = 'ID produit invalide';
     }
     
     if (!formData.store) {
       newErrors.store = 'Le magasin est requis';
-    } else if (parseInt(formData.store) <= 0) {
-      newErrors.store = 'ID magasin invalide';
     }
     
     if (!formData.warehouse) {
       newErrors.warehouse = 'L\'entrepôt est requis';
-    } else if (parseInt(formData.warehouse) <= 0) {
-      newErrors.warehouse = 'ID entrepôt invalide';
     }
     
     const quantityOnHand = parseInt(formData.quantity_on_hand);
-    if (isNaN(quantityOnHand) || quantityOnHand < 0 || quantityOnHand > 2147483647) {
-      newErrors.quantity_on_hand = 'Quantité invalide (0-2147483647)';
+    if (isNaN(quantityOnHand) || quantityOnHand < 0) {
+      newErrors.quantity_on_hand = 'Quantité invalide';
     }
     
     const quantityReserved = parseInt(formData.quantity_reserved);
-    if (isNaN(quantityReserved) || quantityReserved < 0 || quantityReserved > 2147483647) {
-      newErrors.quantity_reserved = 'Quantité réservée invalide (0-2147483647)';
+    if (isNaN(quantityReserved) || quantityReserved < 0) {
+      newErrors.quantity_reserved = 'Quantité réservée invalide';
     }
     
     if (quantityReserved > quantityOnHand) {
       newErrors.quantity_reserved = 'Ne peut pas dépasser la quantité en stock';
     }
     
-    const quantityPackage = parseInt(formData.quantity_package);
-    if (isNaN(quantityPackage) || quantityPackage < 0 || quantityPackage > 2147483647) {
-      newErrors.quantity_package = 'Quantité par package invalide (0-2147483647)';
-    }
-    
     const minThreshold = parseInt(formData.min_stock_threshold);
-    if (isNaN(minThreshold) || minThreshold < 0 || minThreshold > 2147483647) {
-      newErrors.min_stock_threshold = 'Seuil minimum invalide (0-2147483647)';
+    if (isNaN(minThreshold) || minThreshold < 0) {
+      newErrors.min_stock_threshold = 'Seuil minimum invalide';
     }
     
     const idealLevel = parseInt(formData.ideal_stock_level);
-    if (isNaN(idealLevel) || idealLevel <= 0 || idealLevel > 2147483647) {
-      newErrors.ideal_stock_level = 'Niveau idéal invalide (1-2147483647)';
+    if (isNaN(idealLevel) || idealLevel <= 0) {
+      newErrors.ideal_stock_level = 'Niveau idéal invalide';
     }
     
     if (idealLevel <= minThreshold) {
       newErrors.ideal_stock_level = 'Doit être supérieur au seuil minimum';
-    }
-    
-    const qtMoyAppro = parseFloat(formData.qt_moy_appro);
-    if (isNaN(qtMoyAppro) || qtMoyAppro < 0) {
-      newErrors.qt_moy_appro = 'Quantité moyenne doit être un nombre positif';
-    }
-    
-    const turnoverRate = parseFloat(formData.stock_turnover_rate);
-    if (isNaN(turnoverRate) || turnoverRate < 0) {
-      newErrors.stock_turnover_rate = 'Taux de rotation invalide';
     }
     
     if (formData.metadata && formData.metadata !== '{}') {
@@ -522,7 +475,6 @@ const StockModal: React.FC<StockModalProps> = ({
       };
       
       console.log('📤 Données envoyées à l\'API:', stockData);
-      
       await onSubmit(stockData);
     } catch (error: any) {
       console.error('❌ Erreur lors de la soumission:', error);
@@ -629,7 +581,6 @@ const StockModal: React.FC<StockModalProps> = ({
                       value={formData.quantity_on_hand}
                       onChange={handleChange}
                       min="0"
-                      max="2147483647"
                       disabled={isSubmitting}
                       className={`w-full px-4 py-3 border ${errors.quantity_on_hand ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     />
@@ -646,7 +597,6 @@ const StockModal: React.FC<StockModalProps> = ({
                       value={formData.quantity_reserved}
                       onChange={handleChange}
                       min="0"
-                      max="2147483647"
                       disabled={isSubmitting}
                       className={`w-full px-4 py-3 border ${errors.quantity_reserved ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     />
@@ -676,7 +626,6 @@ const StockModal: React.FC<StockModalProps> = ({
                       value={formData.quantity_package}
                       onChange={handleChange}
                       min="0"
-                      max="2147483647"
                       disabled={isSubmitting}
                       className={`w-full px-4 py-3 border ${errors.quantity_package ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     />
@@ -719,7 +668,6 @@ const StockModal: React.FC<StockModalProps> = ({
                       value={formData.min_stock_threshold}
                       onChange={handleChange}
                       min="0"
-                      max="2147483647"
                       disabled={isSubmitting}
                       className={`w-full px-4 py-3 border ${errors.min_stock_threshold ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     />
@@ -736,7 +684,6 @@ const StockModal: React.FC<StockModalProps> = ({
                       value={formData.ideal_stock_level}
                       onChange={handleChange}
                       min="1"
-                      max="2147483647"
                       disabled={isSubmitting}
                       className={`w-full px-4 py-3 border ${errors.ideal_stock_level ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                     />
@@ -812,31 +759,21 @@ const StockModal: React.FC<StockModalProps> = ({
                   <div className="relative">
                     <WarehouseIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                    <select
+                    <input
+                      type="number"
                       name="warehouse"
                       value={formData.warehouse}
                       onChange={handleChange}
-                      disabled={isSubmitting || warehouses.length === 0}
-                      className={`pl-10 pr-10 py-3 w-full border ${errors.warehouse ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white`}
-                    >
-                      <option value="">Sélectionner un entrepôt...</option>
-                      {warehouses.map(warehouse => (
-                        <option key={warehouse.id} value={warehouse.id}>
-                          #{warehouse.id} - {warehouse.name}
-                        </option>
-                      ))}
-                    </select>
+                      min="1"
+                      placeholder="ID de l'entrepôt"
+                      disabled={isSubmitting}
+                      className={`pl-10 pr-4 py-3 w-full border ${errors.warehouse ? 'border-red-300' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    />
                   </div>
                   {errors.warehouse && <p className="mt-1 text-sm text-red-600">{errors.warehouse}</p>}
-                  
-                  {formData.warehouse && selectedWarehouseName && (
-                    <div className="mt-2 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                      <div className="text-sm">
-                        <span className="font-medium">Entrepôt : </span>
-                        <span className="text-purple-700">{selectedWarehouseName}</span>
-                      </div>
-                    </div>
-                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    Entrez l'ID de l'entrepôt (les détails seront chargés automatiquement)
+                  </p>
                 </div>
               </div>
 
@@ -966,7 +903,7 @@ const StockModal: React.FC<StockModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || products.length === 0}
+              disabled={isSubmitting || products.length === 0 || stores.length === 0}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
@@ -989,7 +926,7 @@ const StockModal: React.FC<StockModalProps> = ({
 };
 
 // =============================================================================
-// COMPOSANT DE MODAL D'EXPORT
+// COMPOSANT DE MODAL D'EXPORT (IDENTIQUE)
 // =============================================================================
 
 interface ExportModalProps {
@@ -1012,50 +949,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, onExport, se
 
   const [isExporting, setIsExporting] = useState(false);
   
-  const allFields = [
-    { id: 'id', label: 'ID Stock', category: 'identification' },
-    { id: 'product', label: 'ID Produit', category: 'identification' },
-    { id: 'product_name', label: 'Nom produit', category: 'produit' },
-    { id: 'product_sku', label: 'SKU Produit', category: 'produit' },
-    { id: 'store', label: 'ID Magasin', category: 'localisation' },
-    { id: 'store_name', label: 'Nom magasin', category: 'localisation' },
-    { id: 'warehouse', label: 'ID Entrepôt', category: 'localisation' },
-    { id: 'warehouse_name', label: 'Nom entrepôt', category: 'localisation' },
-    { id: 'quantity_on_hand', label: 'Qté en stock', category: 'quantités' },
-    { id: 'quantity_reserved', label: 'Qté réservée', category: 'quantités' },
-    { id: 'quantity_available', label: 'Qté disponible', category: 'quantités' },
-    { id: 'quantity_package', label: 'Qté par package', category: 'quantités' },
-    { id: 'ideal_stock_level', label: 'Niveau idéal', category: 'seuils' },
-    { id: 'min_stock_threshold', label: 'Seuil minimum', category: 'seuils' },
-    { id: 'qt_moy_appro', label: 'Qté moyenne appro', category: 'seuils' },
-    { id: 'stock_turnover_rate', label: 'Rotation stock', category: 'performance' },
-    { id: 'stock_status', label: 'Statut', category: 'statut' },
-    { id: 'last_restocked', label: 'Dernier réappro', category: 'historique' },
-    { id: 'is_active', label: 'Actif', category: 'statut' },
-  ];
-
-  const handleFieldToggle = (fieldId: string) => {
-    setExportOptions(prev => {
-      if (prev.selectedFields.includes(fieldId)) {
-        return {
-          ...prev,
-          selectedFields: prev.selectedFields.filter(id => id !== fieldId)
-        };
-      } else {
-        return {
-          ...prev,
-          selectedFields: [...prev.selectedFields, fieldId]
-        };
-      }
-    });
-  };
-
   const handleSubmit = async () => {
-    if (exportOptions.selectedFields.length === 0 && !exportOptions.includeAllFields) {
-      toast.error('Veuillez sélectionner au moins un champ à exporter');
-      return;
-    }
-
     setIsExporting(true);
     try {
       await onExport(exportOptions);
@@ -1121,30 +1015,6 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, onExport, se
               </div>
             </div>
 
-            {/* Options */}
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Options</h3>
-              <div className="space-y-3">
-                <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
-                  <input
-                    type="checkbox"
-                    checked={exportOptions.includeAllFields}
-                    onChange={(e) => setExportOptions(prev => ({ 
-                      ...prev, 
-                      includeAllFields: e.target.checked 
-                    }))}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <div>
-                    <div className="font-medium text-gray-900">Inclure tous les champs</div>
-                    <div className="text-sm text-gray-600">
-                      Exporter toutes les données disponibles
-                    </div>
-                  </div>
-                </label>
-              </div>
-            </div>
-
             {/* Actions */}
             <div className="pt-6 border-t border-gray-200 flex justify-end gap-3">
               <button
@@ -1155,7 +1025,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, onExport, se
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={isExporting || (exportOptions.selectedFields.length === 0 && !exportOptions.includeAllFields)}
+                disabled={isExporting}
                 className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isExporting ? (
@@ -1179,7 +1049,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, onExport, se
 };
 
 // =============================================================================
-// COMPOSANT PRINCIPAL DE LA PAGE STOCK (COMPLET)
+// COMPOSANT PRINCIPAL DE LA PAGE STOCK (SANS DÉPENDANCE WAREHOUSE)
 // =============================================================================
 
 const StockPage: React.FC = () => {
@@ -1194,13 +1064,12 @@ const StockPage: React.FC = () => {
   const [stockToDelete, setStockToDelete] = useState<Stock | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   
-  // Utilisation du hook amélioré
+  // Utilisation du hook avec vraies données API
   const { 
     stocks, 
     stockStats, 
     products,
     stores,
-    warehouses,
     loading, 
     error, 
     apiStatus,
@@ -1251,8 +1120,7 @@ const StockPage: React.FC = () => {
     console.log('✏️ Édition stock:', {
       id: stock.id,
       productId: stock.product,
-      productName: stock.product_details?.name || 'Non disponible',
-      stock
+      productName: stock.product_details?.name
     });
     setEditingStock(stock);
     setShowStockModal(true);
@@ -1315,28 +1183,12 @@ const StockPage: React.FC = () => {
       let data: any;
       
       if (selectedStocks.length > 0) {
-        // Exporter seulement les stocks sélectionnés
         const stocksToExport = stocks.filter(stock => selectedStocks.includes(stock.id));
         data = stocksToExport;
       } else {
-        // Exporter tous les stocks
         data = stocks;
       }
 
-      // Filtrer les champs si nécessaire
-      if (!options.includeAllFields && options.selectedFields.length > 0) {
-        data = data.map((stock: any) => {
-          const filteredStock: any = {};
-          options.selectedFields.forEach(field => {
-            if (stock[field] !== undefined) {
-              filteredStock[field] = stock[field];
-            }
-          });
-          return filteredStock;
-        });
-      }
-
-      // Convertir selon le format
       let blob: Blob;
       let filename: string;
       const dateStr = new Date().toISOString().split('T')[0];
@@ -1345,7 +1197,6 @@ const StockPage: React.FC = () => {
         blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         filename = `stocks_export_${dateStr}.json`;
       } else if (options.format === 'csv') {
-        // Convertir en CSV
         const headers = Object.keys(data[0] || {});
         const csvRows = [
           headers.join(','),
@@ -1361,12 +1212,10 @@ const StockPage: React.FC = () => {
         blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
         filename = `stocks_export_${dateStr}.csv`;
       } else {
-        // Pour Excel, on utilise JSON pour l'exemple
         blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         filename = `stocks_export_${dateStr}.json`;
       }
 
-      // Télécharger le fichier
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1433,7 +1282,6 @@ const StockPage: React.FC = () => {
 
   // Filtrer les stocks
   const filteredStocks = stocks.filter(stock => {
-    // Recherche
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = 
@@ -1445,7 +1293,6 @@ const StockPage: React.FC = () => {
       if (!matchesSearch) return false;
     }
     
-    // Filtre par statut
     if (selectedFilter === 'tous') return true;
     if (selectedFilter === 'sous-seuil') return stock.stock_status === 'low_stock';
     if (selectedFilter === 'en-rupture') return stock.stock_status === 'out_of_stock';
@@ -1467,9 +1314,6 @@ const StockPage: React.FC = () => {
   const lowStockCount = getLowStockProducts().length;
   const outOfStockCount = stocks.filter(s => s.stock_status === 'out_of_stock').length;
   const totalQuantity = stocks.reduce((sum, s) => sum + (s.quantity_on_hand || 0), 0);
-  const averageTurnover = stocks.length > 0 
-    ? stocks.reduce((acc, stock) => acc + (stock.stock_turnover_rate || 0), 0) / stocks.length 
-    : 0;
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
@@ -1512,7 +1356,7 @@ const StockPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Statistiques améliorées */}
+      {/* Statistiques */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Aperçu du Stock</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1822,11 +1666,6 @@ const StockPage: React.FC = () => {
                                     </>
                                   )}
                                 </div>
-                                {stock.qt_moy_appro && (
-                                  <div className="text-xs text-gray-500">
-                                    Qté moy: {stock.qt_moy_appro}
-                                  </div>
-                                )}
                               </div>
                             </td>
                             <td className="px-4 py-4">
@@ -1850,7 +1689,6 @@ const StockPage: React.FC = () => {
                                 </button>
                                 <button 
                                   onClick={() => {
-                                    // Copier les informations
                                     const text = `Produit: ${productName}\nStock: ${stock.quantity_available}/${stock.ideal_stock_level}\nStatut: ${statusInfo.text}\nLocalisation: ${storeName} - ${warehouseName}`;
                                     navigator.clipboard.writeText(text);
                                     toast.success('Informations copiées');
@@ -1869,7 +1707,7 @@ const StockPage: React.FC = () => {
                   </table>
                 </div>
                 
-                {/* Pagination améliorée */}
+                {/* Pagination */}
                 {filteredStocks.length > itemsPerPage && (
                   <div className="px-4 py-4 border-t border-gray-200">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -1877,68 +1715,26 @@ const StockPage: React.FC = () => {
                         Affichage de {(currentPage - 1) * itemsPerPage + 1} à {Math.min(currentPage * itemsPerPage, filteredStocks.length)} sur {filteredStocks.length} résultats
                       </div>
                       
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-700">Lignes:</span>
-                          <select
-                            value={itemsPerPage}
-                            onChange={(e) => {
-                              setCurrentPage(1);
-                            }}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm"
-                          >
-                            <option value={20}>20</option>
-                            <option value={50}>50</option>
-                            <option value={100}>100</option>
-                          </select>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          ← Précédent
+                        </button>
                         
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
-                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            ← Précédent
-                          </button>
-                          
-                          <div className="flex items-center gap-1">
-                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                              let pageNum;
-                              if (totalPages <= 5) {
-                                pageNum = i + 1;
-                              } else if (currentPage <= 3) {
-                                pageNum = i + 1;
-                              } else if (currentPage >= totalPages - 2) {
-                                pageNum = totalPages - 4 + i;
-                              } else {
-                                pageNum = currentPage - 2 + i;
-                              }
-                              
-                              return (
-                                <button
-                                  key={pageNum}
-                                  onClick={() => setCurrentPage(pageNum)}
-                                  className={`w-8 h-8 rounded-lg ${currentPage === pageNum ? 'bg-blue-600 text-white' : 'border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
-                                >
-                                  {pageNum}
-                                </button>
-                              );
-                            })}
-                            
-                            {totalPages > 5 && (
-                              <span className="px-2 text-gray-500">...</span>
-                            )}
-                          </div>
-                          
-                          <button
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            disabled={currentPage === totalPages}
-                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Suivant →
-                          </button>
-                        </div>
+                        <span className="px-4 py-1.5 bg-blue-600 text-white rounded-lg">
+                          {currentPage}
+                        </span>
+                        
+                        <button
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="px-3 py-1.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Suivant →
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1949,7 +1745,7 @@ const StockPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Actions rapides améliorées */}
+      {/* Actions rapides */}
       <div className="mb-6">
         <div className="flex flex-wrap gap-3">
           <button
@@ -1968,36 +1764,14 @@ const StockPage: React.FC = () => {
             Exporter
           </button>
           
-          <button
-            onClick={refreshAll}
-            disabled={loading.all}
-            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
-          >
-            <RefreshCw size={18} className={loading.all ? 'animate-spin' : ''} />
-            Actualiser
-          </button>
-          
           {selectedStocks.length > 0 && (
-            <>
-              <button
-                onClick={handleDeleteSelected}
-                className="px-4 py-2 bg-red-100 text-red-700 border border-red-200 rounded-lg hover:bg-red-200 font-medium flex items-center gap-2 transition-colors ml-auto"
-              >
-                <Trash2 size={18} />
-                Supprimer ({selectedStocks.length})
-              </button>
-              
-              <button
-                onClick={() => {
-                  // Action groupée : Marquer comme actif
-                  toast.info(`Action groupée sur ${selectedStocks.length} stocks`);
-                }}
-                className="px-4 py-2 bg-green-100 text-green-700 border border-green-200 rounded-lg hover:bg-green-200 font-medium flex items-center gap-2 transition-colors"
-              >
-                <CheckCircle size={18} />
-                Activer ({selectedStocks.length})
-              </button>
-            </>
+            <button
+              onClick={handleDeleteSelected}
+              className="px-4 py-2 bg-red-100 text-red-700 border border-red-200 rounded-lg hover:bg-red-200 font-medium flex items-center gap-2 transition-colors ml-auto"
+            >
+              <Trash2 size={18} />
+              Supprimer ({selectedStocks.length})
+            </button>
           )}
         </div>
       </div>
@@ -2038,7 +1812,6 @@ const StockPage: React.FC = () => {
         isEditing={!!editingStock}
         products={products}
         stores={stores}
-        warehouses={warehouses}
       />
 
       {/* Modal d'export */}

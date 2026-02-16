@@ -9,7 +9,7 @@ export const apiService: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 0, // ✅ 0 = PAS DE TIMEOUT (recommandé en développement)
 });
 
 // Fonction pour rafraîchir le token

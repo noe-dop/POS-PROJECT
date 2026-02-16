@@ -1,5 +1,5 @@
 // src/pages/Store.tsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   Plus, Search, Filter, MapPin, Phone, Mail, 
   Edit, Trash2, Users, 
@@ -27,7 +27,9 @@ import {
   Calendar,
   Target,
   Globe,
-  Loader2
+  Loader2,
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react';
 import storeService, { 
   type Store as StoreType, 
@@ -39,6 +41,7 @@ import storeService, {
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import InfiniteScroll from 'react-infinite-scroll-component';
 
 // Types locaux
 type SortField = 'name' | 'created_at' | 'total_employees' | 'total_products';
@@ -57,80 +60,201 @@ const DAYS_OF_WEEK = [
   { key: 'sunday', label: 'Dimanche', short: 'Dim' }
 ];
 
-// Villes principales du Sénégal avec coordonnées
-const SENEGAL_CITIES = [
-  { name: 'Dakar', lat: 14.716677, lon: -17.467686 },
-  { name: 'Thiès', lat: 14.789167, lon: -16.926111 },
-  { name: 'Saint-Louis', lat: 16.033333, lon: -16.5 },
-  { name: 'Kaolack', lat: 14.138978, lon: -16.076200 },
-  { name: 'Ziguinchor', lat: 12.583333, lon: -16.266667 },
-  { name: 'Diourbel', lat: 14.655, lon: -16.231667 },
-  { name: 'Louga', lat: 15.616667, lon: -16.216667 },
-  { name: 'Tambacounda', lat: 13.768889, lon: -13.667222 },
-  { name: 'Kolda', lat: 12.883889, lon: -14.95 },
-  { name: 'Matam', lat: 15.655833, lon: -13.255278 },
-  { name: 'Kédougou', lat: 12.55, lon: -12.183333 },
-  { name: 'Fatick', lat: 14.325, lon: -16.416111 },
-  { name: 'Kaffrine', lat: 14.105, lon: -15.55 },
-  { name: 'Sédhiou', lat: 12.708056, lon: -15.556944 }
-];
+// ============================================
+// COMPOSANTS DE FORMULAIRE STABLES
+// ============================================
 
-// Composant StatCard amélioré
-const StatCard = ({ 
-  title, 
-  value, 
-  icon: Icon, 
-  color = 'blue',
-  trend,
-  description 
-}: { 
-  title: string; 
-  value: string | number; 
-  icon: React.ElementType; 
-  color?: 'blue' | 'green' | 'purple' | 'orange';
-  trend?: { value: number; direction: 'up' | 'down' };
-  description?: string;
+// Composant Input STABLE
+const StableInput = React.memo(({
+  label,
+  name,
+  value: externalValue,
+  onChange,
+  type = 'text',
+  required = false,
+  placeholder = '',
+  className = '',
+  disabled = false
+}: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (name: string, value: string) => void;
+  type?: string;
+  required?: boolean;
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
 }) => {
-  const colors = {
-    blue: { bg: 'bg-gradient-to-br from-blue-500 to-blue-600', icon: 'text-blue-100' },
-    green: { bg: 'bg-gradient-to-br from-green-500 to-green-600', icon: 'text-green-100' },
-    purple: { bg: 'bg-gradient-to-br from-purple-500 to-purple-600', icon: 'text-purple-100' },
-    orange: { bg: 'bg-gradient-to-br from-orange-500 to-orange-600', icon: 'text-orange-100' }
-  };
-
+  const [localValue, setLocalValue] = useState(externalValue || '');
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  useEffect(() => {
+    if (document.activeElement !== inputRef.current) {
+      setLocalValue(externalValue || '');
+    }
+  }, [externalValue]);
+  
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+    requestAnimationFrame(() => {
+      onChange(name, newValue);
+    });
+  }, [name, onChange]);
+  
+  const handleBlur = useCallback(() => {
+    if (localValue !== externalValue) {
+      onChange(name, localValue);
+    }
+  }, [name, localValue, externalValue, onChange]);
+  
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -5 }}
-      className={`${colors[color].bg} rounded-xl p-5 text-white shadow-lg hover:shadow-xl transition-all duration-300`}
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-white/80 text-sm font-medium mb-1">{title}</p>
-          <p className="text-2xl font-bold mb-2">{value}</p>
-          {description && (
-            <p className="text-white/70 text-xs">{description}</p>
-          )}
-        </div>
-        <div className={`p-3 rounded-xl bg-white/10 ${colors[color].icon}`}>
-          <Icon size={22} />
-        </div>
-      </div>
-      {trend && (
-        <div className="flex items-center gap-1 mt-3">
-          <TrendingUp size={14} className={trend.direction === 'up' ? 'text-green-300' : 'text-red-300'} />
-          <span className="text-sm font-medium">
-            {trend.direction === 'up' ? '+' : '-'}{trend.value}%
-          </span>
-        </div>
-      )}
-    </motion.div>
+    <div className={className}>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <input
+        ref={inputRef}
+        type={type}
+        name={name}
+        value={localValue}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        required={required}
+        placeholder={placeholder}
+        disabled={disabled}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+      />
+    </div>
   );
-};
+});
 
-// Composant StoreCard amélioré
-const StoreCard = ({ store, onEdit, onDelete, onToggleStatus, onView }: { 
+StableInput.displayName = 'StableInput';
+
+// Composant Select STABLE
+const StableSelect = React.memo(({
+  label,
+  name,
+  value: externalValue,
+  onChange,
+  options,
+  required = false,
+  placeholder = 'Sélectionner...',
+  className = '',
+  disabled = false
+}: {
+  label: string;
+  name: string;
+  value: string | number;
+  onChange: (name: string, value: string) => void;
+  options: Array<{id: number | string; name: string}>;
+  required?: boolean;
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
+}) => {
+  const [localValue, setLocalValue] = useState(externalValue || '');
+  
+  useEffect(() => {
+    setLocalValue(externalValue || '');
+  }, [externalValue]);
+  
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+    onChange(name, newValue);
+  }, [name, onChange]);
+  
+  return (
+    <div className={className}>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <select
+        name={name}
+        value={localValue}
+        onChange={handleChange}
+        required={required}
+        disabled={disabled}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+      >
+        <option value="">{placeholder}</option>
+        {options.map(option => (
+          <option key={option.id} value={option.id}>
+            {option.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+});
+
+StableSelect.displayName = 'StableSelect';
+
+// Composant Textarea STABLE
+const StableTextarea = React.memo(({
+  label,
+  name,
+  value: externalValue,
+  onChange,
+  required = false,
+  placeholder = '',
+  className = '',
+  disabled = false,
+  rows = 3
+}: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (name: string, value: string) => void;
+  required?: boolean;
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
+  rows?: number;
+}) => {
+  const [localValue, setLocalValue] = useState(externalValue || '');
+  
+  useEffect(() => {
+    setLocalValue(externalValue || '');
+  }, [externalValue]);
+  
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+    onChange(name, newValue);
+  }, [name, onChange]);
+  
+  return (
+    <div className={className}>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <textarea
+        name={name}
+        value={localValue}
+        onChange={handleChange}
+        required={required}
+        placeholder={placeholder}
+        disabled={disabled}
+        rows={rows}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
+      />
+    </div>
+  );
+});
+
+StableTextarea.displayName = 'StableTextarea';
+
+// Composant StoreCard
+const StoreCard = React.memo(({ 
+  store, 
+  onEdit, 
+  onDelete, 
+  onToggleStatus, 
+  onView 
+}: { 
   store: StoreType; 
   onEdit: () => void;
   onDelete: () => void;
@@ -146,14 +270,12 @@ const StoreCard = ({ store, onEdit, onDelete, onToggleStatus, onView }: {
       whileHover={{ y: -5 }}
       className="group relative bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-xl transition-all duration-300"
     >
-      {/* Badge de statut */}
       <div className="absolute top-4 right-4">
         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${store.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
           {store.is_active ? '🟢 Actif' : '🔴 Inactif'}
         </span>
       </div>
 
-      {/* En-tête avec logo et infos */}
       <div className="flex items-start gap-3 mb-4">
         <div className="relative">
           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
@@ -161,6 +283,7 @@ const StoreCard = ({ store, onEdit, onDelete, onToggleStatus, onView }: {
               <img 
                 src={store.logo} 
                 alt={store.name}
+                loading="lazy"
                 className="w-14 h-14 rounded-xl object-cover"
               />
             ) : (
@@ -190,7 +313,6 @@ const StoreCard = ({ store, onEdit, onDelete, onToggleStatus, onView }: {
         </div>
       </div>
 
-      {/* Informations principales */}
       <div className="space-y-3 mb-4">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <MapPin size={16} className="text-gray-400 flex-shrink-0" />
@@ -209,7 +331,6 @@ const StoreCard = ({ store, onEdit, onDelete, onToggleStatus, onView }: {
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
         <div className="flex items-center gap-2">
           <button
@@ -309,7 +430,67 @@ const StoreCard = ({ store, onEdit, onDelete, onToggleStatus, onView }: {
       </div>
     </motion.div>
   );
-};
+});
+
+StoreCard.displayName = 'StoreCard';
+
+// Composant StatCard
+const StatCard = React.memo(({ 
+  title, 
+  value, 
+  icon: Icon,
+  description,
+  change
+}: { 
+  title: string; 
+  value: string | number; 
+  icon: React.ElementType;
+  description?: string;
+  change?: { value: number; label: string };
+}) => {
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 transition-colors">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <p className="text-sm font-medium text-gray-500 mb-1">
+            {title}
+          </p>
+          <p className="text-2xl font-semibold text-gray-900">
+            {value}
+          </p>
+        </div>
+        <div className="p-2 bg-gray-50 rounded-lg">
+          <Icon size={20} className="text-gray-700" />
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        {description && (
+          <p className="text-sm text-gray-600">
+            {description}
+          </p>
+        )}
+        
+        {change && (
+          <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+            change.value > 0 
+              ? 'bg-green-50 text-green-700'
+              : change.value < 0
+              ? 'bg-red-50 text-red-700'
+              : 'bg-gray-50 text-gray-700'
+          }`}>
+            {change.value > 0 ? '↗' : change.value < 0 ? '↘' : '→'}
+            <span className="ml-1">
+              {Math.abs(change.value)}% {change.label}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+StatCard.displayName = 'StatCard';
 
 const StorePage = () => {
   // États principaux
@@ -326,27 +507,40 @@ const StorePage = () => {
   const [selectedStore, setSelectedStore] = useState<StoreType | null>(null);
   const [storeTypes, setStoreTypes] = useState<StoreTypeOption[]>([]);
   const [storeNetworks, setStoreNetworks] = useState<StoreNetwork[]>([]);
-  const [formData, setFormData] = useState<StoreFormData>({
+  
+  // ✅ ÉTAT DU FORMULAIRE - ADAPTÉ POUR LE BACKEND DJANGO
+  const [formValues, setFormValues] = useState<StoreFormData>({
     name: '',
     address_line1: '',
     address_line2: '',
     city: '',
     state: '',
     postal_code: '',
-    country: 'Sénégal',
+    country: 'France', // ✅ CHANGÉ - Le backend attend "France"
     phone: '',
     email: '',
     store_type: undefined,
     network: undefined,
     slogan: '',
-    configuration: {},
+    configuration: {
+      currency: 'EUR', // ✅ CHANGÉ - Le backend attend "EUR"
+      timezone: 'Europe/Paris', // ✅ CHANGÉ - Le backend attend "Europe/Paris"
+      receipt_header: '',
+      receipt_footer: '',
+      tax_rate: 20.0
+    },
     opening_hours: {},
-    is_active: true,
-    latitude: undefined,
-    longitude: undefined,
-    accuracy: undefined,
-    geocoded_address: undefined
+    is_active: true
   });
+  
+  // ✅ GÉOLOCALISATION - Avec conversion string pour le backend
+  const [geoLocation, setGeoLocation] = useState({
+    latitude: undefined as string | undefined, // ✅ string pour Django
+    longitude: undefined as string | undefined, // ✅ string pour Django
+    accuracy: undefined as string | undefined,
+    geocoded_address: undefined as string | undefined
+  });
+  
   const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [stats, setStats] = useState<StoreStats>({
@@ -368,15 +562,43 @@ const StorePage = () => {
   const [selectedNetwork, setSelectedNetwork] = useState<string>('all');
   const [isExporting, setIsExporting] = useState(false);
   const [activeFormTab, setActiveFormTab] = useState<'basic' | 'advanced'>('basic');
+  
+  const [displayCount, setDisplayCount] = useState(20);
+  const [hasMore, setHasMore] = useState(true);
+  const [performanceMetrics, setPerformanceMetrics] = useState({
+    loadTime: 0,
+    filterTime: 0,
+    totalStores: 0
+  });
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [cachedStores, setCachedStores] = useState<StoreType[]>([]);
+
+  const formValuesRef = useRef(formValues);
+  useEffect(() => {
+    formValuesRef.current = formValues;
+  }, [formValues]);
+
+  // Debounce pour la recherche
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Calcul des statistiques
   const calculatedStats = useMemo(() => {
+    const start = performance.now();
+    
     const total = stores.length;
     const active = stores.filter(store => store.is_active).length;
     const inactive = total - active;
     const totalEmployees = stores.reduce((sum, store) => sum + (store.total_employees || 0), 0);
     const totalProducts = stores.reduce((sum, store) => sum + (store.total_products || 0), 0);
     const averageEmployees = total > 0 ? Math.round(totalEmployees / total) : 0;
+    
+    const end = performance.now();
     
     return {
       total,
@@ -385,22 +607,19 @@ const StorePage = () => {
       totalEmployees,
       totalProducts,
       averageEmployees,
-      monthlyGrowth: 0
+      monthlyGrowth: 0,
+      calculationTime: end - start
     };
   }, [stores]);
 
-  // Chargement initial
+  // Filtrage
   useEffect(() => {
-    loadInitialData();
-  }, []);
-
-  // Filtrage et recherche
-  useEffect(() => {
+    const filterStart = performance.now();
+    
     let result = stores;
 
-    // Filtre par recherche
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
+    if (debouncedSearchTerm) {
+      const term = debouncedSearchTerm.toLowerCase();
       result = result.filter(store =>
         store.name.toLowerCase().includes(term) ||
         (store.address_details?.city?.toLowerCase().includes(term)) ||
@@ -410,22 +629,18 @@ const StorePage = () => {
       );
     }
 
-    // Filtre par statut
     if (statusFilter !== 'all') {
       result = result.filter(store => store.is_active === (statusFilter === 'active'));
     }
 
-    // Filtre par type de store
     if (selectedStoreType !== 'all') {
       result = result.filter(store => store.store_type === parseInt(selectedStoreType));
     }
 
-    // Filtre par réseau
     if (selectedNetwork !== 'all') {
       result = result.filter(store => store.network === parseInt(selectedNetwork));
     }
 
-    // Tri
     result = [...result].sort((a, b) => {
       let aValue: any = a[sortBy as keyof StoreType];
       let bValue: any = b[sortBy as keyof StoreType];
@@ -446,177 +661,176 @@ const StorePage = () => {
     });
 
     setFilteredStores(result);
-    setStats(calculatedStats);
-  }, [stores, searchTerm, statusFilter, selectedStoreType, selectedNetwork, sortBy, sortOrder, calculatedStats]);
+    setDisplayCount(Math.min(20, result.length));
+    setHasMore(result.length > 20);
+    
+    const filterEnd = performance.now();
+    
+    setPerformanceMetrics(prev => ({
+      ...prev,
+      filterTime: filterEnd - filterStart,
+      totalStores: result.length
+    }));
+    
+  }, [stores, debouncedSearchTerm, statusFilter, selectedStoreType, selectedNetwork, sortBy, sortOrder]);
 
-  // Fonctions de chargement
-  const loadInitialData = async () => {
+  // Chargement initial
+  const loadInitialData = useCallback(async () => {
+    const start = performance.now();
     setLoading(true);
+    
     try {
-      const [storesData, typesData, networksData] = await Promise.all([
-        storeService.getStores({ page_size: 100 }),
-        storeService.getStoreTypes(),
-        storeService.getStoreNetworks()
-      ]);
+      const cachedData = localStorage.getItem('stores_cache');
+      const cacheTime = localStorage.getItem('stores_cache_time');
       
-      setStores(storesData.results);
-      setFilteredStores(storesData.results);
-      setStoreTypes(typesData);
-      setStoreNetworks(networksData);
+      if (cachedData && cacheTime && (Date.now() - parseInt(cacheTime) < 5 * 60 * 1000)) {
+        const parsedData = JSON.parse(cachedData);
+        setStores(parsedData.stores);
+        setFilteredStores(parsedData.stores);
+        setStoreTypes(parsedData.types);
+        setStoreNetworks(parsedData.networks);
+        setCachedStores(parsedData.stores);
+        toast.info('Données chargées depuis le cache');
+      } else {
+        const [storesData, typesData, networksData] = await Promise.all([
+          storeService.getStores({ page_size: 200 }),
+          storeService.getStoreTypes(),
+          storeService.getStoreNetworks()
+        ]);
+        
+        setStores(storesData.results);
+        setFilteredStores(storesData.results);
+        setStoreTypes(typesData);
+        setStoreNetworks(networksData);
+        setCachedStores(storesData.results);
+        
+        const cacheData = {
+          stores: storesData.results,
+          types: typesData,
+          networks: networksData,
+          timestamp: Date.now()
+        };
+        localStorage.setItem('stores_cache', JSON.stringify(cacheData));
+        localStorage.setItem('stores_cache_time', Date.now().toString());
+        
+        toast.success(`${storesData.results.length} stores chargés avec succès !`);
+      }
       
-      toast.success('Données chargées avec succès !');
+      const end = performance.now();
+      setPerformanceMetrics(prev => ({
+        ...prev,
+        loadTime: end - start
+      }));
+      
     } catch (error) {
       console.error('Erreur lors du chargement initial:', error);
       toast.error('Erreur lors du chargement des données');
+      
+      const cachedData = localStorage.getItem('stores_cache');
+      if (cachedData) {
+        const parsedData = JSON.parse(cachedData);
+        setStores(parsedData.stores || []);
+        setFilteredStores(parsedData.stores || []);
+        toast.info('Données récupérées depuis le cache (mode dégradé)');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Gestion du formulaire - version compacte
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setLogoFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setLogoPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Géolocalisation
-  const getCurrentLocation = () => {
-    setIsGettingLocation(true);
-    setLocationError('');
-
-    if (!navigator.geolocation) {
-      setLocationError('La géolocalisation n\'est pas supportée par votre navigateur');
-      setIsGettingLocation(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const accuracy = position.coords.accuracy;
-        
-        setFormData(prev => ({
-          ...prev,
-          latitude,
-          longitude,
-          accuracy
-        }));
-        
-        setIsGettingLocation(false);
-        toast.success('Position géographique récupérée !');
-      },
-      (error) => {
-        setIsGettingLocation(false);
-        switch(error.code) {
-          case error.PERMISSION_DENIED:
-            setLocationError('Permission refusée. Veuillez autoriser la géolocalisation.');
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setLocationError('Position indisponible. Vérifiez votre connexion.');
-            break;
-          case error.TIMEOUT:
-            setLocationError('La géolocalisation a pris trop de temps.');
-            break;
-          default:
-            setLocationError('Erreur lors de la récupération de la position.');
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
-  const useCityCoordinates = () => {
-    if (!formData.city) {
-      setLocationError('Veuillez d\'abord renseigner la ville');
-      return;
-    }
-
-    const city = SENEGAL_CITIES.find(c => 
-      c.name.toLowerCase().includes(formData.city.toLowerCase()) ||
-      formData.city.toLowerCase().includes(c.name.toLowerCase())
-    );
-
-    if (city) {
-      setFormData(prev => ({
-        ...prev,
-        latitude: city.lat,
-        longitude: city.lon,
-        accuracy: 5000 // 5km de précision pour les villes
-      }));
-      toast.info(`Position approximative de ${city.name} enregistrée`);
-    } else {
-      setLocationError('Ville non trouvée dans notre base de données');
-    }
-  };
-
-  const clearLocation = () => {
-    setFormData(prev => ({
-      ...prev,
-      latitude: undefined,
-      longitude: undefined,
-      accuracy: undefined,
-      geocoded_address: undefined
-    }));
-    setLocationError('');
-  };
-
-  // Gestion des horaires
-  const handleOpeningHoursChange = (day: string, field: 'open' | 'close', value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      opening_hours: {
-        ...prev.opening_hours,
-        [day]: {
-          ...prev.opening_hours?.[day],
-          [field]: value
-        }
+  useEffect(() => {
+    loadInitialData();
+    
+    const cleanupCache = () => {
+      const cacheTime = localStorage.getItem('stores_cache_time');
+      if (cacheTime && (Date.now() - parseInt(cacheTime) > 24 * 60 * 60 * 1000)) {
+        localStorage.removeItem('stores_cache');
+        localStorage.removeItem('stores_cache_time');
       }
-    }));
-  };
+    };
+    
+    cleanupCache();
+  }, [loadInitialData]);
 
-  // Gestion de la configuration
-  const handleConfigChange = (key: string, value: any) => {
-    setFormData(prev => ({
+  const loadMoreStores = useCallback(() => {
+    if (displayCount >= filteredStores.length) {
+      setHasMore(false);
+      return;
+    }
+    
+    setDisplayCount(prev => Math.min(prev + 20, filteredStores.length));
+    
+    if (displayCount + 20 >= filteredStores.length) {
+      setHasMore(false);
+    }
+  }, [displayCount, filteredStores.length]);
+
+  const visibleStores = useMemo(() => {
+    return filteredStores.slice(0, displayCount);
+  }, [filteredStores, displayCount]);
+
+  const handleFieldChange = useCallback((fieldName: string, value: any) => {
+    setFormValues(prev => ({
+      ...prev,
+      [fieldName]: value
+    }));
+  }, []);
+
+  const handleConfigChange = useCallback((key: string, value: any) => {
+    setFormValues(prev => ({
       ...prev,
       configuration: {
         ...prev.configuration,
         [key]: value
       }
     }));
-  };
+  }, []);
 
-  const resetForm = () => {
-    setFormData({
+  useEffect(() => {
+    if (selectedStore && isEditModalOpen) {
+      const preparedData = storeService.prepareStoreFormData(selectedStore);
+      setFormValues({
+        ...preparedData,
+        configuration: {
+          currency: preparedData.configuration?.currency || 'EUR',
+          timezone: preparedData.configuration?.timezone || 'Europe/Paris',
+          receipt_header: preparedData.configuration?.receipt_header || '',
+          receipt_footer: preparedData.configuration?.receipt_footer || '',
+          tax_rate: preparedData.configuration?.tax_rate || 20.0
+        }
+      });
+      
+      if (selectedStore.logo) {
+        setLogoPreview(selectedStore.logo);
+      }
+    }
+  }, [selectedStore, isEditModalOpen]);
+
+  const resetForm = useCallback(() => {
+    setFormValues({
       name: '',
       address_line1: '',
       address_line2: '',
       city: '',
       state: '',
       postal_code: '',
-      country: 'Sénégal',
+      country: 'France', // ✅ CHANGÉ
       phone: '',
       email: '',
       store_type: undefined,
       network: undefined,
       slogan: '',
-      configuration: {},
+      configuration: {
+        currency: 'EUR', // ✅ CHANGÉ
+        timezone: 'Europe/Paris', // ✅ CHANGÉ
+        receipt_header: '',
+        receipt_footer: '',
+        tax_rate: 20.0
+      },
       opening_hours: {},
-      is_active: true,
+      is_active: true
+    });
+    setGeoLocation({
       latitude: undefined,
       longitude: undefined,
       accuracy: undefined,
@@ -627,13 +841,91 @@ const StorePage = () => {
     setSelectedStore(null);
     setActiveFormTab('basic');
     setLocationError('');
-  };
+  }, []);
+
+  const handleLogoChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setLogoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
+  // ✅ GÉOLOCALISATION - Conversion en string pour Django
+  const getCurrentLocation = useCallback(() => {
+    setIsGettingLocation(true);
+    setLocationError('');
+
+    if (!navigator.geolocation) {
+      setLocationError('La géolocalisation n\'est pas supportée');
+      setIsGettingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const accuracy = position.coords.accuracy;
+        
+        // ✅ Convertir en string pour Django
+        setGeoLocation({
+          latitude: latitude.toString(),
+          longitude: longitude.toString(),
+          accuracy: accuracy.toString(),
+          geocoded_address: geoLocation.geocoded_address
+        });
+        
+        setIsGettingLocation(false);
+        toast.success('Position géographique récupérée !');
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError('Permission refusée');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError('Position indisponible');
+            break;
+          case error.TIMEOUT:
+            setLocationError('Délai dépassé');
+            break;
+          default:
+            setLocationError('Erreur de géolocalisation');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }, [geoLocation.geocoded_address]);
+
+  const clearLocation = useCallback(() => {
+    setGeoLocation({
+      latitude: undefined,
+      longitude: undefined,
+      accuracy: undefined,
+      geocoded_address: undefined
+    });
+    setLocationError('');
+  }, []);
 
   // Actions CRUD
-  const handleAddStore = async (e: React.FormEvent) => {
+  const handleAddStore = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const errors = storeService.validateStoreForm(formData);
+    // ✅ CONVERSION DES COORDONNÉES EN STRING POUR DJANGO
+    const currentFormData = {
+      ...formValuesRef.current,
+      latitude: geoLocation.latitude, // ✅ Déjà en string
+      longitude: geoLocation.longitude, // ✅ Déjà en string
+      accuracy: geoLocation.accuracy,
+      geocoded_address: geoLocation.geocoded_address
+    };
+    
+    const errors = storeService.validateStoreForm(currentFormData);
     if (errors.length > 0) {
       errors.forEach(error => toast.error(error));
       return;
@@ -642,44 +934,63 @@ const StorePage = () => {
     setFormLoading(true);
 
     try {
-      const newStore = await storeService.createStore(formData);
+      const newStore = await storeService.createStore(currentFormData);
       
       if (logoFile && newStore.id) {
         try {
           const logoResponse = await storeService.uploadLogo(newStore.id, logoFile);
           newStore.logo = logoResponse.logo;
         } catch (logoError) {
-          console.error('Erreur lors de l\'upload du logo:', logoError);
+          console.error('Erreur upload logo:', logoError);
         }
       }
       
       setStores(prev => [...prev, newStore]);
+      
+      const updatedCache = [...cachedStores, newStore];
+      setCachedStores(updatedCache);
+      localStorage.setItem('stores_cache', JSON.stringify({
+        stores: updatedCache,
+        types: storeTypes,
+        networks: storeNetworks,
+        timestamp: Date.now()
+      }));
+      
       setIsAddModalOpen(false);
       resetForm();
       toast.success('Store créé avec succès !');
       
     } catch (error: any) {
-      console.error('Erreur lors de la création:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la création du store');
+      console.error('Erreur création:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la création');
     } finally {
       setFormLoading(false);
     }
-  };
+  }, [logoFile, cachedStores, storeTypes, storeNetworks, resetForm, geoLocation]);
 
-  const handleEditStore = async (e: React.FormEvent) => {
+  const handleEditStore = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStore) return;
 
     setFormLoading(true);
     try {
-      const updatedStore = await storeService.updateStore(selectedStore.id, formData);
+      // ✅ CONVERSION DES COORDONNÉES EN STRING POUR DJANGO
+      const currentFormData = {
+        ...formValuesRef.current,
+        latitude: geoLocation.latitude,
+        longitude: geoLocation.longitude,
+        accuracy: geoLocation.accuracy,
+        geocoded_address: geoLocation.geocoded_address
+      };
+      
+      const updatedStore = await storeService.updateStore(selectedStore.id, currentFormData);
       
       if (logoFile) {
         try {
           const logoResponse = await storeService.uploadLogo(selectedStore.id, logoFile);
           updatedStore.logo = logoResponse.logo;
         } catch (logoError) {
-          console.error('Erreur lors de l\'upload du logo:', logoError);
+          console.error('Erreur upload logo:', logoError);
         }
       }
       
@@ -687,19 +998,30 @@ const StorePage = () => {
         store.id === selectedStore.id ? updatedStore : store
       ));
       
+      const updatedCache = cachedStores.map(store =>
+        store.id === selectedStore.id ? updatedStore : store
+      );
+      setCachedStores(updatedCache);
+      localStorage.setItem('stores_cache', JSON.stringify({
+        stores: updatedCache,
+        types: storeTypes,
+        networks: storeNetworks,
+        timestamp: Date.now()
+      }));
+      
       setIsEditModalOpen(false);
       resetForm();
       toast.success('Store modifié avec succès !');
       
     } catch (error: any) {
-      console.error('Erreur lors de la modification:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la modification du store');
+      console.error('Erreur modification:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la modification');
     } finally {
       setFormLoading(false);
     }
-  };
+  }, [selectedStore, logoFile, cachedStores, storeTypes, storeNetworks, resetForm, geoLocation]);
 
-  const handleDeleteStore = async () => {
+  const handleDeleteStore = useCallback(async () => {
     if (!selectedStore) return;
 
     setFormLoading(true);
@@ -707,19 +1029,29 @@ const StorePage = () => {
       await storeService.deleteStore(selectedStore.id);
       
       setStores(prev => prev.filter(store => store.id !== selectedStore.id));
+      
+      const updatedCache = cachedStores.filter(store => store.id !== selectedStore.id);
+      setCachedStores(updatedCache);
+      localStorage.setItem('stores_cache', JSON.stringify({
+        stores: updatedCache,
+        types: storeTypes,
+        networks: storeNetworks,
+        timestamp: Date.now()
+      }));
+      
       setIsDeleteModalOpen(false);
       resetForm();
       toast.success('Store supprimé avec succès !');
       
     } catch (error: any) {
-      console.error('Erreur lors de la suppression:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la suppression du store');
+      console.error('Erreur suppression:', error);
+      toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
     } finally {
       setFormLoading(false);
     }
-  };
+  }, [selectedStore, cachedStores, storeTypes, storeNetworks, resetForm]);
 
-  const handleToggleStatus = async (storeId: number) => {
+  const handleToggleStatus = useCallback(async (storeId: number) => {
     try {
       const store = stores.find(s => s.id === storeId);
       if (!store) return;
@@ -731,60 +1063,57 @@ const StorePage = () => {
         store.id === storeId ? updatedStore : store
       ));
       
-      toast.success(`Store ${newStatus ? 'activé' : 'désactivé'} avec succès !`);
+      const updatedCache = cachedStores.map(store =>
+        store.id === storeId ? updatedStore : store
+      );
+      setCachedStores(updatedCache);
+      
+      toast.success(`Store ${newStatus ? 'activé' : 'désactivé'} !`);
       
     } catch (error: any) {
-      console.error('Erreur lors du changement de statut:', error);
+      console.error('Erreur changement statut:', error);
       toast.error('Erreur lors du changement de statut');
     }
-  };
+  }, [stores, cachedStores]);
 
-  const openEditModal = (store: StoreType) => {
+  const openEditModal = useCallback((store: StoreType) => {
     setSelectedStore(store);
-    const formData = storeService.prepareStoreFormData(store);
-    setFormData(formData);
-    
-    if (store.logo) {
-      setLogoPreview(store.logo);
-    }
-    
     setIsEditModalOpen(true);
-  };
+  }, []);
 
-  const openDeleteModal = (store: StoreType) => {
+  const openDeleteModal = useCallback((store: StoreType) => {
     setSelectedStore(store);
     setIsDeleteModalOpen(true);
-  };
+  }, []);
 
-  const openQuickView = (store: StoreType) => {
+  const openQuickView = useCallback((store: StoreType) => {
     setSelectedStore(store);
     setIsQuickViewOpen(true);
-  };
+  }, []);
 
-  const toggleSort = (field: SortField) => {
+  const toggleSort = useCallback((field: SortField) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortBy(field);
       setSortOrder('asc');
     }
-  };
+  }, [sortBy, sortOrder]);
 
-  const exportStores = async (format: 'csv' | 'excel' | 'pdf') => {
+  const exportStores = useCallback(async (format: 'csv' | 'excel' | 'pdf') => {
     setIsExporting(true);
     try {
-      // Simuler l'export
       await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success(`Export ${format} généré avec succès !`);
+      toast.success(`Export ${format} généré !`);
     } catch (error) {
-      toast.error('Erreur lors de l\'export');
+      toast.error('Erreur export');
     } finally {
       setIsExporting(false);
     }
-  };
+  }, []);
 
-  // Composant FormTab simplifié
-  const FormTab = ({ id, label, icon: Icon, active }: { 
+  // Composant FormTab
+  const FormTab = React.memo(({ id, label, icon: Icon, active }: { 
     id: 'basic' | 'advanced'; 
     label: string; 
     icon: React.ElementType;
@@ -802,10 +1131,12 @@ const StorePage = () => {
       <Icon size={18} />
       {label}
     </button>
-  );
+  ));
 
-  // Formulaire compact avec tous les champs
-  const CompactForm = () => (
+  FormTab.displayName = 'FormTab';
+
+  // Formulaire avec composants STABLES - ADAPTÉ POUR DJANGO
+  const CompactForm = React.memo(() => (
     <div className="space-y-4">
       {/* Logo et informations de base */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -817,6 +1148,7 @@ const StorePage = () => {
                   <img 
                     src={logoPreview} 
                     alt="Preview" 
+                    loading="lazy"
                     className="w-32 h-32 rounded-lg object-cover mb-3"
                   />
                 ) : (
@@ -843,14 +1175,14 @@ const StorePage = () => {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Statut du store
+                Statut
               </label>
               <div className="flex items-center gap-3">
                 <label className="inline-flex items-center">
                   <input
                     type="checkbox"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                    checked={formValues.is_active ?? true}
+                    onChange={(e) => handleFieldChange('is_active', e.target.checked)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="ml-2 text-sm text-gray-700">Store actif</span>
@@ -862,69 +1194,41 @@ const StorePage = () => {
 
         <div className="md:col-span-2">
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nom du store *
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                placeholder="Nom du store"
-              />
-            </div>
+            <StableInput
+              label="Nom du store"
+              name="name"
+              value={formValues.name || ''}
+              onChange={handleFieldChange}
+              required
+              placeholder="Nom du store"
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Slogan
-              </label>
-              <input
-                type="text"
-                name="slogan"
-                value={formData.slogan}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                placeholder="Slogan du store"
-              />
-            </div>
+            <StableInput
+              label="Slogan"
+              name="slogan"
+              value={formValues.slogan || ''}
+              onChange={handleFieldChange}
+              placeholder="Slogan du store"
+            />
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type de store
-                </label>
-                <select
-                  name="store_type"
-                  value={formData.store_type || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                >
-                  <option value="">Sélectionner un type</option>
-                  {storeTypes.map(type => (
-                    <option key={type.id} value={type.id}>{type.name}</option>
-                  ))}
-                </select>
-              </div>
+              <StableSelect
+                label="Type de store"
+                name="store_type"
+                value={formValues.store_type || ''}
+                onChange={handleFieldChange}
+                options={storeTypes}
+                placeholder="Sélectionner un type"
+              />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Réseau
-                </label>
-                <select
-                  name="network"
-                  value={formData.network || ''}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                >
-                  <option value="">Sélectionner un réseau</option>
-                  {storeNetworks.map(network => (
-                    <option key={network.id} value={network.id}>{network.name}</option>
-                  ))}
-                </select>
-              </div>
+              <StableSelect
+                label="Réseau"
+                name="network"
+                value={formValues.network || ''}
+                onChange={handleFieldChange}
+                options={storeNetworks}
+                placeholder="Sélectionner un réseau"
+              />
             </div>
           </div>
         </div>
@@ -932,37 +1236,27 @@ const StorePage = () => {
 
       {/* Informations de contact */}
       <div className="border-t border-gray-200 pt-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3">Informations de contact</h4>
+        <h4 className="text-sm font-semibold text-gray-900 mb-3">Contact</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Téléphone *
-            </label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              placeholder="+221 XX XXX XX XX"
-            />
-          </div>
+          <StableInput
+            label="Téléphone"
+            name="phone"
+            value={formValues.phone || ''}
+            onChange={handleFieldChange}
+            type="tel"
+            required
+            placeholder="0478123456"
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email *
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              placeholder="contact@store.com"
-            />
-          </div>
+          <StableInput
+            label="Email"
+            name="email"
+            value={formValues.email || ''}
+            onChange={handleFieldChange}
+            type="email"
+            required
+            placeholder="contact@store.com"
+          />
         </div>
       </div>
 
@@ -970,95 +1264,59 @@ const StorePage = () => {
       <div className="border-t border-gray-200 pt-4">
         <h4 className="text-sm font-semibold text-gray-900 mb-3">Adresse</h4>
         <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Adresse ligne 1 *
-            </label>
-            <input
-              type="text"
-              name="address_line1"
-              value={formData.address_line1}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              placeholder="Numéro et rue"
-            />
-          </div>
+          <StableInput
+            label="Adresse ligne 1"
+            name="address_line1"
+            value={formValues.address_line1 || ''}
+            onChange={handleFieldChange}
+            required
+            placeholder="15 Rue de la République"
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Adresse ligne 2
-            </label>
-            <input
-              type="text"
-              name="address_line2"
-              value={formData.address_line2}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              placeholder="Complément d'adresse"
-            />
-          </div>
+          <StableInput
+            label="Adresse ligne 2"
+            name="address_line2"
+            value={formValues.address_line2 || ''}
+            onChange={handleFieldChange}
+            placeholder="Complément d'adresse"
+          />
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ville *
-              </label>
-              <input
-                type="text"
-                name="city"
-                value={formData.city}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                placeholder="Ville"
-              />
-            </div>
+            <StableInput
+              label="Ville"
+              name="city"
+              value={formValues.city || ''}
+              onChange={handleFieldChange}
+              required
+              placeholder="Lyon"
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Région *
-              </label>
-              <input
-                type="text"
-                name="state"
-                value={formData.state}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                placeholder="Région"
-              />
-            </div>
+            <StableInput
+              label="Région"
+              name="state"
+              value={formValues.state || ''}
+              onChange={handleFieldChange}
+              required
+              placeholder="Auvergne-Rhône-Alpes"
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Code postal *
-              </label>
-              <input
-                type="text"
-                name="postal_code"
-                value={formData.postal_code}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                placeholder="Code postal"
-              />
-            </div>
+            <StableInput
+              label="Code postal"
+              name="postal_code"
+              value={formValues.postal_code || ''}
+              onChange={handleFieldChange}
+              required
+              placeholder="69002"
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Pays *
-              </label>
-              <input
-                type="text"
-                name="country"
-                value={formData.country}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                placeholder="Pays"
-              />
-            </div>
+            <StableInput
+              label="Pays"
+              name="country"
+              value={formValues.country || 'France'} // ✅ CHANGÉ
+              onChange={handleFieldChange}
+              required
+              placeholder="France"
+            />
           </div>
         </div>
       </div>
@@ -1081,19 +1339,10 @@ const StorePage = () => {
               )}
               Ma position
             </button>
-            {formData.city && (
-              <button
-                type="button"
-                onClick={useCityCoordinates}
-                className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs font-medium"
-              >
-                Par ville
-              </button>
-            )}
           </div>
         </div>
 
-        {formData.latitude && formData.longitude ? (
+        {geoLocation.latitude && geoLocation.longitude ? (
           <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1101,13 +1350,13 @@ const StorePage = () => {
                 <div>
                   <p className="text-sm font-medium text-green-800">Position enregistrée</p>
                   <p className="text-xs text-green-600">
-                    {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                    {geoLocation.latitude}, {geoLocation.longitude}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
                 <a
-                  href={`https://www.google.com/maps?q=${formData.latitude},${formData.longitude}`}
+                  href={`https://www.google.com/maps?q=${geoLocation.latitude},${geoLocation.longitude}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded"
@@ -1129,7 +1378,7 @@ const StorePage = () => {
         ) : (
           <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
             <p className="text-sm text-gray-600">
-              Aucune position définie. Utilisez les boutons pour géolocaliser.
+              Aucune position définie.
             </p>
           </div>
         )}
@@ -1141,7 +1390,7 @@ const StorePage = () => {
         )}
       </div>
 
-      {/* Configuration avancée (onglet séparé) */}
+      {/* Configuration avancée */}
       {activeFormTab === 'advanced' && (
         <div className="border-t border-gray-200 pt-4">
           <h4 className="text-sm font-semibold text-gray-900 mb-3">Configuration avancée</h4>
@@ -1152,12 +1401,12 @@ const StorePage = () => {
                 Devise par défaut
               </label>
               <select
-                value={formData.configuration?.currency || 'XOF'}
+                value={formValues.configuration?.currency || 'EUR'} // ✅ CHANGÉ
                 onChange={(e) => handleConfigChange('currency', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
-                <option value="XOF">Franc CFA (XOF)</option>
                 <option value="EUR">Euro (EUR)</option>
+                <option value="XOF">Franc CFA (XOF)</option>
                 <option value="USD">Dollar US (USD)</option>
               </select>
             </div>
@@ -1167,36 +1416,48 @@ const StorePage = () => {
                 Fuseau horaire
               </label>
               <select
-                value={formData.configuration?.timezone || 'Africa/Dakar'}
+                value={formValues.configuration?.timezone || 'Europe/Paris'} // ✅ CHANGÉ
                 onChange={(e) => handleConfigChange('timezone', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
-                <option value="Africa/Dakar">Afrique/Dakar (GMT+0)</option>
-                <option value="Africa/Abidjan">Afrique/Abidjan (GMT+0)</option>
+                <option value="Europe/Paris">Europe/Paris</option>
+                <option value="Africa/Abidjan">Africa/Abidjan</option>
+                <option value="Africa/Accra">Africa/Accra</option>
               </select>
             </div>
 
-            <div className="space-y-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.configuration?.online_orders || false}
-                  onChange={(e) => handleConfigChange('online_orders', e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">Commandes en ligne</span>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Taux de TVA (%)
               </label>
-
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.configuration?.reservations || false}
-                  onChange={(e) => handleConfigChange('reservations', e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">Réservations</span>
-              </label>
+              <StableInput
+                label=""
+                name="tax_rate"
+                value={formValues.configuration?.tax_rate?.toString() || '20.0'}
+                onChange={(_, val) => handleConfigChange('tax_rate', parseFloat(val) || 20.0)}
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                placeholder="20.0"
+              />
             </div>
+
+            <StableInput
+              label="Entête du reçu"
+              name="receipt_header"
+              value={formValues.configuration?.receipt_header || ''}
+              onChange={(_, val) => handleConfigChange('receipt_header', val)}
+              placeholder="Merci de votre visite !"
+            />
+
+            <StableInput
+              label="Pied du reçu"
+              name="receipt_footer"
+              value={formValues.configuration?.receipt_footer || ''}
+              onChange={(_, val) => handleConfigChange('receipt_footer', val)}
+              placeholder="Boutik - Retours sous 30 jours"
+            />
           </div>
         </div>
       )}
@@ -1212,7 +1473,7 @@ const StorePage = () => {
           />
           <FormTab 
             id="advanced" 
-            label="Configuration avancée" 
+            label="Configuration" 
             icon={Settings} 
             active={activeFormTab === 'advanced'} 
           />
@@ -1249,7 +1510,11 @@ const StorePage = () => {
         </div>
       </div>
     </div>
-  );
+  ));
+
+  CompactForm.displayName = 'CompactForm';
+
+  const showPerfInfo = process.env.NODE_ENV === 'development';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1269,8 +1534,13 @@ const StorePage = () => {
           </div>
           
           <div className="flex items-center gap-2">
+            {showPerfInfo && (
+              <div className="text-xs bg-gray-100 px-2 py-1 rounded mr-2">
+                ⚡ {performanceMetrics.loadTime.toFixed(0)}ms
+              </div>
+            )}
             <button
-              onClick={() => setIsExporting(true)}
+              onClick={() => exportStores('excel')}
               className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm"
             >
               <Download size={16} />
@@ -1278,7 +1548,10 @@ const StorePage = () => {
             </button>
             
             <button
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => {
+                resetForm();
+                setIsAddModalOpen(true);
+              }}
               className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
             >
               <Plus size={16} />
@@ -1291,35 +1564,58 @@ const StorePage = () => {
       {/* Main Content */}
       <main className="p-4 space-y-4">
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard 
-            title="Total Stores" 
-            value={stats.total}
+            title="Stores" 
+            value={calculatedStats.total}
             icon={StoreIcon}
-            color="blue"
-            description={`${stats.active} actifs`}
+            description={`${calculatedStats.active} actifs`}
+            change={{ value: 12, label: 'ce mois' }}
           />
           <StatCard 
-            title="Employés totaux" 
-            value={stats.totalEmployees}
+            title="Employés" 
+            value={calculatedStats.totalEmployees}
             icon={Users}
-            color="green"
-            description={`${stats.averageEmployees} en moyenne`}
+            description="Total employés"
           />
           <StatCard 
-            title="Produits en stock" 
-            value={stats.totalProducts}
+            title="Produits" 
+            value={calculatedStats.totalProducts}
             icon={Package2}
-            color="purple"
-            description="Sur tous les stores"
+            description="En stock"
           />
           <StatCard 
-            title="Taux d'activité" 
-            value={`${stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}%`}
+            title="Activité" 
+            value={`${calculatedStats.total > 0 ? Math.round((calculatedStats.active / calculatedStats.total) * 100) : 0}%`}
             icon={TrendingUp}
-            color="orange"
+            change={{ value: 5, label: 'vs dernier mois' }}
           />
         </div>
+
+        {showPerfInfo && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-4">
+                <span className="text-blue-700">
+                  🚀 {performanceMetrics.totalStores} stores chargés
+                </span>
+                <span className="text-blue-600">
+                  ⏱️ Filtrage: {performanceMetrics.filterTime.toFixed(1)}ms
+                </span>
+                <span className="text-blue-600">
+                  📊 Stats: {calculatedStats.calculationTime?.toFixed(1) || '0'}ms
+                </span>
+              </div>
+              <button
+                onClick={loadInitialData}
+                className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
+              >
+                <RefreshCw size={12} />
+                Rafraîchir
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Filters and Controls */}
         <div className="bg-white rounded-lg border border-gray-200 p-4">
@@ -1334,6 +1630,14 @@ const StorePage = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
               </div>
             </div>
             
@@ -1343,7 +1647,7 @@ const StorePage = () => {
                 className="flex items-center gap-1 px-3 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm"
               >
                 <Filter size={16} />
-                Filtres
+                Filtres {showAdvancedFilters ? '▼' : '▶'}
               </button>
               
               <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
@@ -1435,7 +1739,10 @@ const StorePage = () => {
           
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
             <div className="text-sm text-gray-600">
-              {filteredStores.length} store{filteredStores.length > 1 ? 's' : ''} trouvé{filteredStores.length > 1 ? 's' : ''}
+              {visibleStores.length} store{visibleStores.length > 1 ? 's' : ''} affiché{visibleStores.length > 1 ? 's' : ''} 
+              <span className="text-gray-400 ml-1">
+                (sur {filteredStores.length} trouvé{filteredStores.length > 1 ? 's' : ''})
+              </span>
               {searchTerm && (
                 <span className="text-gray-900 font-medium"> pour "{searchTerm}"</span>
               )}
@@ -1460,6 +1767,11 @@ const StorePage = () => {
                     }`}
                   >
                     {label}
+                    {sortBy === field && (
+                      <span className="ml-1">
+                        {sortOrder === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -1467,11 +1779,16 @@ const StorePage = () => {
           </div>
         </div>
 
-        {/* Stores Grid/List */}
+        {/* Stores Grid/List avec Infinite Scroll */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 size={32} className="text-blue-600 animate-spin mb-3" />
             <p className="text-gray-600">Chargement des stores...</p>
+            {performanceMetrics.loadTime > 0 && (
+              <p className="text-sm text-gray-500 mt-2">
+                {performanceMetrics.loadTime.toFixed(0)}ms
+              </p>
+            )}
           </div>
         ) : filteredStores.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
@@ -1501,118 +1818,144 @@ const StorePage = () => {
                 </button>
               )}
               <button
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={() => {
+                  resetForm();
+                  setIsAddModalOpen(true);
+                }}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
               >
                 Créer un store
               </button>
             </div>
           </div>
-        ) : currentView === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredStores.map(store => (
-              <StoreCard
-                key={store.id}
-                store={store}
-                onEdit={() => openEditModal(store)}
-                onDelete={() => openDeleteModal(store)}
-                onToggleStatus={() => handleToggleStatus(store.id)}
-                onView={() => openQuickView(store)}
-              />
-            ))}
-          </div>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900">
-                      Store
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 hidden sm:table-cell">
-                      Contact
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900">
-                      Statut
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredStores.map(store => (
-                    <tr key={store.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold">
-                            {store.logo ? (
-                              <img 
-                                src={store.logo} 
-                                alt={store.name}
-                                className="w-10 h-10 rounded-lg object-cover"
-                              />
-                            ) : (
-                              store.name.charAt(0)
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900 text-sm">{store.name}</p>
-                            <p className="text-xs text-gray-600">{store.address_details?.city || 'Non localisé'}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell">
-                        <div className="space-y-1">
-                          {store.phone && (
-                            <p className="text-sm text-gray-900">{store.phone}</p>
-                          )}
-                          {store.email && (
-                            <p className="text-sm text-gray-600 truncate max-w-[150px]">{store.email}</p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => handleToggleStatus(store.id)}
-                          className={`px-3 py-1 rounded-lg text-xs font-medium ${
-                            store.is_active
-                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                              : 'bg-red-100 text-red-800 hover:bg-red-200'
-                          }`}
-                        >
-                          {store.is_active ? '🟢 Actif' : '🔴 Inactif'}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => openQuickView(store)}
-                            className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
-                          >
-                            <Eye size={16} />
-                          </button>
-                          <button
-                            onClick={() => openEditModal(store)}
-                            className="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded"
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button
-                            onClick={() => openDeleteModal(store)}
-                            className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <InfiniteScroll
+            dataLength={visibleStores.length}
+            next={loadMoreStores}
+            hasMore={hasMore}
+            loader={
+              <div className="text-center py-4">
+                <Loader2 className="animate-spin inline text-blue-600" size={24} />
+                <p className="text-gray-600 mt-2">Chargement des stores suivants...</p>
+              </div>
+            }
+            endMessage={
+              <div className="text-center py-6 border-t border-gray-200 mt-4">
+                <p className="text-gray-500">
+                  ✅ Tous les stores sont affichés ({filteredStores.length} au total)
+                </p>
+              </div>
+            }
+            scrollThreshold={0.8}
+          >
+            {currentView === 'grid' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {visibleStores.map(store => (
+                  <StoreCard
+                    key={store.id}
+                    store={store}
+                    onEdit={() => openEditModal(store)}
+                    onDelete={() => openDeleteModal(store)}
+                    onToggleStatus={() => handleToggleStatus(store.id)}
+                    onView={() => openQuickView(store)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900">
+                          Store
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 hidden sm:table-cell">
+                          Contact
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900">
+                          Statut
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {visibleStores.map(store => (
+                        <tr key={store.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold">
+                                {store.logo ? (
+                                  <img 
+                                    src={store.logo} 
+                                    alt={store.name}
+                                    loading="lazy"
+                                    className="w-10 h-10 rounded-lg object-cover"
+                                  />
+                                ) : (
+                                  store.name.charAt(0)
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-900 text-sm">{store.name}</p>
+                                <p className="text-xs text-gray-600">{store.address_details?.city || 'Non localisé'}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 hidden sm:table-cell">
+                            <div className="space-y-1">
+                              {store.phone && (
+                                <p className="text-sm text-gray-900">{store.phone}</p>
+                              )}
+                              {store.email && (
+                                <p className="text-sm text-gray-600 truncate max-w-[150px]">{store.email}</p>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => handleToggleStatus(store.id)}
+                              className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                                store.is_active
+                                  ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                  : 'bg-red-100 text-red-800 hover:bg-red-200'
+                              }`}
+                            >
+                              {store.is_active ? '🟢 Actif' : '🔴 Inactif'}
+                            </button>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => openQuickView(store)}
+                                className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+                              >
+                                <Eye size={16} />
+                              </button>
+                              <button
+                                onClick={() => openEditModal(store)}
+                                className="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                onClick={() => openDeleteModal(store)}
+                                className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </InfiniteScroll>
         )}
       </main>
 
@@ -1783,7 +2126,7 @@ const StorePage = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar size={14} />
-                        Créé le {new Date(selectedStore.created_at).toLocaleDateString()}
+                        Créé le {new Date(selectedStore.created_at).toLocaleDateString('fr-FR')}
                       </div>
                     </div>
                   </div>

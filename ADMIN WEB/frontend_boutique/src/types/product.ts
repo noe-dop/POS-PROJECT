@@ -420,6 +420,8 @@ export interface InventoryCountItem extends AuditModel {
 
 // === PRODUITS PAR BOUTIQUE ===
 export interface StoreProduct extends AuditModel {
+  status: string;
+  qt_item: number;
   store: Store;
   product: Product;
   store_cost_price?: number;
@@ -938,6 +940,10 @@ export interface StockFilter {
 
 // === TYPES POUR LES FORMULAIRES ===
 export interface ProductFormData {
+  search_vector: string;
+  additional_images: {};
+  metadata: {};
+  is_active: boolean | undefined;
   category: any;
   sku: any;
   brand: boolean;

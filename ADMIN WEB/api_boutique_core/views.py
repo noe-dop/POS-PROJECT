@@ -810,18 +810,22 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     filterset_fields = ['store']
 
-
 # =============================================================================
-# EMPLOYÉS ET RÔLES
+# 1. EMPLOYÉS ET RÔLES - DÉFINIS EN PREMIER
 # =============================================================================
 
 class EmployeeRoleViewSet(viewsets.ModelViewSet):
+    """CRUD pour les rôles d'employés"""
     queryset = EmployeeRole.objects.all()
     serializer_class = EmployeeRoleSerializer
     permission_classes = [AllowAny]
+    filterset_fields = ['code', 'name']
+    search_fields = ['code', 'name', 'description']
+
 
 class EmployeeViewSet(viewsets.ModelViewSet):
-    queryset = Employee.objects.select_related('user', 'store', 'role', 'department')
+    """CRUD pour les employés"""
+    queryset = Employee.objects.select_related('user', 'store', 'role', 'department').all()
     serializer_class = EmployeeSerializer
     permission_classes = [AllowAny]
     filterset_fields = ['store', 'department', 'role', 'is_active']
@@ -834,8 +838,38 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         employee.is_active = not employee.is_active
         employee.save()
         
-        serializer = self.get_serializer(employee)
-        return Response(serializer.data)
+        return Response({
+            "success": True,
+            "message": f"Employé {'activé' if employee.is_active else 'désactivé'}",
+            "is_active": employee.is_active
+        })
+
+
+class EmployeeRegisterView(generics.CreateAPIView):
+    """Inscription d'un nouvel employé"""
+    serializer_class = EmployeeCreateSerializer
+    permission_classes = [AllowAny]
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        employe = serializer.save()
+        
+        return Response({
+            "success": True,
+            "message": "Employé créé avec succès",
+            "employee": {
+                "id": employe.id,
+                "username": employe.user.username,
+                "email": employe.user.email,
+                "first_name": employe.user.first_name,
+                "last_name": employe.user.last_name,
+                "store": employe.store.name,
+                "role": employe.role.name,
+                "hire_date": employe.hire_date
+            }
+        }, status=status.HTTP_201_CREATED)
 
 
 # =============================================================================

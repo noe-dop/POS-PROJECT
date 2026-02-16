@@ -1,46 +1,38 @@
 // src/hooks/useToast.ts
-import toast, { ToastOptions } from 'react-hot-toast';
+import { useState, useCallback } from 'react';
 
-export interface ToastConfig {
+interface Toast {
+  id: number;
   title: string;
   description?: string;
-  type?: 'success' | 'error' | 'warning' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
   duration?: number;
 }
 
 export const useToast = () => {
-  const showToast = (config: ToastConfig | string) => {
-    if (typeof config === 'string') {
-      toast(config);
-      return;
-    }
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
-    const { title, description, type = 'info', duration = 4000 } = config;
+  const showToast = useCallback(({
+    title,
+    description,
+    type = 'info',
+    duration = 5000
+  }: Omit<Toast, 'id'>) => {
+    const id = Date.now();
+    const newToast = { id, title, description, type, duration };
     
-    const options: ToastOptions = {
-      duration,
-      position: 'top-right',
-    };
+    setToasts(prev => [...prev, newToast]);
 
-    const message = description ? `${title}: ${description}` : title;
-
-    switch (type) {
-      case 'success':
-        toast.success(message, options);
-        break;
-      case 'error':
-        toast.error(message, options);
-        break;
-      case 'warning':
-        toast(message, {
-          ...options,
-          icon: '⚠️',
-        });
-        break;
-      default:
-        toast(message, options);
+    if (duration > 0) {
+      setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+      }, duration);
     }
-  };
+  }, []);
 
-  return { showToast };
+  const removeToast = useCallback((id: number) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  return { toasts, showToast, removeToast };
 };

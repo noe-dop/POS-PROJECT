@@ -1,11 +1,17 @@
-// src/hooks/useProductCategories.ts - VERSION CORRIGÉE AVEC GESTION DJANGO
+// src/hooks/useProductCategories.ts - VERSION CORRIGÉE
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from './useToast';
 import {
   ProductCategory,
   CreateProductCategoryDto,
   UpdateProductCategoryDto,
-  ProductCategoryFilter
+  ProductCategoryFilter,
+  generateSubCategory,
+  generateSlug,
+  validateCategoryData,
+  prepareCategoryForApi,
+  categoryFormToDto,
+  PaginatedResponse
 } from '../types/productTypes';
 import { productCategoryService } from '../services/productCategoryService';
 
@@ -120,29 +126,70 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
     }
   }, [categories]);
 
-  // ==================== CRUD CORRIGÉES ====================
+  // ==================== CRUD CORRIGÉES POUR DJANGO ====================
 
+  /**
+   * ✅ CRÉATION CATÉGORIE - Utilise les fonctions de conversion
+   */
   const createCategory = async (data: CreateProductCategoryDto) => {
-    // Validation avant envoi
-    const validationErrors = productCategoryService.validateCategoryData(data);
+    // ⭐ VALIDATION STRICTE
+    const validationErrors = validateCategoryData(data);
     if (validationErrors.length > 0) {
       showToast({
-        title: 'Erreur de validation frontend',
+        title: 'Erreur de validation',
         description: validationErrors.join('. '),
         type: 'error',
       });
       throw new Error(validationErrors.join('. '));
     }
 
+    // ✅ S'assurer que sub_category est présent
+    if (!data.sub_category) {
+      showToast({
+        title: 'Erreur de validation',
+        description: 'Le champ "sub_category" est obligatoire',
+        type: 'error',
+      });
+      throw new Error('Le champ "sub_category" est obligatoire');
+    }
+
+    // ✅ S'assurer que slug est présent
+    if (!data.slug) {
+      showToast({
+        title: 'Erreur de validation',
+        description: 'Le champ "slug" est obligatoire',
+        type: 'error',
+      });
+      throw new Error('Le champ "slug" est obligatoire');
+    }
+
     setIsCreating(true);
-    console.log('🎯 Création catégorie avec données:', data);
     
     try {
-      const newCategory = await productCategoryService.createCategory(data);
+      // ⭐⭐ CORRECTION CRITIQUE : Nettoyer les données avant envoi
+      const cleanData: CreateProductCategoryDto = {
+        name: data.name.trim(),
+        sub_category: data.sub_category.trim(), // ⭐ OBLIGATOIRE
+        slug: data.slug.trim(),                // ⭐ OBLIGATOIRE
+        description: data.description?.trim() || '',
+        is_active: data.is_active ?? true,
+        sort_order: data.sort_order ?? 0,
+        metadata: data.metadata || {}
+      };
+
+      // ⭐ Gestion du parent
+      if (data.parent && data.parent !== 0) {
+        cleanData.parent = Number(data.parent);
+      }
+      // ❌ NE PAS envoyer parent pour catégorie racine
+
+      console.log('🎯 Création catégorie (hook):', cleanData);
+      
+      const newCategory = await productCategoryService.createCategory(cleanData);
       
       showToast({
         title: 'Succès',
-        description: `Catégorie "${data.name}" créée avec succès`,
+        description: `Catégorie "${cleanData.name}" créée avec succès`,
         type: 'success',
         duration: 3000,
       });
@@ -155,21 +202,13 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
       let errorMessage = 'Échec de la création';
       let errorDetails = '';
       
-      // ⭐ AMÉLIORATION : Extraction des erreurs Django REST Framework
       if (error?.response?.data) {
         const errorData = error.response.data;
         
         if (typeof errorData === 'object') {
-          // Format standard Django REST Framework
           Object.entries(errorData).forEach(([field, messages]) => {
             if (Array.isArray(messages)) {
               errorDetails += `• ${field}: ${messages.join(', ')}\n`;
-            } else if (typeof messages === 'object') {
-              Object.entries(messages).forEach(([subField, subMessages]) => {
-                if (Array.isArray(subMessages)) {
-                  errorDetails += `• ${field}.${subField}: ${subMessages.join(', ')}\n`;
-                }
-              });
             } else {
               errorDetails += `• ${field}: ${messages}\n`;
             }
@@ -196,9 +235,51 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
     }
   };
 
+  /**
+   * ✅ MISE À JOUR CATÉGORIE
+   */
   const updateCategory = async ({ id, data }: { id: number; data: UpdateProductCategoryDto }) => {
-    // Validation avant envoi
-    const validationErrors = productCategoryService.validateCategoryData(data);
+    const cleanData: UpdateProductCategoryDto = {};
+
+    // ⭐ Copier uniquement les champs modifiés
+    if (data.name !== undefined) {
+      cleanData.name = data.name.trim();
+    }
+
+    if (data.sub_category !== undefined) {
+      cleanData.sub_category = data.sub_category.trim();
+    }
+
+    if (data.slug !== undefined) {
+      cleanData.slug = data.slug.trim();
+    }
+
+    if (data.description !== undefined) {
+      cleanData.description = data.description.trim() || '';
+    }
+
+    if (data.is_active !== undefined) {
+      cleanData.is_active = data.is_active;
+    }
+
+    if (data.sort_order !== undefined) {
+      cleanData.sort_order = data.sort_order;
+    }
+
+    // ⭐ Gestion du parent
+    if (data.parent !== undefined) {
+      if (data.parent && data.parent !== 0) {
+        cleanData.parent = Number(data.parent);
+      }
+      // Si parent === null, on ne l'envoie PAS
+    }
+
+    if (data.metadata !== undefined) {
+      cleanData.metadata = data.metadata;
+    }
+
+    // Validation
+    const validationErrors = validateCategoryData(cleanData);
     if (validationErrors.length > 0) {
       showToast({
         title: 'Erreur de validation',
@@ -208,11 +289,21 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
       throw new Error(validationErrors.join('. '));
     }
 
+    // Ne rien envoyer si aucun changement
+    if (Object.keys(cleanData).length === 0) {
+      showToast({
+        title: 'Information',
+        description: 'Aucune modification détectée',
+        type: 'info',
+      });
+      return;
+    }
+
     setIsUpdating(true);
-    console.log(`🎯 Mise à jour catégorie ${id} avec:`, data);
+    console.log(`🎯 Mise à jour catégorie ${id}:`, cleanData);
     
     try {
-      const updatedCategory = await productCategoryService.updateCategory(id, data);
+      const updatedCategory = await productCategoryService.updateCategory(id, cleanData);
       
       showToast({
         title: 'Succès',
@@ -260,7 +351,6 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
   const deleteCategory = async (id: number) => {
     setIsDeleting(true);
     try {
-      // Vérifications avancées
       const categoryToDelete = categories.find(c => c.id === id);
       if (!categoryToDelete) {
         throw new Error('Catégorie non trouvée');
@@ -335,7 +425,6 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
 
   const getPossibleParents = useCallback((excludeId?: number): ProductCategory[] => {
     if (!excludeId) return categories;
-    
     return categories.filter(cat => 
       cat.id !== excludeId && 
       (!cat.parent || cat.parent !== excludeId)
@@ -346,18 +435,15 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
     try {
       return await productCategoryService.getCategoryHierarchy(categoryId);
     } catch (error) {
-      // Construction locale
       const hierarchy: ProductCategory[] = [];
       let currentId: number | null = categoryId;
       
       while (currentId) {
         const category = categories.find(c => c.id === currentId);
         if (!category) break;
-        
         hierarchy.unshift(category);
         currentId = category.parent;
       }
-      
       return hierarchy;
     }
   }, [categories]);
@@ -370,12 +456,12 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
     try {
       return await productCategoryService.searchCategories(searchTerm);
     } catch (error) {
-      // Recherche locale
       const term = searchTerm.toLowerCase();
       return categories.filter(cat => 
         cat.name.toLowerCase().includes(term) ||
         (cat.description && cat.description.toLowerCase().includes(term)) ||
-        cat.sub_category?.toLowerCase().includes(term)
+        cat.sub_category?.toLowerCase().includes(term) ||
+        cat.slug?.toLowerCase().includes(term)
       );
     }
   }, [categories]);
@@ -384,7 +470,6 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
 
   useEffect(() => {
     if (isInitialized.current) return;
-    
     isInitialized.current = true;
     
     const initialize = async () => {
@@ -454,44 +539,5 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
     // Méthodes de recherche/filtrage
     getPopularCategories: () => productCategoryService.getPopularCategories(5),
     getCategoryAnalytics: () => productCategoryService.getCategoryAnalytics(),
-  };
-};
-
-// Hook séparé pour une catégorie individuelle
-export const useProductCategory = (id: number) => {
-  const [category, setCategory] = useState<ProductCategory | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const { showToast } = useToast();
-
-  const loadCategory = useCallback(async () => {
-    if (!id) return;
-    
-    setIsLoading(true);
-    try {
-      const cat = await productCategoryService.getCategoryById(id);
-      setCategory(cat);
-    } catch (error: any) {
-      console.error(`❌ Erreur chargement catégorie ${id}:`, error);
-      showToast({
-        title: 'Erreur',
-        description: 'Impossible de charger la catégorie',
-        type: 'error',
-      });
-      setCategory(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [id, showToast]);
-
-  useEffect(() => {
-    if (id) {
-      loadCategory();
-    }
-  }, [id, loadCategory]);
-
-  return {
-    data: category,
-    isLoading,
-    refetch: loadCategory,
   };
 };

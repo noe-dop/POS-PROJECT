@@ -12,7 +12,8 @@ import {
   ArcElement, 
   Title, 
   Tooltip, 
-  Legend 
+  Legend,
+  Filler  // ✅ AJOUTÉ
 } from 'chart.js';
 import { Line, Doughnut } from 'react-chartjs-2';
 import { 
@@ -50,6 +51,7 @@ import {
   Shield
 } from 'lucide-react';
 
+// ✅ ENREGISTREMENT AVEC FILLER
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -58,7 +60,8 @@ ChartJS.register(
   ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler  // ✅ AJOUTÉ
 );
 
 interface Activity {
@@ -226,7 +229,7 @@ const Dashboard: React.FC = () => {
       backgroundColor: 'rgba(59, 130, 246, 0.08)',
       borderWidth: 2, 
       tension: 0.4, 
-      fill: true,
+      fill: true,  // ✅ Cette option fonctionne maintenant !
       pointBackgroundColor: '#3B82F6',
       pointBorderColor: '#ffffff',
       pointBorderWidth: 2,

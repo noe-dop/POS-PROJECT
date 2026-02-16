@@ -519,6 +519,7 @@ class EmployeeRoleSerializer(serializers.ModelSerializer):
         model = EmployeeRole
         fields = '__all__'
 
+
 class EmployeeCreateSerializer(RegisterSerializer):
     # Champs spécifiques à Employee
     store_id = serializers.IntegerField(write_only=True, required=True)
@@ -568,21 +569,10 @@ class EmployeeCreateSerializer(RegisterSerializer):
                     'department_id': 'Ce département n\'existe pas.'
                 })
         
-        
-        
         return data
     
     def create(self, validated_data):
-        # Créer le User via le parent
-        user = super().create(validated_data)
-        
-        # Vérifier si l'utilisateur est déjà employé
-        if Employee.objects.filter(user=user).exists():
-            raise serializers.ValidationError({
-                "user": "Cet utilisateur est déjà un employé."
-            })
-        
-        # Extraire les champs spécifiques
+        # 1. EXTRAIRE tous les champs Employee
         store_id = validated_data.pop('store_id')
         role_id = validated_data.pop('role_id')
         department_id = validated_data.pop('department_id', None)
@@ -591,7 +581,16 @@ class EmployeeCreateSerializer(RegisterSerializer):
         emergency_contact = validated_data.pop('emergency_contact', None)
         photo = validated_data.pop('photo', None)
         
-        # Créer le profil Employee
+        # 2. Créer le User (maintenant validated_data n'a que les champs User)
+        user = super().create(validated_data)
+        
+        # 3. Vérifier si l'utilisateur est déjà employé
+        if Employee.objects.filter(user=user).exists():
+            raise serializers.ValidationError({
+                "user": "Cet utilisateur est déjà un employé."
+            })
+        
+        # 4. Créer le profil Employee
         employe = Employee.objects.create(
             user=user,
             store_id=store_id,
@@ -604,6 +603,7 @@ class EmployeeCreateSerializer(RegisterSerializer):
         )
         
         return employe
+
 
 class EmployeeSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -626,7 +626,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
     
     def get_full_name(self, obj):
         return obj.user.get_full_name()
-    
 # =============================================================================
 # ADRESSES
 # =============================================================================
