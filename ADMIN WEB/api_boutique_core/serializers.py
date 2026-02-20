@@ -7,6 +7,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.core.mail import send_mail
 from django.conf import settings
+from django.utils.text import slugify  # Generation de slug
 
 # =============================================================================
 # SERIALIZERS DE BASE
@@ -520,7 +521,18 @@ class EmployeeSerializer(serializers.ModelSerializer):
 # =============================================================================
 # SERIALIZERS POUR LES COMMANDES (ORDERS) - AJOUTÉS
 # =============================================================================
+class PackItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    class Meta:
+        model = PackItem
+        fields = ['id', 'product', 'product_name', 'quantity']
 
+class PackSerializer(serializers.ModelSerializer):
+    items = PackItemSerializer(many=True, read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True)
+    class Meta:
+        model = Pack
+        fields = '__all__'
 
 class OrderStatusSerializer(serializers.ModelSerializer):
     class Meta:
@@ -535,16 +547,35 @@ class OrderSourceSerializer(serializers.ModelSerializer):
 
 
 class OrderItemSerializer(BaseAuditSerializer):
-    product_name = serializers.CharField(source="product.name", read_only=True)
-    product_sku = serializers.CharField(source="product.sku", read_only=True)
-    variant_name = serializers.CharField(
-        source="variant.name", read_only=True, allow_null=True
+    product_name = serializers.CharField(source='variant.product.name', read_only=True, allow_null=True)
+    variant_name = serializers.CharField(source='variant.name', read_only=True, allow_null=True)
+    pack_name = serializers.CharField(source='pack.name', read_only=True, allow_null=True)
+
+    # Pour la création
+    variant_id = serializers.PrimaryKeyRelatedField(
+        queryset=ProductVariant.objects.filter(is_active=True),
+        source='variant',
+        write_only=True,
+        required=False
+    )
+    pack_id = serializers.PrimaryKeyRelatedField(
+        queryset=Pack.objects.filter(is_active=True),
+        source='pack',
+        write_only=True,
+        required=False
     )
 
     class Meta:
         model = OrderItem
         fields = "__all__"
-        read_only_fields = ["discount_amount", "tax_amount", "line_total"]
+        read_only_fields = ["discount_amount", "tax_amount", "line_total",'variant','pack']
+
+    def validate(self, data):
+        if not data.get('variant') and not data.get('pack'):
+            raise serializers.ValidationError("Either variant_id or pack_id must be provided.")
+        if data.get('variant') and data.get('pack'):
+            raise serializers.ValidationError("Cannot provide both variant_id and pack_id.")
+        return data
 
 
 class OrderSerializer(BaseAuditSerializer):
@@ -613,13 +644,44 @@ class OrderSerializer(BaseAuditSerializer):
         return False
 
     def create(self, validated_data):
-        items_data = validated_data.pop("order_items", [])
+        items_data = validated_data.pop('order_items', [])
         order = Order.objects.create(**validated_data)
 
-        # Créer les articles de commande
         for item_data in items_data:
-            OrderItem.objects.create(order=order, **item_data)
+            order_item = OrderItem.objects.create(order=order, **item_data)
 
+            if order_item.pack:
+                pack = order_item.pack
+                for pack_item in pack.items.all():
+                    variant = pack_item.variant
+                    quantity_needed = pack_item.quantity * order_item.quantity
+                    # Récupérer le stock de cette variante dans le magasin
+                    # via StoreProductVariant ou Stock, selon votre modèle
+                    try:
+                        store_variant = StoreProductVariant.objects.get(
+                            store_product__store=order.store,
+                            variant=variant
+                        )
+                        if store_variant.quantity_on_hand < quantity_needed:
+                            raise ValidationError(f"Stock insuffisant pour {variant.name} dans le pack {pack.name}")
+                        store_variant.quantity_on_hand -= quantity_needed
+                        store_variant.save()
+                    except StoreProductVariant.DoesNotExist:
+                        raise ValidationError(f"Variante {variant.name} non disponible dans ce magasin")
+            else:
+                # Cas d'une variante simple
+                variant = order_item.variant
+                try:
+                    store_variant = StoreProductVariant.objects.get(
+                            store_product__store=order.store,
+                            variant=variant
+                        )
+                    if store_variant.quantity_on_hand < quantity_needed:
+                        raise ValidationError(f"Stock insuffisant pour {variant.name} dans le pack {pack.name}")
+                    store_variant.quantity_on_hand -= quantity_needed
+                    store_variant.save()
+                except StoreProductVariant.DoesNotExist:
+                    raise ValidationError(f"Variante {variant.name} non disponible dans ce magasin")
         return order
 
     def update(self, instance, validated_data):
@@ -1254,18 +1316,59 @@ class ProductCategorySerializer(BaseAuditSerializer):
     parent_name = serializers.CharField(source="parent.name", read_only=True)
     children_count = serializers.SerializerMethodField()
     products_count = serializers.SerializerMethodField()
+    level = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductCategory
         fields = "__all__"
+        extra_kwargs = {
+            'slug': {'required': False, 'allow_blank': True},  # permet de ne pas fournir le slug
+            'created_at': {'read_only':True},
+            'updated_at': {'read_only': True}
+        }
 
     def get_children_count(self, obj):
         return obj.children.filter(is_active=True).count()
 
     def get_products_count(self, obj):
-        return obj.products.filter(is_active=True).count()
+        # return obj.products.filter(is_active=True).count()
+        return 0
+    
+    def get_level(self, obj):
+        level = 0
+        p = obj.parent
+        while p :
+            level+=1
+            p = p.parent
+        return level
+    
+    def create(self, validated_data):
+        name = validated_data.get('name')
+        if not validated_data.get('slug'):
+            base_slug = slugify(name)
+            slug = base_slug
+            counter = 1
+            while ProductCategory.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            validated_data['slug'] = slug
+        return super().create(validated_data)
 
-
+    def update(self, instance, validated_data):
+        # Régénérer le slug avec le nom si il est changé
+        if 'name' in validated_data and validated_data['name'] != instance.name:
+            # Générer un nouveau slug basé sur le nouveau nom
+            name = validated_data['name']
+            base_slug = slugify(name)
+            slug = base_slug
+            counter = 1
+            while ProductCategory.objects.filter(slug=slug).exclude(pk=instance.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            validated_data['slug'] = slug
+        return super().update(instance, validated_data)
+    
+    
 class ProductBrandSerializer(BaseAuditSerializer):
     products_count = serializers.SerializerMethodField()
 
@@ -1294,14 +1397,54 @@ class ProductSerializer(BaseAuditSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
     brand_name = serializers.CharField(source="brand.name", read_only=True)
     supplier_name = serializers.CharField(source="supplier.name", read_only=True)
-    variants = ProductVariantSerializer(many=True, read_only=True)
+    variants = ProductVariantSerializer(many=True, required=False)
     total_variants = serializers.SerializerMethodField()
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     margin = serializers.SerializerMethodField()
-
+    group_id = serializers.PrimaryKeyRelatedField(
+        queryset=ProductCategory.objects.all(),
+        source='group',
+        write_only = False # en lecture aussi
+    )
+    type_id = serializers.PrimaryKeyRelatedField(
+        queryset=ProductCategory.objects.all(),
+        source='product_type',
+        allow_null=True,
+        required=False
+    )
+    # Champ calculé pour la catégorie principale (racine)
+    main_category_id = serializers.SerializerMethodField()
     class Meta:
         model = Product
         fields = "__all__"
+
+    def create(self, validated_data):
+        variants_data = validated_data.pop('variants', [])
+        product = Product.objects.create(**validated_data)
+        for variant_data in variants_data:
+            ProductVariant.objects.create(product=product, **variant_data)
+        return product
+    
+    def update(self, instance, validated_data):
+        variants_data = validated_data.pop('variants', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if variants_data is not None:
+            instance.variants.all().delete()
+            for variant_data in variants_data:
+                ProductVariant.objects.create(product=instance, **variant_data)
+        return instance
+
+    def get_main_category_id(self, obj):
+        # remonte la hiérarchie jusqu'à la racine
+        if obj.group:
+            parent = obj.group.parent
+            while parent:
+                if not parent.parent:
+                    return parent.id
+                parent = parent.parent
+        return None
 
     def get_total_variants(self, obj):
         return obj.variants.count()
@@ -1311,6 +1454,63 @@ class ProductSerializer(BaseAuditSerializer):
             return ((obj.base_price - obj.cost_price) / obj.cost_price) * 100
         return 0
 
+
+class StoreProductSerializer(BaseAuditSerializer):
+    # Données du produit global
+    name = serializers.CharField(source='product.name', read_only=True)
+    sku = serializers.CharField(source='product.sku', read_only=True)
+    description = serializers.CharField(source='product.description', read_only=True)
+    brand = serializers.CharField(source='product.brand.name', read_only=True)
+    image_url = serializers.SerializerMethodField()
+    # IDs de catégories
+    group_id = serializers.IntegerField(source='product.group_id', read_only=True)
+    type_id = serializers.IntegerField(source='product.product_type_id', read_only=True)
+    main_category_id = serializers.SerializerMethodField()
+    # Prix spécifiques au magasin
+    price = serializers.DecimalField(source='effective_base_price', max_digits=10, decimal_places=2, read_only=True)
+    cost = serializers.DecimalField(source='effective_cost_price', max_digits=10, decimal_places=2, read_only=True)
+    stock = serializers.IntegerField(source='quantity_on_hand', read_only=True)  # si vous avez ce champ
+    location = serializers.CharField(source='aisle', read_only=True)  # exemple
+    # Variantes (à adapter)
+    variants = serializers.SerializerMethodField()
+    store_id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = StoreProduct
+        fields = ['id', 'name', 'sku', 'description', 'brand', 'image_url',
+                  'group_id', 'type_id', 'main_category_id',
+                  'price', 'cost', 'stock', 'location', 'variants', 'store_id']
+
+    def get_image_url(self, obj):
+        # à implémenter selon votre gestion d'images
+        return obj.product.image_url if hasattr(obj.product, 'image_url') else None
+
+    def get_main_category_id(self, obj):
+        # remonter à la racine du groupe
+        return self._get_root_category(obj.product.group)
+
+    def _get_root_category(self, cat):
+        if cat and cat.parent:
+            return self._get_root_category(cat.parent)
+        return cat.id if cat else None
+
+    def get_variants(self, obj):
+        # retourner les variantes liées au produit, mais avec prix spécifiques magasin ?
+        # Si les variantes sont globales, utilisez ProductVariantSerializer
+        from .serializers import ProductVariantSerializer
+        return ProductVariantSerializer(obj.product.variants.all(), many=True).data
+
+    def get_effective_cost_price(self, obj):
+        return obj.get_effective_cost_price()
+
+    def get_effective_base_price(self, obj):
+        return obj.get_effective_base_price()
+
+    def get_margin(self, obj):
+        return obj.get_margin()
+
+    def get_is_promotion_active(self, obj):
+        return obj.is_promotion_active()
 
 # =============================================================================
 # GESTION DES STOCKS
@@ -1412,33 +1612,6 @@ class InventoryCountSerializer(BaseAuditSerializer):
     class Meta:
         model = InventoryCount
         fields = "__all__"
-
-
-class StoreProductSerializer(BaseAuditSerializer):
-    product_name = serializers.CharField(source="product.name", read_only=True)
-    product_sku = serializers.CharField(source="product.sku", read_only=True)
-    store_name = serializers.CharField(source="store.name", read_only=True)
-    effective_cost_price = serializers.SerializerMethodField()
-    effective_base_price = serializers.SerializerMethodField()
-    margin = serializers.SerializerMethodField()
-    is_promotion_active = serializers.SerializerMethodField()
-
-    class Meta:
-        model = StoreProduct
-        fields = "__all__"
-
-    def get_effective_cost_price(self, obj):
-        return obj.get_effective_cost_price()
-
-    def get_effective_base_price(self, obj):
-        return obj.get_effective_base_price()
-
-    def get_margin(self, obj):
-        return obj.get_margin()
-
-    def get_is_promotion_active(self, obj):
-        return obj.is_promotion_active()
-
 
 # =============================================================================
 # CAISSES ET SESSIONS DE CAISSE

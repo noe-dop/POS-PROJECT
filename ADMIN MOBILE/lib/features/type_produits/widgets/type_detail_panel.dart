@@ -1,614 +1,580 @@
 import 'package:flutter/material.dart';
+import 'package:nsp_pos_mobile/core/constants/random_color.dart';
+import 'package:nsp_pos_mobile/core/services/storage_service.dart';
 import 'package:nsp_pos_mobile/features/type_produits/viewmodel/type_produit_model.dart';
+import 'package:nsp_pos_mobile/features/type_produits/widgets/add_categorie_dialog.dart';
+import 'package:nsp_pos_mobile/features/type_produits/widgets/add_group_dialog.dart';
+import 'package:provider/provider.dart';
+import '../provider/type_produit_provider.dart';
+import 'add_type_produit_dialog.dart';
 
-class TypeDetailPanel extends StatelessWidget {
-  final TypeProduit? selectedType;
-  final TypeProduit? selectedGrandType;
-  final Function(TypeProduit) onAddSousType;
-  final Function(TypeProduit) onEditType;
-  final Function(TypeProduit) onDeleteType;
+class TypeDetailPanel extends StatefulWidget {
+  final VoidCallback? onBack; // Pour navigation mobile
 
-  const TypeDetailPanel({
-    super.key,
-    required this.selectedType,
-    required this.selectedGrandType,
-    required this.onAddSousType,
-    required this.onEditType,
-    required this.onDeleteType,
-  });
+  const TypeDetailPanel({super.key, this.onBack});
+
+  @override
+  State<TypeDetailPanel> createState() => _TypeDetailPanelState();
+}
+
+class _TypeDetailPanelState extends State<TypeDetailPanel> {
+  bool? _isStaff; // null = en cours de chargement
+  late final StorageService _storage = StorageService(); // singleton
+  @override
+  void initState() {
+    super.initState();
+    _loadStaffStatus();
+  }
+
+  Future<void> _loadStaffStatus() async {
+    final staff = await _storage.getStaffStatus(); // retourne bool?
+    if (mounted) {
+      setState(() {
+        _isStaff = staff ?? false; // par défaut false
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final type = selectedType ?? selectedGrandType;
-    final isMobile = MediaQuery.of(context).size.width < 768;
-
-    return Container(
-      padding: isMobile 
-          ? const EdgeInsets.all(16) 
-          : const EdgeInsets.all(24),
-      color: Colors.white,
-      child: type == null
-          ? _buildEmptyState(isMobile)
-          : _buildDetailContent(type, isMobile, context),
-    );
-  }
-
-  Widget _buildEmptyState(bool isMobile) {
-    return Center(
-      child: Padding(
-        padding: isMobile 
-            ? const EdgeInsets.all(16) 
-            : const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.category_outlined,
-              size: isMobile ? 60 : 80,
-              color: Colors.grey.shade300,
-            ),
-            SizedBox(height: isMobile ? 16 : 24),
-            Text(
-              'Aucun type sélectionné',
-              style: TextStyle(
-                fontSize: isMobile ? 18 : 20,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: isMobile ? 8 : 12),
-            Text(
-              isMobile 
-                  ? 'Sélectionnez un type dans la liste'
-                  : 'Sélectionnez un type dans la liste de gauche\npour voir ses détails et le gérer.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: isMobile ? 14 : 16,
-                color: Colors.grey.shade500,
-              ),
-            ),
-            if (!isMobile) ...[
-              const SizedBox(height: 32),
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.info_outline,
-                      size: 40,
-                      color: Colors.blue,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Conseil',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Les grands types permettent d\'organiser vos produits en catégories principales.\nAjoutez des sous-types pour une organisation plus détaillée.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailContent(TypeProduit type, bool isMobile, BuildContext context) {
-    final isGrandType = type.isGrandType;
-
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // En-tête avec titre et actions
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Icône
-              Container(
-                width: isMobile ? 50 : 60,
-                height: isMobile ? 50 : 60,
-                decoration: BoxDecoration(
-                  color: _getColorFromName(type.nom),
-                  borderRadius: BorderRadius.circular(isMobile ? 10 : 12),
-                ),
-                child: Center(
-                  child: Text(
-                    type.nom.substring(0, 1).toUpperCase(),
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: isMobile ? 20 : 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: isMobile ? 12 : 16),
-
-              // Titre et infos
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            type.nom,
-                            style: TextStyle(
-                              fontSize: isMobile ? 20 : 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        if (isMobile)
-                          PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert),
-                            itemBuilder: (context) => [
-                              PopupMenuItem(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.edit, color: Colors.blue),
-                                    const SizedBox(width: 8),
-                                    const Text('Modifier'),
-                                  ],
-                                ),
-                              ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.delete, color: Colors.red),
-                                    const SizedBox(width: 8),
-                                    const Text('Supprimer'),
-                                  ],
-                                ),
-                              ),
-                              if (isGrandType)
-                                PopupMenuItem(
-                                  value: 'add_sous',
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.add, color: Colors.green),
-                                      const SizedBox(width: 8),
-                                      const Text('Ajouter sous-type'),
-                                    ],
-                                  ),
-                                ),
-                            ],
-                            onSelected: (value) {
-                              switch (value) {
-                                case 'edit':
-                                  onEditType(type);
-                                  break;
-                                case 'delete':
-                                  onDeleteType(type);
-                                  break;
-                                case 'add_sous':
-                                  onAddSousType(type);
-                                  break;
-                              }
-                            },
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      isMobile ? '${type.nombreProduits} produits' : 'ID: ${type.id}',
-                      style: TextStyle(
-                        fontSize: isMobile ? 12 : 14,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    if (!isMobile) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Créé le: ${_formatDate(type.dateCreation)}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              // Boutons d'action (desktop seulement)
-              if (!isMobile)
-                Column(
-                  children: [
-                    IconButton(
-                      onPressed: () => onEditType(type),
-                      icon: const Icon(Icons.edit),
-                      tooltip: 'Modifier',
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.blue.shade50,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    IconButton(
-                      onPressed: () => onDeleteType(type),
-                      icon: const Icon(Icons.delete),
-                      tooltip: 'Supprimer',
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.red.shade50,
-                      ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-
-          // Badge (mobile)
-          if (isMobile) ...[
-            const SizedBox(height: 8),
-            Chip(
-              label: Text(
-                isGrandType ? 'Grand Type' : 'Sous-Type',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isGrandType ? Colors.blue.shade800 : Colors.green.shade800,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              backgroundColor: isGrandType 
-                  ? Colors.blue.shade100 
-                  : Colors.green.shade100,
-            ),
-          ],
-
-          SizedBox(height: isMobile ? 16 : 32),
-
-          // Cartes de statistiques
-          isMobile
-              ? _buildMobileStats(type)
-              : _buildDesktopStats(type),
-
-          SizedBox(height: isMobile ? 16 : 32),
-
-          // Section Sous-types (si grand type)
-          if (isGrandType && type.hasSousTypes) ...[
-            _buildSousTypesSection(type, isMobile),
-            SizedBox(height: isMobile ? 16 : 32),
-          ],
-
-          // Boutons d'action (desktop) / Bouton unique (mobile)
-          if (isMobile) ...[
-            if (isGrandType)
-              ElevatedButton.icon(
-                onPressed: () => onAddSousType(type),
-                icon: const Icon(Icons.add),
-                label: const Text('Ajouter Sous-Type'),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  backgroundColor: Colors.green,
-                ),
-              ),
-            if (isGrandType) const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () => onEditType(type),
-              icon: const Icon(Icons.edit),
-              label: const Text('Modifier'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-              ),
-            ),
-          ] else ...[
-            Row(
-              children: [
-                if (isGrandType)
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => onAddSousType(type),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Ajouter un Sous-Type'),
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(50),
-                        backgroundColor: Colors.green,
-                      ),
-                    ),
-                  ),
-                if (isGrandType) const SizedBox(width: 16),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => onEditType(type),
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Modifier les Informations'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDesktopStats(TypeProduit type) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.shopping_bag,
-            label: 'Produits',
-            value: type.nombreProduits.toString(),
-            color: Colors.blue,
-            isMobile: false,
-          ),
-        ),
-        const SizedBox(width: 16),
-        if (type.isGrandType)
-          Expanded(
-            child: _buildStatCard(
-              icon: Icons.subdirectory_arrow_right,
-              label: 'Sous-types',
-              value: type.sousTypes.length.toString(),
-              color: Colors.green,
-              isMobile: false,
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildMobileStats(TypeProduit type) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        Column(
-          children: [
-            Text(
-              type.nombreProduits.toString(),
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
-            ),
-            Text(
-              'Produits',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-              ),
-            ),
-          ],
-        ),
-        if (type.isGrandType) ...[
-          Container(
-            width: 1,
-            height: 30,
-            color: Colors.grey.shade300,
-          ),
-          Column(
-            children: [
-              Text(
-                type.sousTypes.length.toString(),
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-              Text(
-                'Sous-types',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildSousTypesSection(TypeProduit grandType, bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.list, color: Colors.blue),
-            const SizedBox(width: 8),
-            const Text(
-              'Sous-Types',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Chip(
-              label: Text('${grandType.sousTypes.length}'),
-              backgroundColor: Colors.blue.shade100,
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: isMobile ? 2 : 3,
-            crossAxisSpacing: isMobile ? 8 : 12,
-            mainAxisSpacing: isMobile ? 8 : 12,
-            childAspectRatio: isMobile ? 2.5 : 3,
-          ),
-          itemCount: grandType.sousTypes.length,
-          itemBuilder: (context, index) {
-            final sousType = grandType.sousTypes[index];
-            return Card(
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.green.shade100,
-                  radius: isMobile ? 16 : 20,
-                  child: Text(
-                    sousType.nom.substring(0, 1),
-                    style: TextStyle(
-                      color: Colors.green.shade800,
-                      fontSize: isMobile ? 14 : 16,
-                    ),
-                  ),
-                ),
-                title: Text(
-                  sousType.nom,
-                  style: TextStyle(fontSize: isMobile ? 12 : 14),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  '${sousType.nombreProduits} produits',
-                  style: TextStyle(
-                    fontSize: isMobile ? 10 : 12, 
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.more_vert, size: 20),
-                  onPressed: () => _showSousTypeMenu(context, sousType, isMobile),
-                ),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: isMobile ? 4 : 8,
-                  vertical: isMobile ? 0 : 4,
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-    required bool isMobile,
-  }) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: isMobile ? const EdgeInsets.all(12) : const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: color),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: isMobile ? 12 : 14,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: isMobile ? 18 : 20,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSousTypeMenu(BuildContext context, TypeProduit sousType, bool isMobile) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!isMobile)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    sousType.nom,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ListTile(
-                leading: const Icon(Icons.edit, color: Colors.blue),
-                title: const Text('Modifier'),
-                onTap: () {
-                  Navigator.pop(context);
-                  onEditType(sousType);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Supprimer'),
-                onTap: () {
-                  Navigator.pop(context);
-                  onDeleteType(sousType);
-                },
-              ),
-            ],
-          ),
-        );
+    return Consumer<TypesProduitsViewModel>(
+      builder: (context, viewModel, child) {
+        // Si un type de produit est sélectionné
+        if (viewModel.selectedTypeProduit != null) {
+          return _buildTypeDetail(context, viewModel);
+        }
+        // Si un groupe est sélectionné
+        else if (viewModel.selectedGroupe != null) {
+          return _buildGroupeDetail(context, viewModel);
+        }
+        // Si une catégorie principale est sélectionnée
+        else if (viewModel.selectedCategoriePrincipale != null) {
+          return _buildCategorieDetail(context, viewModel);
+        }
+        // Aucune sélection
+        else {
+          return _buildEmptyState(context);
+        }
       },
     );
   }
 
-  Color _getColorFromName(String name) {
-    final colors = [
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.purple,
-      Colors.red,
-      Colors.teal,
-      Colors.indigo,
-    ];
-    final index = name.length % colors.length;
-    return colors[index];
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.folder_open, size: 80, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          Text(
+            'Sélectionnez une catégorie',
+            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} à ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+  Widget _buildCategorieDetail(
+    BuildContext context,
+    TypesProduitsViewModel viewModel,
+  ) {
+    final categorie = viewModel.selectedCategoriePrincipale!;
+    final groupes = viewModel.groupesFiltres;
+
+    return Column(
+      children: [
+        // En-tête avec retour (mobile) et titre
+        Container(
+          padding: const EdgeInsets.all(16),
+          color: Colors.blue.shade50,
+          child: Row(
+            children: [
+              if (widget.onBack != null)
+                IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: widget.onBack,
+                ),
+              Expanded(
+                child: ListTile(
+                  title: Text(
+                    categorie.nom,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    categorie.description,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: () async {
+                  final result = await showDialog<Map<String, dynamic>>(
+                    context: context,
+                    builder: (context) => AddCategorieDialog(
+                      categorie: categorie,
+                      canEdit: _isStaff!,
+                    ),
+                  );
+                  if (result != null && result.isNotEmpty) {
+                    await viewModel.updateCategoriePrincipale(
+                      categorie.id,
+                      result,
+                    );
+                  }
+                },
+              ),
+              _isStaff == true
+                  ? IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _confirmDeleteCategorie(
+                        context,
+                        viewModel,
+                        categorie,
+                      ),
+                    )
+                  : SizedBox.shrink(),
+            ],
+          ),
+        ),
+
+        // Liste des groupes
+        Expanded(
+          child: groupes.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.folder, size: 60, color: Colors.grey.shade300),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Aucun groupe dans cette catégorie',
+                        style: TextStyle(color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: groupes.length,
+                  itemBuilder: (context, index) {
+                    final groupe = groupes[index]!;
+                    final nbTypes = viewModel.typesProduits
+                        .where((t) => t.groupeId == groupe.id)
+                        .length;
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: RandomColor().getColorFromName(
+                            groupe.nom,
+                          ),
+                          child: Text(
+                            groupe.nom.substring(0, 1).toUpperCase(),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(groupe.nom),
+                        subtitle: Text('$nbTypes types de produits'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => viewModel.selectGroupe(groupe),
+                      ),
+                    );
+                  },
+                ),
+        ),
+
+        // Bouton d'ajout de groupe
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: ElevatedButton.icon(
+            onPressed: () async {
+              final result = await showDialog<Groupe>(
+                context: context,
+                builder: (context) => AddGroupeDialog(
+                  categories: viewModel.categoriesPrincipales,
+                  canEdit: _isStaff!,
+                ),
+              );
+              if (result != null) {
+                await viewModel.addGroupe(result);
+              }
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Ajouter un groupe'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGroupeDetail(
+    BuildContext context,
+    TypesProduitsViewModel viewModel,
+  ) {
+    final groupe = viewModel.selectedGroupe!;
+    final types = viewModel.typesFiltres;
+
+    return Column(
+      children: [
+        // En-tête avec retour
+        Container(
+          padding: const EdgeInsets.all(16),
+          color: Colors.green.shade50,
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => viewModel.selectGroupe(null),
+              ),
+              Expanded(
+                child: ListTile(
+                  title: Text(
+                    groupe.nom,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(groupe.description,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w300
+                  ),),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: () async {
+                  final result = await showDialog<Groupe?>(
+                    context: context,
+                    builder: (context) => AddGroupeDialog(
+                      categories: viewModel.categoriesPrincipales,
+                      groupe: groupe,
+                      canEdit: _isStaff!,
+                    ),
+                  );
+                  // Il faut au moins que le nom change pour
+                  // lancer la mise à jour
+                  if (result != null && (result.nom != groupe.nom ||
+                      result.description != groupe.description)) {
+                    await viewModel.updateGroupe(groupe.id!, result);
+                  }
+                },
+              ),
+              _isStaff == true
+                  ? IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () =>
+                          _confirmDeleteGroupe(context, viewModel, groupe),
+                    )
+                  : SizedBox.shrink(),
+            ],
+          ),
+        ),
+
+        // Liste des types de produits
+        Expanded(
+          child: types.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.inventory_2,
+                        size: 60,
+                        color: Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Aucun type de produit dans ce groupe',
+                        style: TextStyle(color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: types.length,
+                  itemBuilder: (context, index) {
+                    final type = types[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: RandomColor().getColorFromName(
+                            type.nom,
+                          ),
+                          child: Text(
+                            type.nom.substring(0, 1).toUpperCase(),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(type.nom),
+                        trailing: _isStaff == false
+                            ? null
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, size: 20),
+                                    onPressed: () async {
+                                      final result =
+                                          await showDialog<TypeProduit?>(
+                                            context: context,
+                                            builder: (context) =>
+                                                AddTypeProduitDialog(
+                                                  initial: type,
+                                                  groupes: viewModel.groupes,
+                                                  groupeId: type.groupeId,
+                                                ),
+                                          );
+                                      // Pas de mise à jour si le nom est le même
+                                      if (result != null &&
+                                          result.nom != type.nom) {
+                                        await viewModel.updateTypeProduit(
+                                          type.id!,
+                                          result,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      size: 20,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () => _confirmDeleteType(
+                                      context,
+                                      viewModel,
+                                      type,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                        // Pas Besoin d'action sur les types
+                        onTap: _isStaff == false
+                            ? null
+                            : () => viewModel.selectTypeProduit(type),
+                      ),
+                    );
+                  },
+                ),
+        ),
+
+        // Bouton d'ajout de type
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: ElevatedButton.icon(
+            onPressed: () async {
+              final result = await showDialog<TypeProduit>(
+                context: context,
+                builder: (context) => AddTypeProduitDialog(
+                  groupes: viewModel.groupes,
+                  groupeId: groupe.id,
+                ),
+              );
+              if (result != null) {
+                await viewModel.addTypeProduit(
+                  result
+                );
+              }
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Ajouter un type de produit'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTypeDetail(
+    BuildContext context,
+    TypesProduitsViewModel viewModel,
+  ) {
+    final type = viewModel.selectedTypeProduit!;
+
+    return Column(
+      children: [
+        // En-tête avec retour
+        Container(
+          padding: const EdgeInsets.all(16),
+          color: Colors.orange.shade50,
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => viewModel.selectTypeProduit(null),
+              ),
+              Expanded(
+                child: Text(
+                  type.nom,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: () async {
+                  final result = await showDialog<TypeProduit>(
+                    context: context,
+                    builder: (context) => AddTypeProduitDialog(
+                      initial: type,
+                      groupes: viewModel.groupes,
+                      groupeId: type.groupeId,
+                    ),
+                  );
+                  if (result != null && result.nom != type.nom) {
+                    await viewModel.updateTypeProduit(type.id!, result);
+                  }
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () => _confirmDeleteType(context, viewModel, type),
+              ),
+            ],
+          ),
+        ),
+
+        // Informations détaillées
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.folder),
+                          title: const Text('Groupe associé'),
+                          subtitle: Text(
+                            viewModel.groupes
+                                .firstWhere((g) => g.id == type.groupeId)
+                                .nom,
+                          ),
+                        ),
+                        const Divider(),
+                        // ListTile(
+                        //   leading: const Icon(Icons.production_quantity_limits),
+                        //   title: const Text('Nombre de produits'),
+                        //   subtitle: const Text('0'), // À remplacer
+                        // ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Ici vous pourriez ajouter une liste des produits de ce type
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _confirmDeleteCategorie(
+    BuildContext context,
+    TypesProduitsViewModel viewModel,
+    CategoriePrincipale cat,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirmer la suppression'),
+        content: Text(
+          'Voulez-vous vraiment supprimer la catégorie "${cat.nom}" ? Tous les groupes et types associés seront également supprimés.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await viewModel.deleteCategoriePrincipale(cat.id);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteGroupe(
+    BuildContext context,
+    TypesProduitsViewModel viewModel,
+    Groupe groupe,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirmer la suppression'),
+        content: Text(
+          'Voulez-vous vraiment supprimer le groupe "${groupe.nom}" ? Tous les types associés seront également supprimés.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await viewModel.deleteGroupe(groupe.id!);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteType(
+    BuildContext context,
+    TypesProduitsViewModel viewModel,
+    TypeProduit type,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirmer la suppression'),
+        content: Text(
+          'Voulez-vous vraiment supprimer le type de produit "${type.nom}" ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await viewModel.deleteTypeProduit(type.id!);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
   }
 }

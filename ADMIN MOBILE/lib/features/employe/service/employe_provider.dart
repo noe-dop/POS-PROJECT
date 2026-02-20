@@ -18,7 +18,10 @@ class EmployeeProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   Map<String, dynamic>? get stats => _stats;
-
+  EmployeeProvider() {
+    initialize();
+  }
+  
   // Initialiser DIO
   void initialize() {
     _dioService.init();

@@ -8,7 +8,7 @@ import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
 import 'package:nsp_pos_mobile/core/utils/password_generator.dart';
 import 'package:nsp_pos_mobile/features/caisse/viewmodel/caisse_model.dart';
 import 'package:nsp_pos_mobile/features/dashboard/widgets/side_menu.dart';
-import 'package:nsp_pos_mobile/features/employe/provider/employe_provider.dart';
+import 'package:nsp_pos_mobile/features/employe/service/employe_provider.dart';
 import 'package:nsp_pos_mobile/localization/locale_keys.dart';
 import 'package:nsp_pos_mobile/core/services/dio_service.dart';
 import 'package:provider/provider.dart';

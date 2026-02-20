@@ -1,83 +1,88 @@
-class TypeProduit {
-  final String id;
+class CategoriePrincipale {
+  final int id;
   final String nom;
-  final int nombreProduits;
-  final DateTime dateCreation;
-  final DateTime? dateModification;
-  final String? parentId;
-  final bool isSousType;
-  final List<TypeProduit> sousTypes;
-  final int nombreSousTypes;
+  final String slug;
+  final String description;
+  final List<Groupe>? group;
+  CategoriePrincipale({
+    required this.id,
+    required this.nom,
+    required this.slug,
+    required this.description,
+    this.group,
+  });
 
+  factory CategoriePrincipale.fromJson(Map<String, dynamic> json) {
+    final List<dynamic>? childrenJson = json['children'] as List<dynamic>?;
+    List<Groupe>? group;
+    if (childrenJson != null) {
+      group = childrenJson
+          .map((child) => Groupe.fromJson(child as Map<String, dynamic>))
+          .toList();
+    }
+    return CategoriePrincipale(
+      id: json['id'],
+      nom: json["name"],
+      slug: json['slug'],
+      description: json["description"],
+      group: group,
+    );
+  }
+}
+
+class Groupe {
+  final int? id;
+  final String nom;
+  final String? slug;
+  final String description;
+  final int categoriePrincipaleId;
+  final List<TypeProduit>? typeproduit;
+  Groupe({
+    required this.id,
+    required this.nom,
+    required this.slug,
+    required this.description,
+    required this.categoriePrincipaleId,
+    this.typeproduit,
+  });
+
+  factory Groupe.fromJson(Map<String, dynamic> json) {
+    final List<dynamic>? childrenJson = json['children'] as List<dynamic>?;
+    List<TypeProduit>? typeProduit;
+    if (childrenJson != null) {
+      typeProduit = childrenJson
+          .map((child) => TypeProduit.fromJson(child as Map<String, dynamic>))
+          .toList();
+    }
+    return Groupe(
+      id: json['id'],
+      nom: json['name'],
+      slug: json['slug'],
+      description: json['description'],
+      categoriePrincipaleId: json['parent_id'],
+      typeproduit: typeProduit,
+    );
+  }
+}
+
+class TypeProduit {
+  final int? id;
+  final String nom;
+  final String? slug;
+  final int groupeId;
   TypeProduit({
     required this.id,
     required this.nom,
-    required this.nombreProduits,
-    required this.dateCreation,
-    this.dateModification,
-    this.parentId,
-    this.isSousType = false,
-    this.sousTypes = const [],
-    this.nombreSousTypes = 0,
+    required this.slug,
+    required this.groupeId,
   });
 
   factory TypeProduit.fromJson(Map<String, dynamic> json) {
     return TypeProduit(
       id: json['id'],
-      nom: json['nom'],
-      nombreProduits: json['nombreProduits'],
-      dateCreation: DateTime.parse(json['dateCreation']),
-      dateModification: json['dateModification'] != null
-          ? DateTime.parse(json['dateModification'])
-          : null,
-      parentId: json['parentId'],
-      isSousType: json['isSousType'] ?? false,
-      sousTypes: json['sousTypes'] != null
-          ? (json['sousTypes'] as List)
-                .map((e) => TypeProduit.fromJson(e))
-                .toList()
-          : [],
-      nombreSousTypes: json['nombreSousTypes'] ?? 0,
+      nom: json['name'],
+      slug: json['slug'],
+      groupeId: json['parent_id'],
     );
   }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'nom': nom,
-      'nombreProduits': nombreProduits,
-      'dateCreation': dateCreation.toIso8601String(),
-      'dateModification': dateModification?.toIso8601String(),
-      'parentId': parentId,
-      'isSousType': isSousType,
-      'sousTypes': sousTypes.map((e) => e.toJson()).toList(),
-      'nombreSousTypes': nombreSousTypes,
-    };
-  }
-
-  TypeProduit copyWith({
-    String? id,
-    String? nom,
-    int? nombreProduits,
-    DateTime? dateCreation,
-    DateTime? dateModification,
-    String? parentId,
-    bool? isSousType,
-    List<TypeProduit>? sousTypes,
-    int? nombreSousTypes,
-  }) {
-    return TypeProduit(
-      id: id ?? this.id,
-      nom: nom ?? this.nom,
-      nombreProduits: nombreProduits ?? this.nombreProduits,
-      dateCreation: dateCreation ?? this.dateCreation,
-      dateModification: dateModification ?? this.dateModification,
-      parentId: parentId ?? this.parentId,
-      isSousType: isSousType ?? this.isSousType,
-      sousTypes: sousTypes ?? this.sousTypes,
-      nombreSousTypes: nombreSousTypes ?? this.nombreSousTypes,
-    );
-  }
-  bool get hasSousTypes => sousTypes.isNotEmpty;
-  bool get isGrandType => !isSousType && parentId == null;
 }

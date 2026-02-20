@@ -53,7 +53,7 @@ class BoutiqueService extends ChangeNotifier {
       if (await isServerReachable(baseUrl) == false) {
         return null;
       }
-      final response = await _dio.get('${baseUrl}store-types');
+      final response = await _dio.get('${baseUrl}store-types/');
       boutiqueType = (response.data["results"] as List)
           .map((type) => BoutiqueType.fromJson(type))
           .toList();
@@ -296,7 +296,7 @@ class BoutiqueService extends ChangeNotifier {
 
         // Charger la boutique précédemment sélectionnée
         await _loadSelectedStore();
-        storage.saveAllStoresData(_accessibleStores);
+        storage.saveAllStores(_accessibleStores);
         _calculeStats();
 
         notifyListeners();

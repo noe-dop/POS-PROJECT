@@ -729,9 +729,8 @@ class RetailSupply(models.Model):
 # Produits, Catégories et Marques OPTIMISÉS
 # -----------------------------
 
-class ProductCategory(AuditModel):
-    name = models.CharField("Nom", max_length=150, db_index=True)
-    sub_category = models.CharField("Sub_category", max_length=150, db_index=True)
+class ProductCategory(models.Model):
+    name = models.CharField("Nom", max_length=150, db_index=True,unique=True)
     slug = models.SlugField("Slug", unique=True, db_index=True)
     parent = models.ForeignKey(
         'self', 
@@ -744,7 +743,10 @@ class ProductCategory(AuditModel):
     description = models.TextField("Description", blank=True)
     image = models.ImageField("Image", upload_to='categories/', blank=True, null=True)
     sort_order = models.IntegerField("Ordre d'affichage", default=0)
-    
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+
     class Meta:
         verbose_name = "Catégorie produit"
         verbose_name_plural = "Catégories produits"
@@ -756,11 +758,14 @@ class ProductCategory(AuditModel):
             models.Index(fields=['sort_order']),
         ]
 
-class ProductBrand(AuditModel):
+class ProductBrand(models.Model):
     name = models.CharField("Nom", max_length=100, unique=True, db_index=True)
     logo = models.ImageField("Logo", upload_to='brands/', blank=True, null=True)
     description = models.TextField("Description", blank=True)
-    
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+
     class Meta:
         verbose_name = "Marque"
         verbose_name_plural = "Marques"
@@ -769,12 +774,14 @@ class ProductBrand(AuditModel):
 class Product(AuditModel):
     SKU_PREFIX = "PROD"
     
-    category = models.ForeignKey(
+    group = models.ForeignKey(
         ProductCategory, 
         on_delete=models.PROTECT, 
-        related_name='products',
+        related_name='products_as_group',
         verbose_name="Catégorie",
-        db_index=True
+        db_index=True,
+        null=True,
+        blank=True
     )
     brand = models.ForeignKey(
         ProductBrand, 
@@ -789,10 +796,21 @@ class Product(AuditModel):
     description = models.TextField("Description", blank=True)
     photo = models.ImageField("Photo principale", upload_to='products/main/', blank=True, null=True)
     additional_images = JSONField("Images supplémentaires", default=list, blank=True)
-
-   
-    
     search_vector = models.TextField(blank=True)
+    product_type = models.ForeignKey(
+        ProductCategory, 
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='products_as_type')
+    base_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    STATUS_CHOICES = [
+    ('draft', 'Brouillon'),
+    ('active', 'Actif'),
+    ('archived', 'Archivé'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     
     class Meta:
         verbose_name = "Produit"
@@ -801,7 +819,7 @@ class Product(AuditModel):
         indexes = [
             models.Index(fields=['sku']),
             models.Index(fields=['name']),
-            models.Index(fields=['category']),
+            models.Index(fields=['group']),
             models.Index(fields=['is_active']),
             models.Index(fields=['created_at']),
         ]
@@ -838,7 +856,180 @@ class ProductVariant(AuditModel):
             models.Index(fields=['product']),
             models.Index(fields=['name']),
         ]
-        
+
+# -----------------------------
+# Liaison stores et produits avec prix spécifiques OPTIMISÉE
+# -----------------------------
+
+class StoreProduct(AuditModel):
+    store = models.ForeignKey(
+        Store, 
+        on_delete=models.CASCADE, 
+        related_name='store_products',
+        verbose_name="Boutique",
+        db_index=True
+    )
+    product = models.ForeignKey(
+        Product, 
+        on_delete=models.CASCADE, 
+        related_name='in_stores',
+        verbose_name="Produit",
+        db_index=True
+    )
+    supplier = models.ForeignKey(
+        Supplier, 
+        on_delete=models.PROTECT, 
+        related_name='products',
+        verbose_name="Fournisseur",
+        db_index=True
+    )
+    store_cost_price = models.DecimalField(
+        "Prix d'achat boutique", 
+        max_digits=12, 
+        decimal_places=2, 
+        null=True, 
+        blank=True
+    )
+    store_base_price = models.DecimalField(
+        "Prix de vente boutique", 
+        max_digits=12, 
+        decimal_places=2, 
+        null=True, 
+        blank=True
+    )
+    store_compare_at_price = models.DecimalField(
+        "Prix vente 2 boutique", 
+        max_digits=12, 
+        decimal_places=2, 
+        null=True, 
+        blank=True
+    )
+    
+    qt_item = models.DecimalField(
+        "Quantité par item", 
+        max_digits=10, 
+        decimal_places=2, 
+        default=1
+    )
+    dlv = models.DateField("Date limite vente", null=True, blank=True)
+    dlc = models.DateField("Date limite consommation", null=True, blank=True)
+    dcr = models.DateField("Date création/entrée", null=True, blank=True)
+    
+    is_active = models.BooleanField("Actif dans la boutique", default=True, db_index=True)
+    display_order = models.IntegerField("Ordre d'affichage", default=0)
+    
+    min_stock_threshold = models.IntegerField("Seuil alerte boutique", null=True, blank=True)
+    reorder_quantity = models.IntegerField("Quantité réappro boutique", null=True, blank=True)
+    jour_ecart = models.IntegerField("Jours écart", default=15)
+    status = models.CharField(
+        "Statut",
+        max_length=20,
+        choices=[
+            ('draft', 'Brouillon'),
+            ('active', 'Actif'),
+            ('archived', 'Archivé'),
+        ],
+        default='draft',
+        db_index=True
+    )
+    class Meta:
+        verbose_name = "Produit en boutique"
+        verbose_name_plural = "Produits en boutiques"
+        ordering = ['store__name', 'product__name']
+        unique_together = ['store', 'product']
+        indexes = [
+            models.Index(fields=['store', 'is_active']),
+            models.Index(fields=['product', 'store']),
+            models.Index(fields=['is_active', 'display_order']),
+        ]
+
+    def get_effective_cost_price(self):
+        return self.store_cost_price or self.product.cost_price
+
+    def get_effective_base_price(self):
+        return self.store_base_price or self.product.base_price
+
+    def get_effective_compare_price(self):
+        return self.store_compare_at_price or self.product.compare_at_price
+
+    def get_margin(self):
+        cost = self.get_effective_cost_price()
+        price = self.get_effective_base_price()
+        if cost and price and cost > 0:
+            return ((price - cost) / cost) * 100
+        return 0
+
+    def is_promotion_active(self):
+        if self.store_compare_at_price and self.store_base_price:
+            return self.store_compare_at_price > self.store_base_price
+        return False
+
+class StoreProductVariant(AuditModel):
+    store_product = models.ForeignKey(
+        StoreProduct, 
+        on_delete=models.CASCADE, 
+        related_name='store_variants',
+        verbose_name="Produit boutique",
+        db_index=True
+    )
+    variant = models.ForeignKey(
+        ProductVariant, 
+        on_delete=models.CASCADE, 
+        related_name='store_prices',
+        verbose_name="Variante",
+        db_index=True
+    )
+    
+    store_variant_cost = models.DecimalField(
+        "Coût variante boutique", 
+        max_digits=12, 
+        decimal_places=2, 
+        null=True, 
+        blank=True
+    )
+    store_variant_price = models.DecimalField(
+        "Prix variante boutique", 
+        max_digits=12, 
+        decimal_places=2, 
+        null=True, 
+        blank=True
+    )
+    prix_reduction = models.DecimalField("Prix réduit", max_digits=10, decimal_places=2, blank=True, null=True)
+    quantity = models.DecimalField("Quantité", max_digits=10, decimal_places=2)
+    weight = models.DecimalField(
+        "Poids (kg)", 
+        max_digits=8, 
+        decimal_places=3, 
+        blank=True, 
+        null=True
+    )
+    
+    selection = models.BooleanField("Sélectionnée", default=False, db_index=True)
+    
+    class Meta:
+        verbose_name = "Prix variante boutique"
+        verbose_name_plural = "Prix variantes boutiques"
+        ordering = ['store_product__store__name', 'variant__name']
+        unique_together = ['store_product', 'variant']
+        indexes = [
+            models.Index(fields=['store_product', 'variant']),
+        ]
+
+    def get_effective_cost(self):
+        return (
+            self.store_variant_cost or
+            self.store_product.store_cost_price or
+            self.variant.cost_price or
+            self.store_product.product.cost_price
+        )
+
+    def get_effective_price(self):
+        return (
+            self.store_variant_price or
+            self.store_product.store_base_price or
+            self.variant.prix_vente or
+            self.store_product.product.base_price
+        )        
 
 # -----------------------------
 # Gestion des Stocks Avancée OPTIMISÉE
@@ -1147,183 +1338,24 @@ class InventoryCountItem(AuditModel):
         self.discrepancy = self.counted_quantity - self.expected_quantity
         super().save(*args, **kwargs)
 
-# -----------------------------
-# Liaison stores et produits avec prix spécifiques OPTIMISÉE
-# -----------------------------
 
-class StoreProduct(AuditModel):
-    store = models.ForeignKey(
-        Store, 
-        on_delete=models.CASCADE, 
-        related_name='store_products',
-        verbose_name="Boutique",
-        db_index=True
-    )
-    product = models.ForeignKey(
-        Product, 
-        on_delete=models.CASCADE, 
-        related_name='in_stores',
-        verbose_name="Produit",
-        db_index=True
-    )
-    supplier = models.ForeignKey(
-        Supplier, 
-        on_delete=models.PROTECT, 
-        related_name='products',
-        verbose_name="Fournisseur",
-        db_index=True
-    )
-    store_cost_price = models.DecimalField(
-        "Prix d'achat boutique", 
-        max_digits=12, 
-        decimal_places=2, 
-        null=True, 
-        blank=True
-    )
-    store_base_price = models.DecimalField(
-        "Prix de vente boutique", 
-        max_digits=12, 
-        decimal_places=2, 
-        null=True, 
-        blank=True
-    )
-    store_compare_at_price = models.DecimalField(
-        "Prix vente 2 boutique", 
-        max_digits=12, 
-        decimal_places=2, 
-        null=True, 
-        blank=True
-    )
-    
-    qt_item = models.DecimalField(
-        "Quantité par item", 
-        max_digits=10, 
-        decimal_places=2, 
-        default=1
-    )
-    dlv = models.DateField("Date limite vente", null=True, blank=True)
-    dlc = models.DateField("Date limite consommation", null=True, blank=True)
-    dcr = models.DateField("Date création/entrée", null=True, blank=True)
-    
-    is_active = models.BooleanField("Actif dans la boutique", default=True, db_index=True)
-    display_order = models.IntegerField("Ordre d'affichage", default=0)
-    
-    min_stock_threshold = models.IntegerField("Seuil alerte boutique", null=True, blank=True)
-    reorder_quantity = models.IntegerField("Quantité réappro boutique", null=True, blank=True)
-    jour_ecart = models.IntegerField("Jours écart", default=15)
-    status = models.CharField(
-        "Statut",
-        max_length=20,
-        choices=[
-            ('draft', 'Brouillon'),
-            ('active', 'Actif'),
-            ('archived', 'Archivé'),
-        ],
-        default='draft',
-        db_index=True
-    )
-    class Meta:
-        verbose_name = "Produit en boutique"
-        verbose_name_plural = "Produits en boutiques"
-        ordering = ['store__name', 'product__name']
-        unique_together = ['store', 'product']
-        indexes = [
-            models.Index(fields=['store', 'is_active']),
-            models.Index(fields=['product', 'store']),
-            models.Index(fields=['is_active', 'display_order']),
-        ]
-
-    def get_effective_cost_price(self):
-        return self.store_cost_price or self.product.cost_price
-
-    def get_effective_base_price(self):
-        return self.store_base_price or self.product.base_price
-
-    def get_effective_compare_price(self):
-        return self.store_compare_at_price or self.product.compare_at_price
-
-    def get_margin(self):
-        cost = self.get_effective_cost_price()
-        price = self.get_effective_base_price()
-        if cost and price and cost > 0:
-            return ((price - cost) / cost) * 100
-        return 0
-
-    def is_promotion_active(self):
-        if self.store_compare_at_price and self.store_base_price:
-            return self.store_compare_at_price > self.store_base_price
-        return False
-
-class StoreProductVariant(AuditModel):
-    store_product = models.ForeignKey(
-        StoreProduct, 
-        on_delete=models.CASCADE, 
-        related_name='store_variants',
-        verbose_name="Produit boutique",
-        db_index=True
-    )
-    variant = models.ForeignKey(
-        ProductVariant, 
-        on_delete=models.CASCADE, 
-        related_name='store_prices',
-        verbose_name="Variante",
-        db_index=True
-    )
-    
-    store_variant_cost = models.DecimalField(
-        "Coût variante boutique", 
-        max_digits=12, 
-        decimal_places=2, 
-        null=True, 
-        blank=True
-    )
-    store_variant_price = models.DecimalField(
-        "Prix variante boutique", 
-        max_digits=12, 
-        decimal_places=2, 
-        null=True, 
-        blank=True
-    )
-    prix_reduction = models.DecimalField("Prix réduit", max_digits=10, decimal_places=2, blank=True, null=True)
-    quantity = models.DecimalField("Quantité", max_digits=10, decimal_places=2)
-    weight = models.DecimalField(
-        "Poids (kg)", 
-        max_digits=8, 
-        decimal_places=3, 
-        blank=True, 
-        null=True
-    )
-    
-    selection = models.BooleanField("Sélectionnée", default=False, db_index=True)
-    
-    class Meta:
-        verbose_name = "Prix variante boutique"
-        verbose_name_plural = "Prix variantes boutiques"
-        ordering = ['store_product__store__name', 'variant__name']
-        unique_together = ['store_product', 'variant']
-        indexes = [
-            models.Index(fields=['store_product', 'variant']),
-        ]
-
-    def get_effective_cost(self):
-        return (
-            self.store_variant_cost or
-            self.store_product.store_cost_price or
-            self.variant.cost_price or
-            self.store_product.product.cost_price
-        )
-
-    def get_effective_price(self):
-        return (
-            self.store_variant_price or
-            self.store_product.store_base_price or
-            self.variant.prix_vente or
-            self.store_product.product.base_price
-        )
 
 # -----------------------------
 # COMMANDES (ORDERS) - NOUVEAUX MODÈLES
 # -----------------------------
+
+class Pack(BaseModel): 
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, null=True, blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+
+class PackItem(models.Model):
+    pack = models.ForeignKey(Pack, on_delete=models.CASCADE, related_name='items')
+    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
 
 class OrderStatus(models.Model):
     """Statuts de commande spécifiques"""
@@ -1526,7 +1558,7 @@ class Order(AuditModel):
 class OrderItem(AuditModel):
     """Articles d'une commande"""
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', db_index=True)
-    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='order_items', db_index=True)
+    pack = models.ForeignKey(Pack, on_delete=models.SET_NULL, null=True, blank=True)
     variant = models.ForeignKey(ProductVariant, on_delete=models.PROTECT, null=True, blank=True, db_index=True)
     
     quantity = models.DecimalField("Quantité", max_digits=10, decimal_places=2)
@@ -1545,9 +1577,9 @@ class OrderItem(AuditModel):
     class Meta:
         verbose_name = "Article de commande"
         verbose_name_plural = "Articles de commande"
-        ordering = ['order', 'product__name']
+        ordering = ['order', 'variant']
         indexes = [
-            models.Index(fields=['order', 'product']),
+            models.Index(fields=['order', 'variant']),
         ]
     
     def save(self, *args, **kwargs):
