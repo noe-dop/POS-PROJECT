@@ -229,6 +229,9 @@ custom_urlpatterns = [
     # 🎯 DASHBOARD - CORRIGÉ : DashboardDataView au lieu de DashboardView
     path('dashboard/', views.DashboardDataView.as_view(), name='dashboard-data'),
     
+    # ENDPOINT SPECIFIQUE
+    # path('categories/tree/'),
+
     # 🔄 ENDPOINT REQUESTS
     path('requests/', views.RequestsAPIView.as_view(), name='api-requests'),
     

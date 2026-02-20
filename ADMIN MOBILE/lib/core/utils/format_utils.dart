@@ -1,6 +1,4 @@
 // utils/format_utils.dart
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 class FormatUtils {
@@ -9,6 +7,10 @@ class FormatUtils {
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
       (Match m) => '${m[1]}.',
     );
+  }
+  String capitalize(String s) {
+  if (s.isEmpty) return s;
+  return s[0].toUpperCase() + s.substring(1);
   }
 
   static String formatCurrency(double amount, String symbol) {

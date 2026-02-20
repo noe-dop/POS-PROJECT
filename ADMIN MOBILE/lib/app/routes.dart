@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/features/auth/view/forgot_password.dart';
 import 'package:nsp_pos_mobile/features/auth/view/register_screen.dart';
+import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
 import 'package:nsp_pos_mobile/features/boutiques/view/boutiques_view.dart';
 import 'package:nsp_pos_mobile/features/boutiques/view/create_boutique_form.dart';
 import 'package:nsp_pos_mobile/features/caisse/view/caisse_operation_screen.dart';
@@ -9,9 +10,11 @@ import 'package:nsp_pos_mobile/features/caisse/view/caisse_cloture_screen.dart';
 import 'package:nsp_pos_mobile/features/caisse/view/caisse_initialisation_screen.dart';
 import 'package:nsp_pos_mobile/features/dashboard/view/dashbord_screen.dart';
 import 'package:nsp_pos_mobile/features/employe/view/employee_screen.dart';
+import 'package:nsp_pos_mobile/features/produits/service/product_service.dart';
 import 'package:nsp_pos_mobile/features/produits/view/produits_screen.dart';
 import 'package:nsp_pos_mobile/features/settings/view/settings_screen.dart';
 import 'package:nsp_pos_mobile/features/type_produits/view/type_produits_view.dart';
+import 'package:provider/provider.dart';
 import '../features/auth/view/login_screen.dart';
 
 // Rôles autorisés pour la caisse
@@ -32,7 +35,16 @@ final Map<String, WidgetBuilder> appRoutes = {
   ),
   "/employees": (context) => const EmployeeScreen(),
   "/types_produits": (context) => const TypesProduitsView(),
-  "/produits": (context) => const ProductsPage(),
+  "/produits": (context) => ChangeNotifierProxyProvider<BoutiqueService, ProductProvider>(
+  create: (_) => ProductProvider(boutiqueService: BoutiqueService()),
+  update: (_, boutiqueService, productProvider) {
+    if (boutiqueService.selectedStore != null) {
+      productProvider!.setStore(boutiqueService.selectedStore!.boutique.id);
+    }
+    return productProvider!;
+  },
+  child: const ProductsPage(),
+),
   "/settings": (context) => const SettingsScreen(),
   
   // Route principale de la caisse (menu)

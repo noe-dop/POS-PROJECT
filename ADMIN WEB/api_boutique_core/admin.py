@@ -294,10 +294,10 @@ class ProductBrandAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('sku', 'name', 'category', 'brand')
-    list_filter = ('category', 'brand')
+    list_display = ('sku', 'name', 'group', 'brand')
+    list_filter = ('group', 'brand')
     search_fields = ('sku', 'name', 'description')
-    raw_id_fields = ('category', 'brand')
+    raw_id_fields = ('group', 'brand')
     inlines = [ProductVariantInline]
     
     def get_queryset(self, request):

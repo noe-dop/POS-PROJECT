@@ -13,8 +13,8 @@ Future<bool> isServerReachable(String baseUrl, {Duration timeout = const Duratio
     ));
     
     // Simple requête HEAD pour vérifier la disponibilité
-    final response = await dio.head(
-      '$baseUrl/',
+    final _ = await dio.head(
+      baseUrl,
       options: Options(
         validateStatus: (status) => true, // Accepter tous les status
       ),
@@ -37,7 +37,7 @@ Future<bool> pingServer(String baseUrl) async {
   try {
     final dio = Dio();
     await dio.get(
-      '$baseUrl/',
+      baseUrl,
       options: Options(
         validateStatus: (_) => true,
         receiveTimeout: const Duration(seconds: 3),

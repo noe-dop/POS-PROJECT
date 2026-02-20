@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:nsp_pos_mobile/features/auth/widgets/auth_form.dart';
 import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
-import 'package:nsp_pos_mobile/features/employe/provider/employe_provider.dart';
+import 'package:nsp_pos_mobile/features/employe/service/employe_provider.dart';
+import 'package:nsp_pos_mobile/features/type_produits/provider/type_produit_provider.dart';
 import 'package:provider/provider.dart';
 import 'app/app.dart';
 import 'app/theme/theme_notifier.dart';
@@ -14,10 +15,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); 
   await EasyLocalization.ensureInitialized(); 
 
-  // Initialiser les services
-  final employeeProvider = EmployeeProvider();
-  employeeProvider.initialize();
-
   runApp(EasyLocalization(
     supportedLocales: const [Locale('fr'), Locale('en')], 
     path: 'lib/localization',
@@ -27,7 +24,8 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => ThemeNotifier()),
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => BoutiqueService()),
-        ChangeNotifierProvider(create: (_) => employeeProvider),
+        ChangeNotifierProvider(create: (_) => TypesProduitsViewModel()),
+        ChangeNotifierProvider(create: (_) => EmployeeProvider()),
       ],
       child: const NSPPosApp(),
     ),

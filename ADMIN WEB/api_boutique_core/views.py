@@ -1231,12 +1231,13 @@ class RetailSupplyViewSet(viewsets.ModelViewSet):
 # PRODUITS ET CATÉGORIES
 # =============================================================================
 
-class ProductCategoryViewSet(BaseAuditViewSet):
+class ProductCategoryViewSet(viewsets.ModelViewSet):
     queryset = ProductCategory.objects.filter(is_active=True)
     serializer_class = ProductCategorySerializer
     filterset_fields = ['parent']
     search_fields = ['name', 'slug']
     ordering_fields = ['sort_order', 'name']
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -1249,19 +1250,28 @@ class ProductCategoryViewSet(BaseAuditViewSet):
             
         return queryset.order_by('sort_order', 'name')
     
-    # AJOUTEZ JUSTE CES 2 ACTIONS POUR RÉSOUDRE LES ERREURS 404
+    @transaction.atomic
+    def create(self,request, *args, **kwargs):
+        return super().create(request, *args,**kwargs)
+    
     @action(detail=False, methods=['get'])
     def stats(self, request):
         total = ProductCategory.objects.filter(is_active=True).count()
+        
+        # Compter les catégories qui ont au moins un produit comme group ou comme product_type
+        from django.db.models import Q
         with_products = ProductCategory.objects.filter(
-            products__isnull=False
+            Q(products_as_group__isnull=False) | Q(products_as_type__isnull=False)
         ).distinct().count()
+        
+        root_categories = ProductCategory.objects.filter(parent__isnull=True).count()
+        subcategories = ProductCategory.objects.exclude(parent__isnull=True).count()
         
         return Response({
             'total_categories': total,
             'categories_with_products': with_products,
-            'root_categories': ProductCategory.objects.filter(parent__isnull=True).count(),
-            'subcategories': ProductCategory.objects.exclude(parent__isnull=True).count()
+            'root_categories': root_categories,
+            'subcategories': subcategories
         })
     
     @action(detail=False, methods=['get'])
@@ -1278,6 +1288,8 @@ class ProductCategoryViewSet(BaseAuditViewSet):
                     'id': category.id,
                     'name': category.name,
                     'slug': category.slug,
+                    'description':category.description,
+                    'parent_id':category.parent_id,
                     'children': build_tree(category.id)
                 })
             return tree
@@ -1285,6 +1297,40 @@ class ProductCategoryViewSet(BaseAuditViewSet):
         return Response({
             'tree': build_tree()
         })
+    
+    @action(detail=False, methods=['get'], url_path='types-with-product-count')
+    def types_with_product_count(self, request):
+        store_id = request.query_params.get('store_id')
+        if not store_id:
+            return Response({"error": "Le paramètre 'store_id' est requis."}, status=400)
+        
+        # Verification de l'existance de la boutique
+        try:
+            store = Store.objects.get(id=store_id, is_active=True)
+        except Store.DoesNotExist:
+            return Response({"error": "Boutique introuvable ou inactive."}, status=404)
+        # Filtrer les catégories de niveau 3 (celles qui ont un parent et dont le parent a un parent)
+        types = ProductCategory.objects.filter(
+            parent__isnull=False,
+            parent__parent__isnull=False,
+            is_active=True
+        ).annotate(
+            product_count=Count(
+                'products_as_group',
+                filter=Q(
+                    products_as_group__in_stores__store_id=store_id,
+                    products_as_group__in_stores__is_active=True
+                )
+            ) + Count(
+                'products_as_type',
+                filter=Q(
+                    products_as_type__in_stores__store_id=store_id,
+                    products_as_type__in_stores__is_active=True
+                )
+            )
+        ).values('id', 'name', 'slug', 'product_count').order_by('name')
+
+        return Response(types)
 
 class ProductBrandViewSet(BaseAuditViewSet):
     queryset = ProductBrand.objects.filter(is_active=True)
@@ -1292,10 +1338,15 @@ class ProductBrandViewSet(BaseAuditViewSet):
     search_fields = ['name']
 
 class ProductViewSet(BaseAuditViewSet):
-    queryset = Product.objects.select_related('category', 'brand').prefetch_related('variants')
+    queryset = Product.objects.select_related('group', 'brand').prefetch_related('variants')
     serializer_class = ProductSerializer
-    filterset_fields = ['category', 'brand']  # CORRIGÉ : retiré 'supplier' et 'status'
+    filterset_fields = ['group', 'brand']  
     search_fields = ['name', 'sku', 'description']
+    permission_classes=[AllowAny]
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
     
     @action(detail=True, methods=['get'])
     def stock_info(self, request, pk=None):
@@ -1412,6 +1463,7 @@ class StockViewSet(BaseAuditViewSet):
         )
         
         return Response(summary_data)
+    
 
 class ReorderRuleViewSet(viewsets.ModelViewSet):
     queryset = ReorderRule.objects.select_related('product', 'store')
@@ -1439,10 +1491,24 @@ class InventoryCountItemViewSet(BaseAuditViewSet):
     serializer_class = InventoryCountItemSerializer
     permission_classes = [AllowAny]
 
-class StoreProductViewSet(BaseAuditViewSet):
-    queryset = StoreProduct.objects.select_related('store', 'product')
+# class StoreProductViewSet(BaseAuditViewSet):
+#     queryset = StoreProduct.objects.select_related('store', 'product')
+#     serializer_class = StoreProductSerializer
+#     filterset_fields = ['store', 'product', 'is_active']
+class StoreProductViewSet(viewsets.ModelViewSet):
     serializer_class = StoreProductSerializer
-    filterset_fields = ['store', 'product', 'is_active']
+
+    def get_queryset(self):
+        # Si nous sommes en train de générer le schéma, retourner un queryset vide
+        if getattr(self, 'swagger_fake_view', False):
+            return StoreProduct.objects.none()
+
+        store_id = self.kwargs.get('store_id')
+        if store_id :
+            # Si l'URL ne contient pas store_id, on peut lever une exception ou retourner vide selon le contexte
+            return StoreProduct.objects.filter(store_id=store_id, is_active=True)
+        
+        return StoreProduct.objects.filter(is_active=True)
 
 class StoreProductVariantViewSet(BaseAuditViewSet):
     queryset = StoreProductVariant.objects.select_related('store_product', 'variant')
@@ -2071,7 +2137,6 @@ class OrderItemViewSet(viewsets.ModelViewSet):
     """
     queryset = OrderItem.objects.select_related(
         'order',
-        'product',
         'variant'
     ).all()
     
@@ -2079,7 +2144,7 @@ class OrderItemViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['order', 'product']
+    filterset_fields = ['order', 'variant']
     
     def get_queryset(self):
         """

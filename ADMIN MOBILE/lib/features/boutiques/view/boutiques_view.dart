@@ -782,6 +782,23 @@ class _BoutiquesViewState extends State<BoutiquesView> {
                 // Modification
                 IconButton(
                   onPressed: () {
+                    // Vérifier si l'utilisateur a le droit de supprimer
+                    final storeWithPermission = filteredStoresList.firstWhere(
+                      (s) => s.boutique.id == store.id,
+                    );
+                    final canDelete =
+                        storeWithPermission.accessRole == 'owner_primary' ||
+                        storeWithPermission.accessRole == 'owner' ||
+                        storeWithPermission.accessRole == 'superadmin';
+
+                    if (!canDelete) {
+                      NotificationService.showWarning(
+                        context,
+                        'Vous n\'avez pas les permissions pour supprimer cette boutique',
+                      );
+                      return;
+                    }
+                    
                     Navigator.push(
                       context,
                       MaterialPageRoute(

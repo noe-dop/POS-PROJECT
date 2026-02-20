@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:nsp_pos_mobile/core/constants/random_color.dart';
+import 'package:nsp_pos_mobile/core/services/notifications.dart';
+import 'package:nsp_pos_mobile/core/services/storage_service.dart';
+import 'package:nsp_pos_mobile/features/dashboard/widgets/side_menu.dart';
 import 'package:nsp_pos_mobile/features/type_produits/provider/type_produit_provider.dart';
+import 'package:nsp_pos_mobile/features/type_produits/widgets/categorie_list_sidebar.dart';
 import 'package:provider/provider.dart';
-import '../widgets/add_type_dialog.dart';
-import '../widgets/add_sous_type_dialog.dart';
+import '../widgets/add_categorie_dialog.dart';
 import '../widgets/type_detail_panel.dart';
-import '../widgets/type_list_sidebar.dart';
 
 class TypesProduitsView extends StatefulWidget {
   const TypesProduitsView({super.key});
@@ -16,11 +17,22 @@ class TypesProduitsView extends StatefulWidget {
 
 class _TypesProduitsViewState extends State<TypesProduitsView> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedMobileTab = 0; // Pour la navigation mobile
-
+  int _selectedMobileTab = 0;
+  bool? _isStaff; // null = en cours de chargement
+  late final StorageService _storage = StorageService(); // singleton
   @override
   void initState() {
     super.initState();
+    _loadStaffStatus();
+  }
+
+  Future<void> _loadStaffStatus() async {
+    final staff = await _storage.getStaffStatus(); // retourne bool?
+    if (mounted) {
+      setState(() {
+        _isStaff = staff ?? false; // par défaut false
+      });
+    }
   }
 
   @override
@@ -29,37 +41,24 @@ class _TypesProduitsViewState extends State<TypesProduitsView> {
     super.dispose();
   }
 
-  Future<void> _showAddGrandTypeDialog(BuildContext context) async {
+  Future<void> _showAddCategorieDialog(BuildContext context) async {
     final viewModel = Provider.of<TypesProduitsViewModel>(
       context,
       listen: false,
     );
-
-    final result = await showDialog<String>(
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => const AddTypeDialog(
-        title: 'Créer un Grand Type',
-        buttonText: 'Créer',
-      ),
+      builder: (context) => AddCategorieDialog(canEdit: _isStaff!),
     );
-
     if (result != null && result.isNotEmpty) {
-      await viewModel.addGrandType(result);
-
+      await viewModel.addCategoriePrincipale(result);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Grand type "$result" ajouté avec succès'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      NotificationService.showSuccess(context, 'Catégorie "$result" ajoutée');
     }
   }
 
-  void _onTabChanged(int index, BuildContext context) {
-    setState(() {
-      _selectedMobileTab = index;
-    });
+  void _onTabChanged(int index) {
+    setState(() => _selectedMobileTab = index);
   }
 
   @override
@@ -69,9 +68,11 @@ class _TypesProduitsViewState extends State<TypesProduitsView> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isMobile = constraints.maxWidth < 768;
-
           return Consumer<TypesProduitsViewModel>(
             builder: (context, viewModel, child) {
+              if (viewModel.isloading) {
+                return _buildLoadingScreen();
+              }
               if (isMobile) {
                 return _buildMobileLayout(context, viewModel);
               } else {
@@ -84,67 +85,84 @@ class _TypesProduitsViewState extends State<TypesProduitsView> {
     );
   }
 
-  // Layout Desktop
+  // Écran de chargement élégant
+  Widget _buildLoadingScreen() {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Logo ou icône animée
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.blue.shade50,
+              ),
+              child: const Icon(
+                Icons.category_rounded,
+                size: 64,
+                color: Colors.blue,
+              ),
+            ),
+            const SizedBox(height: 32),
+            // Indicateur de progression moderne
+            const SizedBox(
+              width: 48,
+              height: 48,
+              child: CircularProgressIndicator(
+                strokeWidth: 4,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Chargement des catégories...',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDesktopLayout(
     BuildContext context,
     TypesProduitsViewModel viewModel,
   ) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestion des Types de Produits'),
+        title: const Text('Gestion des types de produits'),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
         elevation: 2,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showAddGrandTypeDialog(context),
-            tooltip: 'Ajouter un grand type',
-          ),
-          IconButton(
-            icon: Icon(
-              viewModel.showGrandsTypesOnly ? Icons.list : Icons.category,
-            ),
-            onPressed: viewModel.toggleShowGrandsTypesOnly,
-            tooltip: viewModel.showGrandsTypesOnly
-                ? 'Voir tous les types'
-                : 'Voir uniquement les grands types',
-          ),
-        ],
       ),
+      drawer: const SideMenu(),
       body: Row(
         children: [
-          // Sidebar gauche (responsive)
+          // Sidebar des catégories
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400, minWidth: 300),
-            child: Consumer<TypesProduitsViewModel>(
-              builder: (context, vm, child) {
-                return TypeListSidebar(
-                  searchController: _searchController,
-                  onClearSearch: () {
-                    _searchController.clear();
-                    vm.setSearchQuery('');
-                  }, 
-                );
+            child: CategorieListSidebar(
+              searchController: _searchController,
+              onClearSearch: () {
+                _searchController.clear();
+                viewModel.setSearchQuery('');
               },
             ),
           ),
-
-          // Panneau de détails droite (responsive)
-          Expanded(child: _buildDetailPanel(context, viewModel)),
+          // Panneau de détails
+          Expanded(child: TypeDetailPanel()),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddGrandTypeDialog(context),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-        tooltip: 'Ajouter un type',
-        child: const Icon(Icons.add),
       ),
     );
   }
 
-  // Layout Mobile
   Widget _buildMobileLayout(
     BuildContext context,
     TypesProduitsViewModel viewModel,
@@ -154,424 +172,59 @@ class _TypesProduitsViewState extends State<TypesProduitsView> {
       initialIndex: _selectedMobileTab,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Types de Produits'),
+          title: const Text('Types de produits'),
           backgroundColor: Colors.blue.shade700,
           foregroundColor: Colors.white,
           elevation: 0,
           actions: [
             IconButton(
               icon: const Icon(Icons.add),
-              onPressed: () => _showAddGrandTypeDialog(context),
+              onPressed: () => _showAddCategorieDialog(context),
             ),
           ],
           bottom: TabBar(
-            onTap: (index) => _onTabChanged(index, context),
+            onTap: _onTabChanged,
             tabs: const [
-              Tab(icon: Icon(Icons.list), text: 'Liste'),
+              Tab(icon: Icon(Icons.list), text: 'Catégories'),
               Tab(icon: Icon(Icons.info_outline), text: 'Détails'),
             ],
+            indicatorColor:
+                Colors.white, // Couleur de l'indicateur (soulignement)
+            indicatorWeight: 3.0, // Épaisseur de l'indicateur
+            labelColor: Colors.white, // Couleur du texte/icône pour l'onglet sélectionné
+            unselectedLabelColor:
+                Colors.white70, // Couleur pour les onglets non sélection
           ),
         ),
+        drawer: const SideMenu(),
         body: TabBarView(
           children: [
-            // Onglet Liste
-            _buildMobileListTab(context, viewModel),
-
-            // Onglet Détails
-            _buildMobileDetailTab(context, viewModel),
+            // Onglet Liste : affiche la sidebar des catégories
+            CategorieListSidebar(
+              searchController: _searchController,
+              onClearSearch: () {
+                _searchController.clear();
+                viewModel.setSearchQuery('');
+              },
+            ),
+            // Onglet Détails : affiche le panneau avec possibilité de retour
+            TypeDetailPanel(
+              onBack: () {
+                // Si on est dans un sous-niveau, on peut gérer la navigation
+                if (viewModel.selectedTypeProduit != null) {
+                  viewModel.selectTypeProduit(null);
+                } else if (viewModel.selectedGroupe != null) {
+                  viewModel.selectGroupe(null);
+                } else if (viewModel.selectedCategoriePrincipale != null) {
+                  viewModel.selectCategoriePrincipale(null);
+                }
+                // Basculer éventuellement vers l'onglet liste
+                setState(() => _selectedMobileTab = 0);
+              },
+            ),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _showAddGrandTypeDialog(context),
-          backgroundColor: Colors.blue,
-          child: const Icon(Icons.add),
-        ),
       ),
-    );
-  }
-
-  // Onglet Liste pour mobile
-  Widget _buildMobileListTab(
-    BuildContext context,
-    TypesProduitsViewModel viewModel,
-  ) {
-    return Column(
-      children: [
-        // Barre de recherche mobile
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(25),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.search, color: Colors.grey, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          onChanged: (value) => viewModel.setSearchQuery(value),
-                          decoration: const InputDecoration(
-                            hintText: 'Rechercher...',
-                            border: InputBorder.none,
-                            hintStyle: TextStyle(color: Colors.grey),
-                          ),
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ),
-                      if (_searchController.text.isNotEmpty)
-                        IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
-                          onPressed: () {
-                            _searchController.clear();
-                            viewModel.setSearchQuery('');
-                          },
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.filter_list),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'toggle_view',
-                    child: Row(
-                      children: [
-                        Icon(
-                          viewModel.showGrandsTypesOnly
-                              ? Icons.check_box
-                              : Icons.check_box_outline_blank,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text('Grands types seulement'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  const PopupMenuItem(
-                    value: 'all',
-                    child: Text('Tous les types'),
-                  ),
-                  ...viewModel.grandsTypes.map((type) {
-                    return PopupMenuItem(value: type.id, child: Text(type.nom));
-                  }),
-                ],
-                onSelected: (value) {
-                  if (value == 'toggle_view') {
-                    viewModel.toggleShowGrandsTypesOnly();
-                  } else if (value == 'all') {
-                    viewModel.selectGrandType(null);
-                  } else {
-                    final type = viewModel.grandsTypes.firstWhere(
-                      (t) => t.id == value,
-                    );
-                    viewModel.selectGrandType(type);
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-
-        // Filtres rapides (chips scrollables)
-        SizedBox(
-          height: 50,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              ActionChip(
-                label: const Text('Tous'),
-                onPressed: () => viewModel.selectGrandType(null),
-                backgroundColor: viewModel.selectedGrandType == null
-                    ? Colors.blue.shade100
-                    : Colors.grey.shade100,
-              ),
-              const SizedBox(width: 8),
-              ...viewModel.grandsTypes.map((type) {
-                final isSelected = viewModel.selectedGrandType?.id == type.id;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ActionChip(
-                    label: Text(type.nom),
-                    onPressed: () =>
-                        viewModel.selectGrandType(isSelected ? null : type),
-                    backgroundColor: isSelected
-                        ? Colors.blue.shade100
-                        : Colors.grey.shade100,
-                  ),
-                );
-              }),
-            ],
-          ),
-        ),
-
-        // En-tête de liste
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              Text(
-                viewModel.selectedGrandType != null
-                    ? 'Sous-types'
-                    : viewModel.showGrandsTypesOnly
-                    ? 'Grands Types'
-                    : 'Tous les types',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              const Spacer(),
-              Chip(
-                label: Text('${viewModel.filteredTypes.length}'),
-                backgroundColor: Colors.blue.shade100,
-              ),
-            ],
-          ),
-        ),
-
-        // Liste des types
-        Expanded(
-          child: viewModel.filteredTypes.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.category_outlined,
-                        size: 60,
-                        color: Colors.grey.shade300,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _searchController.text.isEmpty
-                            ? 'Aucun type disponible'
-                            : 'Aucun résultat',
-                        style: TextStyle(color: Colors.grey.shade500),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: viewModel.filteredTypes.length,
-                  itemBuilder: (context, index) {
-                    final type = viewModel.filteredTypes[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: RandomColor().getColorFromName(type.nom),
-                          child: Text(
-                            type.nom.substring(0, 1).toUpperCase(),
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        title: Text(
-                          type.nom,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                        subtitle: Text(
-                          '${type.nombreProduits} produits',
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
-                        trailing: type.isGrandType && type.hasSousTypes
-                            ? const Icon(Icons.chevron_right)
-                            : null,
-                        onTap: () {
-                          if (type.isGrandType && type.hasSousTypes) {
-                            viewModel.selectGrandType(type);
-                          } else {
-                            viewModel.selectType(type);
-                          }
-                          // Basculer vers l'onglet Détails
-                          setState(() {
-                            _selectedMobileTab = 1;
-                          });
-                        },
-                      ),
-                    );
-                  },
-                ),
-        ),
-
-        // Stats en bas
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            border: Border(top: BorderSide(color: Colors.grey.shade300)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Column(
-                children: [
-                  Text(
-                    '${viewModel.totalProduits}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  Text(
-                    'Produits',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-              Column(
-                children: [
-                  Text(
-                    '${viewModel.grandsTypes.length}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
-                    ),
-                  ),
-                  Text(
-                    'Grands types',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-              Column(
-                children: [
-                  Text(
-                    viewModel.typesProduits
-                        .fold<int>(
-                          0,
-                          (sum, type) => sum + type.sousTypes.length,
-                        )
-                        .toString(),
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange,
-                    ),
-                  ),
-                  Text(
-                    'Sous-types',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Onglet Détails pour mobile
-  Widget _buildMobileDetailTab(
-    BuildContext context,
-    TypesProduitsViewModel viewModel,
-  ) {
-    return _buildDetailPanel(context, viewModel);
-  }
-
-  // Panneau de détails (commun desktop/mobile)
-  Widget _buildDetailPanel(
-    BuildContext context,
-    TypesProduitsViewModel viewModel,
-  ) {
-    return TypeDetailPanel(
-      selectedType: viewModel.selectedType,
-      selectedGrandType: viewModel.selectedGrandType,
-      onAddSousType: (parentType) async {
-        final result = await showDialog<String>(
-          context: context,
-          builder: (context) => AddSousTypeDialog(parentType: parentType),
-        );
-
-        if (result != null && result.isNotEmpty) {
-          await viewModel.addSousType(result, parentType.id);
-
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Sous-type "$result" ajouté'),
-              backgroundColor: Colors.blue,
-            ),
-          );
-        }
-      },
-      onEditType: (type) async {
-        final result = await showDialog<String>(
-          context: context,
-          builder: (context) => AddTypeDialog(
-            initialName: type.nom,
-            title: type.isSousType
-                ? 'Modifier le Sous-Type'
-                : 'Modifier le Type',
-            buttonText: 'Mettre à jour',
-          ),
-        );
-
-        if (result != null && result.isNotEmpty) {
-          await viewModel.updateType(type.id, result);
-
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Type modifié en "$result"'),
-              backgroundColor: Colors.blue,
-            ),
-          );
-        }
-      },
-      onDeleteType: (type) async {
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Confirmer la suppression'),
-            content: Text(
-              type.isSousType
-                  ? 'Voulez-vous vraiment supprimer le sous-type "${type.nom}" ?'
-                  : 'Voulez-vous vraiment supprimer le type "${type.nom}" et tous ses sous-types ?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Annuler'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Supprimer'),
-              ),
-            ],
-          ),
-        );
-
-        if (confirmed == true) {
-          await viewModel.deleteType(type.id);
-
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Type "${type.nom}" supprimé'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      },
     );
   }
 }
