@@ -778,7 +778,7 @@ class Product(models.Model):
         ProductCategory, 
         on_delete=models.PROTECT, 
         related_name='products_as_group',
-        verbose_name="Catégorie",
+        verbose_name="Group",
         db_index=True,
         null=True,
         blank=True
