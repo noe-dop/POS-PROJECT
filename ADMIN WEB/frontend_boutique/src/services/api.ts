@@ -9,7 +9,7 @@ export const apiService: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 0, // ✅ 0 = PAS DE TIMEOUT (recommandé en développement)
 });
 
 // Fonction pour rafraîchir le token
@@ -183,7 +183,7 @@ interface PaginatedResponse<T> {
 // Service API avec gestion de la pagination Django
 export const api = {
   // GET avec gestion de la pagination
-  async get<T>(url: string, params?: any): Promise<T> {
+  async get<T>(url: string, params?: any, p0?: { responseType: string; }): Promise<T> {
     try {
       console.log(`🔍 [API GET] ${url}`, params ? { params } : '');
       const response: AxiosResponse = await apiService.get(url, { params });

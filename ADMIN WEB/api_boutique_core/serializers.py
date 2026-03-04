@@ -9,6 +9,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.text import slugify  # Generation de slug
 from django.core.files.storage import default_storage # Gestion des images
+from django.db.models import Sum
 
 # =============================================================================
 # SERIALIZERS DE BASE
@@ -30,7 +31,6 @@ class BaseAuditSerializer(serializers.ModelSerializer):
 # =============================================================================
 # UTILISATEURS ET AUTHENTIFICATION
 # =============================================================================
-
 
 class LoginSerializer(serializers.Serializer):
     """
@@ -249,7 +249,6 @@ class OwnerCreateSerializer(RegisterSerializer):
 
         return owner
 
-
 class OwnerSerializer(serializers.ModelSerializer):
     # Pour la lecture, on peut inclure les infos du user
     user = serializers.SerializerMethodField()
@@ -383,93 +382,88 @@ class CustomerSerializer(serializers.ModelSerializer):
             )
 
         return Customer.objects.create(**validated_data)
-
-
+    
 # =============================================================================
 # EMPLOYÉS ET RÔLES
 # =============================================================================
 
-
 class EmployeeRoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmployeeRole
-        fields = "__all__"
+        fields = '__all__'
 
 
 class EmployeeCreateSerializer(RegisterSerializer):
     # Champs spécifiques à Employee
     store_id = serializers.IntegerField(write_only=True, required=True)
     role_id = serializers.IntegerField(write_only=True, required=True)
-    department_id = serializers.IntegerField(
-        write_only=True, required=False, allow_null=True
-    )
+    department_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     hire_date = serializers.DateField(write_only=True, required=True)
     salary = serializers.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+        max_digits=10, 
+        decimal_places=2, 
         write_only=True,
         required=False,
-        allow_null=True,
+        allow_null=True
     )
     emergency_contact = serializers.CharField(write_only=True, required=False)
     photo = serializers.ImageField(write_only=True, required=False)
-
+    
     class Meta(RegisterSerializer.Meta):
         fields = RegisterSerializer.Meta.fields + [
-            "store_id",
-            "role_id",
-            "department_id",
-            "hire_date",
-            "salary",
-            "emergency_contact",
-            "photo",
+            'store_id', 'role_id', 'department_id',
+            'hire_date', 'salary', 'emergency_contact', 'photo'
         ]
-
+    
     def validate(self, data):
         # Validation du parent
         data = super().validate(data)
-
+        
         # Vérifications supplémentaires pour Employee
         try:
-            Store.objects.get(id=data["store_id"])
+            Store.objects.get(id=data['store_id'])
         except Store.DoesNotExist:
-            raise serializers.ValidationError({"store_id": "Ce magasin n'existe pas."})
-
+            raise serializers.ValidationError({
+                'store_id': 'Ce magasin n\'existe pas.'
+            })
+        
         try:
-            EmployeeRole.objects.get(id=data["role_id"])
+            EmployeeRole.objects.get(id=data['role_id'])
         except EmployeeRole.DoesNotExist:
-            raise serializers.ValidationError({"role_id": "Ce rôle n'existe pas."})
-
-        if data.get("department_id"):
+            raise serializers.ValidationError({
+                'role_id': 'Ce rôle n\'existe pas.'
+            })
+        
+        if data.get('department_id'):
             try:
-                Department.objects.get(id=data["department_id"])
+                Department.objects.get(id=data['department_id'])
             except Department.DoesNotExist:
-                raise serializers.ValidationError(
-                    {"department_id": "Ce département n'existe pas."}
-                )
-
+                raise serializers.ValidationError({
+                    'department_id': 'Ce département n\'existe pas.'
+                })
+        
         return data
-
+    
     def create(self, validated_data):
-        # Créer le User via le parent
+        # 1. EXTRAIRE tous les champs Employee
+        store_id = validated_data.pop('store_id')
+        role_id = validated_data.pop('role_id')
+        department_id = validated_data.pop('department_id', None)
+        hire_date = validated_data.pop('hire_date')
+        salary = validated_data.pop('salary', None)
+        emergency_contact = validated_data.pop('emergency_contact', None)
+        photo = validated_data.pop('photo', None)
+        
+        # 2. Créer le User (maintenant validated_data n'a que les champs User)
         user = super().create(validated_data)
-
-        # Vérifier si l'utilisateur est déjà employé
+        
+        # 3. Vérifier si l'utilisateur est déjà employé
         if Employee.objects.filter(user=user).exists():
-            raise serializers.ValidationError(
-                {"user": "Cet utilisateur est déjà un employé."}
-            )
-
-        # Extraire les champs spécifiques
-        store_id = validated_data.pop("store_id")
-        role_id = validated_data.pop("role_id")
-        department_id = validated_data.pop("department_id", None)
-        hire_date = validated_data.pop("hire_date")
-        salary = validated_data.pop("salary", None)
-        emergency_contact = validated_data.pop("emergency_contact", None)
-        photo = validated_data.pop("photo", None)
-
-        # Créer le profil Employee
+            raise serializers.ValidationError({
+                "user": "Cet utilisateur est déjà un employé."
+            })
+        
+        # 4. Créer le profil Employee
         employe = Employee.objects.create(
             user=user,
             store_id=store_id,
@@ -478,46 +472,305 @@ class EmployeeCreateSerializer(RegisterSerializer):
             hire_date=hire_date,
             salary=salary,
             emergency_contact=emergency_contact,
-            photo=photo,
+            photo=photo
         )
-
+        
         return employe
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     user_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), source="user", write_only=True
+        queryset=User.objects.all(), source='user', write_only=True
     )
-    store_name = serializers.CharField(source="store.name", read_only=True)
-    department_name = serializers.CharField(source="department.name", read_only=True)
-    role_name = serializers.CharField(source="role.name", read_only=True)
+    store_name = serializers.CharField(source='store.name', read_only=True)
+    department_name = serializers.CharField(source='department.name', read_only=True)
+    role_name = serializers.CharField(source='role.name', read_only=True)
     full_name = serializers.SerializerMethodField()
-
+    
     class Meta:
         model = Employee
         fields = [
-            "id",
-            "user",
-            "user_id",
-            "full_name",
-            "hire_date",
-            "salary",
-            "emergency_contact",
-            "is_active",
-            "store",
-            "store_name",
-            "department",
-            "department_name",
-            "role",
-            "role_name",
-            "photo",
+            'id', 'user', 'user_id', 'full_name', 'hire_date', 'salary', 'emergency_contact',
+            'is_active', 'store', 'store_name', 'department', 'department_name', 
+            'role', 'role_name', 'photo'
         ]
         extra_kwargs = {"user": {"required": False, "read_only": True}}
-
+    
     def get_full_name(self, obj):
         return obj.user.get_full_name()
+# =============================================================================
+# ADRESSES
+# =============================================================================
 
+class AddressSerializer(serializers.ModelSerializer):
+    full_address = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Address
+        fields = '__all__'
+    
+    def get_full_address(self, obj):
+        parts = [obj.address_line1]
+        if obj.address_line2:
+            parts.append(obj.address_line2)
+        parts.extend([obj.postal_code, obj.city, obj.state, obj.country])
+        return ', '.join(filter(None, parts))
+
+# =============================================================================
+# BOUTIQUES ET MAGASINS
+# =============================================================================
+
+
+class StoreTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StoreType
+        fields = "__all__"
+
+
+class StoreNetworkSerializer(serializers.ModelSerializer):
+    headquarters_address = AddressSerializer(source="headquarters", read_only=True)
+
+    class Meta:
+        model = StoreNetwork
+        fields = "__all__"
+
+class StoreCreateSerializer(serializers.ModelSerializer):
+    """Serializer spécifique pour la création avec adresse incluse"""
+    
+    # Accepter les données d'adresse directement
+    address_line1 = serializers.CharField(write_only=True)
+    address_line2 = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    city = serializers.CharField(write_only=True)
+    state = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    postal_code = serializers.CharField(write_only=True,required=False)
+    country = serializers.CharField(write_only=True)
+    latitude = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    longitude = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    
+    class Meta:
+        model = Store
+        fields = [
+            'name', 'phone', 'email', 'slogan',
+            'store_type', 'network', 'is_active', 'configuration', 'opening_hours',
+            # Champs d'adresse
+            'address_line1', 'address_line2', 'city', 'state', 'postal_code', 
+            'country', 'latitude', 'longitude',
+        ]
+        extra_kwargs = {
+            'network': {'required': False, 'allow_null': True},
+            'store_type': {'required': True},
+        }
+    
+    def create(self, validated_data):
+
+        # Extraire les données d'adresse
+        address_data = {
+            'address_line1': validated_data.pop('address_line1'),
+            'address_line2': validated_data.pop('address_line2', ''),
+            'city': validated_data.pop('city'),
+            'state': validated_data.pop('state', ''),
+            'postal_code': validated_data.pop('postal_code',''),
+            'country': validated_data.pop('country'),
+            'latitude': validated_data.pop('latitude'),
+            'longitude': validated_data.pop('longitude'),
+        }
+        
+        # Nettoyer latitude/longitude
+        for coord in ['latitude', 'longitude']:
+            if address_data[coord] == '':
+                address_data[coord] = None
+            elif address_data[coord] is not None:
+                try:
+                    address_data[coord] = float(address_data[coord])
+                except (ValueError, TypeError):
+                    address_data[coord] = None
+        
+        # Créer l'adresse
+        address = Address.objects.create(**address_data)
+        
+        # Ajouter l'adresse aux données de la boutique
+        validated_data['address'] = address
+        
+        # Gérer store_type (peut être ID ou objet)
+        store_type = validated_data.get('store_type')
+        if isinstance(store_type, int):
+            from .models import StoreType
+            validated_data['store_type'] = StoreType.objects.get(id=store_type)
+        
+        # Générer le slug
+        from django.utils.text import slugify
+        name = validated_data.get('name', '')
+        slug = slugify(name)
+        
+        # Vérifier l'unicité du slug
+        counter = 1
+        original_slug = slug
+        while Store.objects.filter(slug=slug).exists():
+            slug = f"{original_slug}-{counter}"
+            counter += 1
+        
+        validated_data['slug'] = slug
+        
+        # Créer la boutique
+        store = Store.objects.create(**validated_data)
+        
+        # Créer StoreOwnership
+        request = self.context.get('request')
+        if request and hasattr(request.user, 'owner'):
+            StoreOwnership.objects.create(
+                store=store,
+                owner=request.user.owner,
+                is_primary=True,
+                ownership_percentage=100.0
+            )
+        
+        return store
+    
+class StoreUpdateSerializer(serializers.ModelSerializer):
+    """Serializer pour la modification des boutiques avec adresse incluse"""
+    
+    # Accepter les données d'adresse directement (comme pour la création)
+    address_line1 = serializers.CharField(write_only=True, required=False)
+    address_line2 = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    city = serializers.CharField(write_only=True, required=False)
+    state = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    postal_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    country = serializers.CharField(write_only=True, required=False)
+    latitude = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    longitude = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    
+    class Meta:
+        model = Store
+        fields = [
+            'name', 'phone', 'email', 'slogan',
+            'store_type', 'network', 'is_active', 'configuration', 'opening_hours',
+            # Champs d'adresse (optionnels pour la modification)
+            'address_line1', 'address_line2', 'city', 'state', 'postal_code', 
+            'country', 'latitude', 'longitude',
+        ]
+        extra_kwargs = {
+            'network': {'required': False, 'allow_null': True},
+            'store_type': {'required': False},
+            'name': {'required': False},
+            'phone': {'required': False, 'allow_blank': True},
+            'email': {'required': False, 'allow_blank': True},
+            'slogan': {'required': False, 'allow_blank': True},
+            'is_active': {'required': False},
+            'opening_hours': {'required': False},
+            'configuration': {'required': False},
+        }
+    
+    def update(self, instance, validated_data):
+        store_type_value = validated_data.pop('store_type')
+        from .models import StoreType
+
+        # ✅ CAS 1: C'est DÉJÀ un objet StoreType
+        if hasattr(store_type_value, '_meta') and store_type_value._meta.model == StoreType:
+            instance.store_type = store_type_value
+        
+        # ✅ CAS 2: C'est un ID (int)
+        elif isinstance(store_type_value, int):
+            try:
+                store_type = StoreType.objects.get(id=store_type_value)
+                instance.store_type = store_type
+            except StoreType.DoesNotExist:
+                None
+
+        # Vérifier si des données d'adresse sont fournies
+        address_fields = ['address_line1', 'address_line2', 'city', 'state', 
+                         'postal_code', 'country', 'latitude', 'longitude']
+        
+        has_address_data = any(field in validated_data for field in address_fields)
+        
+        if has_address_data:
+            # Extraire les données d'adresse
+            address_data = {}
+            for field in address_fields:
+                if field in validated_data:
+                    address_data[field] = validated_data.pop(field)
+
+            # Nettoyer latitude/longitude
+            for coord in ['latitude', 'longitude']:
+                if coord in address_data:
+                    if address_data[coord] == '':
+                        address_data[coord] = None
+                    elif address_data[coord] is not None:
+                        try:
+                            address_data[coord] = float(address_data[coord])
+                        except (ValueError, TypeError):
+                            address_data[coord] = None
+            
+            # Mettre à jour ou créer l'adresse
+            if instance.address:
+                # Mettre à jour l'adresse existante
+                for key, value in address_data.items():
+                    if value is not None and value != '':
+                        setattr(instance.address, key, value)
+                instance.address.save()
+            else:
+                # Créer une nouvelle adresse
+                new_address = Address.objects.create(**address_data)
+                instance.address = new_address
+
+        # Mettre à jour les autres champs
+        for attr, value in validated_data.items():
+            if value is not None and value != '':
+                setattr(instance, attr, value)
+        
+        instance.save()
+        
+        return instance
+    
+class StoreSerializer(serializers.ModelSerializer):
+    store_type_name = serializers.CharField(source="store_type.name", read_only=True)
+    network_name = serializers.CharField(source="network.name", read_only=True)
+    address_details = AddressSerializer(source="address", read_only=True)
+    total_employees = serializers.SerializerMethodField()
+    total_products = serializers.SerializerMethodField()
+    pending_orders = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Store
+        fields = "__all__"
+        read_only_fields = ["created_at", "slug","address_details"]
+
+    def get_total_employees(self, obj):
+        return Employee.objects.filter(store=obj, is_active=True).count()
+
+    def get_total_products(self, obj):
+        return obj.store_products.filter(is_active=True).count()
+
+    def get_pending_orders(self, obj):
+        # Compter les commandes en attente pour cette boutique
+        pending_status = OrderStatus.objects.filter(code="pending").first()
+        if pending_status:
+            return Order.objects.filter(store=obj, status=pending_status).count()
+        return 0
+
+class StoreOwnershipSerializer(serializers.ModelSerializer):
+    store_name = serializers.CharField(source="store.name", read_only=True)
+    owner_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StoreOwnership
+        fields = "__all__"
+
+    def get_owner_name(self, obj):
+        return obj.owner.user.get_full_name()
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    store_name = serializers.CharField(source="store.name", read_only=True)
+    manager_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Department
+        fields = "__all__"
+
+    def get_manager_name(self, obj):
+        if obj.manager:
+            return obj.manager.user.get_full_name()
+        return None
 
 # =============================================================================
 # SERIALIZERS POUR LES COMMANDES (ORDERS) - AJOUTÉS
@@ -841,285 +1094,6 @@ class CurrencySerializer(serializers.ModelSerializer):
     class Meta:
         model = Currency
         fields = "__all__"
-
-
-# =============================================================================
-# ADRESSES
-# =============================================================================
-
-
-class AddressSerializer(serializers.ModelSerializer):
-    full_address = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Address
-        fields = "__all__"
-
-    def get_full_address(self, obj):
-        parts = [obj.address_line1]
-        if obj.address_line2:
-            parts.append(obj.address_line2)
-        parts.extend([obj.postal_code, obj.city, obj.state, obj.country])
-        return ", ".join(filter(None, parts))
-
-
-# =============================================================================
-# BOUTIQUES ET MAGASINS
-# =============================================================================
-
-
-class StoreTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = StoreType
-        fields = "__all__"
-
-
-class StoreNetworkSerializer(serializers.ModelSerializer):
-    headquarters_address = AddressSerializer(source="headquarters", read_only=True)
-
-    class Meta:
-        model = StoreNetwork
-        fields = "__all__"
-
-class StoreCreateSerializer(serializers.ModelSerializer):
-    """Serializer spécifique pour la création avec adresse incluse"""
-    
-    # Accepter les données d'adresse directement
-    address_line1 = serializers.CharField(write_only=True)
-    address_line2 = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    city = serializers.CharField(write_only=True)
-    state = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    postal_code = serializers.CharField(write_only=True,required=False)
-    country = serializers.CharField(write_only=True)
-    latitude = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    longitude = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    
-    class Meta:
-        model = Store
-        fields = [
-            'name', 'phone', 'email', 'slogan',
-            'store_type', 'network', 'is_active', 'configuration', 'opening_hours',
-            # Champs d'adresse
-            'address_line1', 'address_line2', 'city', 'state', 'postal_code', 
-            'country', 'latitude', 'longitude',
-        ]
-        extra_kwargs = {
-            'network': {'required': False, 'allow_null': True},
-            'store_type': {'required': True},
-        }
-    
-    def create(self, validated_data):
-
-        # Extraire les données d'adresse
-        address_data = {
-            'address_line1': validated_data.pop('address_line1'),
-            'address_line2': validated_data.pop('address_line2', ''),
-            'city': validated_data.pop('city'),
-            'state': validated_data.pop('state', ''),
-            'postal_code': validated_data.pop('postal_code',''),
-            'country': validated_data.pop('country'),
-            'latitude': validated_data.pop('latitude'),
-            'longitude': validated_data.pop('longitude'),
-        }
-        
-        # Nettoyer latitude/longitude
-        for coord in ['latitude', 'longitude']:
-            if address_data[coord] == '':
-                address_data[coord] = None
-            elif address_data[coord] is not None:
-                try:
-                    address_data[coord] = float(address_data[coord])
-                except (ValueError, TypeError):
-                    address_data[coord] = None
-        
-        # Créer l'adresse
-        address = Address.objects.create(**address_data)
-        
-        # Ajouter l'adresse aux données de la boutique
-        validated_data['address'] = address
-        
-        # Gérer store_type (peut être ID ou objet)
-        store_type = validated_data.get('store_type')
-        if isinstance(store_type, int):
-            from .models import StoreType
-            validated_data['store_type'] = StoreType.objects.get(id=store_type)
-        
-        # Générer le slug
-        from django.utils.text import slugify
-        name = validated_data.get('name', '')
-        slug = slugify(name)
-        
-        # Vérifier l'unicité du slug
-        counter = 1
-        original_slug = slug
-        while Store.objects.filter(slug=slug).exists():
-            slug = f"{original_slug}-{counter}"
-            counter += 1
-        
-        validated_data['slug'] = slug
-        
-        # Créer la boutique
-        store = Store.objects.create(**validated_data)
-        
-        # Créer StoreOwnership
-        request = self.context.get('request')
-        if request and hasattr(request.user, 'owner'):
-            StoreOwnership.objects.create(
-                store=store,
-                owner=request.user.owner,
-                is_primary=True,
-                ownership_percentage=100.0
-            )
-        
-        return store
-    
-# Dans serializers.py
-class StoreUpdateSerializer(serializers.ModelSerializer):
-    """Serializer pour la modification des boutiques avec adresse incluse"""
-    
-    # Accepter les données d'adresse directement (comme pour la création)
-    address_line1 = serializers.CharField(write_only=True, required=False)
-    address_line2 = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    city = serializers.CharField(write_only=True, required=False)
-    state = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    postal_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    country = serializers.CharField(write_only=True, required=False)
-    latitude = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    longitude = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    
-    class Meta:
-        model = Store
-        fields = [
-            'name', 'phone', 'email', 'slogan',
-            'store_type', 'network', 'is_active', 'configuration', 'opening_hours',
-            # Champs d'adresse (optionnels pour la modification)
-            'address_line1', 'address_line2', 'city', 'state', 'postal_code', 
-            'country', 'latitude', 'longitude',
-        ]
-        extra_kwargs = {
-            'network': {'required': False, 'allow_null': True},
-            'store_type': {'required': False},
-            'name': {'required': False},
-            'phone': {'required': False, 'allow_blank': True},
-            'email': {'required': False, 'allow_blank': True},
-            'slogan': {'required': False, 'allow_blank': True},
-            'is_active': {'required': False},
-            'opening_hours': {'required': False},
-            'configuration': {'required': False},
-        }
-    
-    def update(self, instance, validated_data):
-        store_type_value = validated_data.pop('store_type')
-        from .models import StoreType
-
-        # ✅ CAS 1: C'est DÉJÀ un objet StoreType
-        if hasattr(store_type_value, '_meta') and store_type_value._meta.model == StoreType:
-            instance.store_type = store_type_value
-        
-        # ✅ CAS 2: C'est un ID (int)
-        elif isinstance(store_type_value, int):
-            try:
-                store_type = StoreType.objects.get(id=store_type_value)
-                instance.store_type = store_type
-            except StoreType.DoesNotExist:
-                None
-
-        # Vérifier si des données d'adresse sont fournies
-        address_fields = ['address_line1', 'address_line2', 'city', 'state', 
-                         'postal_code', 'country', 'latitude', 'longitude']
-        
-        has_address_data = any(field in validated_data for field in address_fields)
-        
-        if has_address_data:
-            # Extraire les données d'adresse
-            address_data = {}
-            for field in address_fields:
-                if field in validated_data:
-                    address_data[field] = validated_data.pop(field)
-
-            # Nettoyer latitude/longitude
-            for coord in ['latitude', 'longitude']:
-                if coord in address_data:
-                    if address_data[coord] == '':
-                        address_data[coord] = None
-                    elif address_data[coord] is not None:
-                        try:
-                            address_data[coord] = float(address_data[coord])
-                        except (ValueError, TypeError):
-                            address_data[coord] = None
-            
-            # Mettre à jour ou créer l'adresse
-            if instance.address:
-                # Mettre à jour l'adresse existante
-                for key, value in address_data.items():
-                    if value is not None and value != '':
-                        setattr(instance.address, key, value)
-                instance.address.save()
-            else:
-                # Créer une nouvelle adresse
-                new_address = Address.objects.create(**address_data)
-                instance.address = new_address
-
-        # Mettre à jour les autres champs
-        for attr, value in validated_data.items():
-            if value is not None and value != '':
-                setattr(instance, attr, value)
-        
-        instance.save()
-        
-        return instance
-    
-class StoreSerializer(serializers.ModelSerializer):
-    store_type_name = serializers.CharField(source="store_type.name", read_only=True)
-    network_name = serializers.CharField(source="network.name", read_only=True)
-    address_details = AddressSerializer(source="address", read_only=True)
-    total_employees = serializers.SerializerMethodField()
-    total_products = serializers.SerializerMethodField()
-    pending_orders = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Store
-        fields = "__all__"
-        read_only_fields = ["created_at", "slug","address_details"]
-
-    def get_total_employees(self, obj):
-        return Employee.objects.filter(store=obj, is_active=True).count()
-
-    def get_total_products(self, obj):
-        return obj.store_products.filter(is_active=True).count()
-
-    def get_pending_orders(self, obj):
-        # Compter les commandes en attente pour cette boutique
-        pending_status = OrderStatus.objects.filter(code="pending").first()
-        if pending_status:
-            return Order.objects.filter(store=obj, status=pending_status).count()
-        return 0
-
-
-class StoreOwnershipSerializer(serializers.ModelSerializer):
-    store_name = serializers.CharField(source="store.name", read_only=True)
-    owner_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = StoreOwnership
-        fields = "__all__"
-
-    def get_owner_name(self, obj):
-        return obj.owner.user.get_full_name()
-
-
-class DepartmentSerializer(serializers.ModelSerializer):
-    store_name = serializers.CharField(source="store.name", read_only=True)
-    manager_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Department
-        fields = "__all__"
-
-    def get_manager_name(self, obj):
-        if obj.manager:
-            return obj.manager.user.get_full_name()
-        return None
 
 
 # =============================================================================
@@ -1457,8 +1431,12 @@ class ProductSerializer(BaseAuditSerializer):
         return obj.variants.count()
 
     def get_margin(self, obj):
-        if obj.cost_price and obj.base_price and obj.cost_price > 0:
-            return ((obj.base_price - obj.cost_price) / obj.cost_price) * 100
+        if hasattr(obj, 'cost_price') and hasattr(obj, 'base_price'):
+            if obj.cost_price and obj.base_price and obj.cost_price > 0:
+                try:
+                    return ((obj.base_price - obj.cost_price) / obj.cost_price) * 100
+                except (TypeError, ZeroDivisionError):
+                    return 0
         return 0
     
     def get_additional_images_urls(self, obj):
@@ -1679,7 +1657,7 @@ class StoreProductVariantSerializer(BaseAuditSerializer):
         return obj.get_effective_price()
     
 # =============================================================================
-# GESTION DES STOCKS
+# GESTION DES STOCKS - VERSION CORRIGÉE
 # =============================================================================
 
 
@@ -1749,6 +1727,7 @@ class StockMovementItemSerializer(BaseAuditSerializer):
         fields = "__all__"
 
 
+
 class StockMovementSerializer(BaseAuditSerializer):
     store_name = serializers.CharField(source="store.name", read_only=True)
     movement_type_display = serializers.CharField(
@@ -1761,6 +1740,7 @@ class StockMovementSerializer(BaseAuditSerializer):
         fields = "__all__"
 
 
+
 class InventoryCountItemSerializer(BaseAuditSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     variant_name = serializers.CharField(source="variant.name", read_only=True)
@@ -1768,6 +1748,7 @@ class InventoryCountItemSerializer(BaseAuditSerializer):
     class Meta:
         model = InventoryCountItem
         fields = "__all__"
+
 
 
 class InventoryCountSerializer(BaseAuditSerializer):

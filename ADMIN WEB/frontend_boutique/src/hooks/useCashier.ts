@@ -36,6 +36,7 @@ interface CashClosureRequest {
   comments: string;
   total_sales: number;
   total_transactions: number;
+  session_id?: string; // Ajout de session_id
   start_date?: string;
   end_date?: string;
 }
@@ -693,9 +694,17 @@ export const useCashier = (storeId: number = 1, employeeId: number = 1): UseCash
     }
   }, [storeId, updateState]);
 
+  // ==================== CORRECTION PRINCIPALE ====================
+  // Gestion des retraits avec sessionId
   const handleCashWithdrawal = useCallback(async () => {
     if (!state.withdrawalAmount || parseFloat(state.withdrawalAmount) <= 0) {
       showNotification('error', '❌ Veuillez saisir un montant valide');
+      return;
+    }
+
+    // Vérifier que la session est disponible
+    if (!state.currentSessionId) {
+      showNotification('error', '❌ Aucune session de caisse active');
       return;
     }
 
@@ -707,9 +716,16 @@ export const useCashier = (storeId: number = 1, employeeId: number = 1): UseCash
         employee_id: employeeId
       };
 
-      console.log('💸 Enregistrement retrait:', withdrawalData);
+      console.log('💸 Enregistrement retrait:', {
+        withdrawalData,
+        sessionId: state.currentSessionId
+      });
 
-      await cashierService.recordCashWithdrawal(withdrawalData as any);
+      // Passage de l'ID de session au service
+      await cashierService.recordCashWithdrawal(
+        withdrawalData, 
+        state.currentSessionId
+      );
       
       showNotification('success', `✅ Retrait de ${cashierService.formatCurrency(parseFloat(state.withdrawalAmount))} effectué`);
       updateState({ 
@@ -727,16 +743,25 @@ export const useCashier = (storeId: number = 1, employeeId: number = 1): UseCash
   }, [
     state.withdrawalAmount, 
     state.withdrawalReason, 
-    state.currentCashRegister, 
+    state.currentCashRegister,
+    state.currentSessionId,  // Dépendance cruciale
     employeeId, 
     showNotification, 
     updateState, 
     fetchDailySummary
   ]);
 
+  // Gestion de la clôture finale
   const handleFinalClosure = useCallback(async () => {
     try {
       updateState({ processingClosure: true });
+
+      // Vérifier que la session est disponible
+      if (!state.currentSessionId) {
+        showNotification('error', '❌ Aucune session de caisse active');
+        updateState({ processingClosure: false });
+        return;
+      }
 
       const totalCounted = Object.entries(state.cashClosureData.cashCount).reduce(
         (total, [denomination, count]) => total + (parseInt(denomination) * count),
@@ -756,7 +781,8 @@ export const useCashier = (storeId: number = 1, employeeId: number = 1): UseCash
         cash_breakdown: state.cashClosureData.cashCount,
         comments: state.cashClosureData.comments,
         total_sales: totalSales,
-        total_transactions: totalTransactions
+        total_transactions: totalTransactions,
+        session_id: state.currentSessionId // Ajout de l'ID de session
       };
 
       console.log('🔒 Finalisation clôture:', closureData);
@@ -796,7 +822,8 @@ export const useCashier = (storeId: number = 1, employeeId: number = 1): UseCash
   }, [
     state.cashClosureData, 
     state.dailySummary, 
-    state.currentCashRegister, 
+    state.currentCashRegister,
+    state.currentSessionId, // Dépendance ajoutée
     employeeId, 
     showNotification, 
     updateState

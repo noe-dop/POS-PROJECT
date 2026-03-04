@@ -1310,6 +1310,9 @@ class InventoryCount(AuditModel):
         default=0
     )
     
+    # AJOUTEZ CES CHAMPS OBLIGATOIRES !
+    notes = models.TextField("Notes", blank=True, default='')
+    
     class Meta:
         verbose_name = "Inventaire physique"
         verbose_name_plural = "Inventaires physiques"
@@ -1318,6 +1321,10 @@ class InventoryCount(AuditModel):
             models.Index(fields=['store', 'count_date']),
             models.Index(fields=['status']),
         ]
+
+# =============================================================================
+# AJOUTEZ CETTE CLASSE MANQUANTE !
+# =============================================================================
 
 class InventoryCountItem(AuditModel):
     inventory_count = models.ForeignKey(
@@ -1357,8 +1364,6 @@ class InventoryCountItem(AuditModel):
     def save(self, *args, **kwargs):
         self.discrepancy = self.counted_quantity - self.expected_quantity
         super().save(*args, **kwargs)
-
-
 
 # -----------------------------
 # COMMANDES (ORDERS) - NOUVEAUX MODÈLES

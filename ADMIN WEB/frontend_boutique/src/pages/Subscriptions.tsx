@@ -1,576 +1,462 @@
 // src/pages/Subscriptions.tsx
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ROUTES } from '@constants/routes';
-import { useAuth } from '@hooks/useAuth';
-
-// Types basés sur votre modèle Django
-interface SubscriptionPlan {
-  id: number;
-  name: string;
-  code: string;
-  description: string;
-  price_monthly: number;
-  price_yearly: number;
-  currency: string;
-  features: string[];
-  max_stores: number;
-  max_users: number;
-  max_products: number;
-  analytics: boolean;
-  support_level: 'basic' | 'priority' | 'dedicated';
-  is_active: boolean;
-  is_popular: boolean;
-}
-
-interface CurrentSubscription {
-  id: number;
-  plan: SubscriptionPlan;
-  status: 'active' | 'pending' | 'cancelled' | 'expired';
-  start_date: string;
-  end_date: string;
-  auto_renew: boolean;
-  payment_method: string;
-  next_billing_date: string;
-}
-
-interface BillingHistory {
-  id: number;
-  amount: number;
-  currency: string;
-  status: 'paid' | 'pending' | 'failed';
-  payment_method: string;
-  billing_date: string;
-  invoice_url: string;
-}
+import React, { useState } from 'react';
+import { useSubscription } from '../hooks/useSubscription';
+import { useAuth } from '../hooks/useAuth';
+import { PlanCard } from '../components/subscriptions/PlanCard';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { ErrorAlert } from '../components/ui/ErrorAlert';
+import { EmptyState } from '../components/ui/EmptyState';
+import { formatCurrency, formatDate, getStatusLabel, getStatusColor } from '../utils/formatters';
 
 const Subscriptions: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'plans' | 'current' | 'billing'>('plans');
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [currentSubscription, setCurrentSubscription] = useState<CurrentSubscription | null>(null);
-  const [billingHistory, setBillingHistory] = useState<BillingHistory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
+  // Récupération de l'ID de la boutique depuis l'utilisateur connecté
+  // À adapter selon votre structure de données
+  const storeId = user?.store?.id || 1;
+  
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-
-  // Données simulées basées sur votre modèle
-  const mockPlans: SubscriptionPlan[] = [
-    {
-      id: 1,
-      name: "Starter",
-      code: "starter",
-      description: "Parfait pour les petites boutiques",
-      price_monthly: 29.99,
-      price_yearly: 299.99,
-      currency: "EUR",
-      features: [
-        "1 boutique maximum",
-        "2 utilisateurs",
-        "500 produits",
-        "Rapports de base",
-        "Support par email",
-        "Sauvegarde quotidienne"
-      ],
-      max_stores: 1,
-      max_users: 2,
-      max_products: 500,
-      analytics: false,
-      support_level: 'basic',
-      is_active: true,
-      is_popular: false
-    },
-    {
-      id: 2,
-      name: "Business",
-      code: "business",
-      description: "Idéal pour les boutiques en croissance",
-      price_monthly: 79.99,
-      price_yearly: 799.99,
-      currency: "EUR",
-      features: [
-        "3 boutiques maximum",
-        "5 utilisateurs",
-        "5000 produits",
-        "Analytics avancés",
-        "Support prioritaire",
-        "Sauvegarde horaire",
-        "API d'intégration",
-        "Formation en ligne"
-      ],
-      max_stores: 3,
-      max_users: 5,
-      max_products: 5000,
-      analytics: true,
-      support_level: 'priority',
-      is_active: true,
-      is_popular: true
-    },
-    {
-      id: 3,
-      name: "Enterprise",
-      code: "enterprise",
-      description: "Solution complète pour les grandes entreprises",
-      price_monthly: 199.99,
-      price_yearly: 1999.99,
-      currency: "EUR",
-      features: [
-        "Boutiques illimitées",
-        "Utilisateurs illimités",
-        "Produits illimités",
-        "Analytics temps réel",
-        "Support dédié 24/7",
-        "Sauvegarde en temps réel",
-        "API complète",
-        "Formation personnalisée",
-        "Personnalisation avancée",
-        "SLA garantie"
-      ],
-      max_stores: 999,
-      max_users: 999,
-      max_products: 99999,
-      analytics: true,
-      support_level: 'dedicated',
-      is_active: true,
-      is_popular: false
-    }
-  ];
-
-  const mockCurrentSubscription: CurrentSubscription = {
-    id: 1,
-    plan: mockPlans[0],
-    status: 'active',
-    start_date: '2024-01-01',
-    end_date: '2024-12-31',
-    auto_renew: true,
-    payment_method: 'Carte bancaire',
-    next_billing_date: '2024-12-31'
-  };
-
-  const mockBillingHistory: BillingHistory[] = [
-    {
-      id: 1,
-      amount: 29.99,
-      currency: "EUR",
-      status: 'paid',
-      payment_method: 'Carte bancaire',
-      billing_date: '2024-11-01',
-      invoice_url: '#'
-    },
-    {
-      id: 2,
-      amount: 29.99,
-      currency: "EUR",
-      status: 'paid',
-      payment_method: 'Carte bancaire',
-      billing_date: '2024-10-01',
-      invoice_url: '#'
-    }
-  ];
-
-  useEffect(() => {
-    // Simulation du chargement des données
-    setTimeout(() => {
-      setPlans(mockPlans);
-      setCurrentSubscription(mockCurrentSubscription);
-      setBillingHistory(mockBillingHistory);
-      setLoading(false);
-    }, 1000);
-  }, []);
-
-  const handleSubscribe = (planId: number) => {
-    setSelectedPlan(planId);
-    // Ici, vous intégreriez votre logique de paiement
-    console.log(`Souscription au plan ${planId} (${billingCycle})`);
-  };
-
-  const handleCancelSubscription = () => {
-    if (window.confirm('Êtes-vous sûr de vouloir annuler votre abonnement ?')) {
-      // Logique d'annulation
-      console.log('Abonnement annulé');
-    }
-  };
-
-  const getPrice = (plan: SubscriptionPlan) => {
-    return billingCycle === 'monthly' ? plan.price_monthly : plan.price_yearly;
-  };
-
-  const getSavings = (plan: SubscriptionPlan) => {
-    if (billingCycle === 'yearly') {
-      const yearlyFromMonthly = plan.price_monthly * 12;
-      const savings = yearlyFromMonthly - plan.price_yearly;
-      return Math.round((savings / yearlyFromMonthly) * 100);
-    }
-    return 0;
-  };
+  const [activeTab, setActiveTab] = useState<'plans' | 'current' | 'billing'>('plans');
+  
+  const {
+    plans,
+    subscription,
+    invoices,
+    limits,
+    loading,
+    error,
+    subscribe,
+    cancel,
+    refresh
+  } = useSubscription(storeId);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement des offres d'abonnement...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Chargement des offres d'abonnement..." />;
+  }
+
+  if (error) {
+    return <ErrorAlert message={error} onRetry={refresh} />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* En-tête */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Abonnements
-          </h1>
+          <div className="inline-flex items-center justify-center p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-xl mb-6">
+            <div className="bg-white rounded-xl px-6 py-3">
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Abonnements
+              </span>
+            </div>
+          </div>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Choisissez le plan qui correspond le mieux à vos besoins. 
-            Tous nos plans incluent les fonctionnalités essentielles pour gérer votre boutique efficacement.
+            Choisissez le plan adapté à votre activité. Tous nos plans incluent 
+            <span className="font-semibold text-blue-600"> 14 jours d'essai gratuit</span>.
           </p>
         </div>
 
         {/* Navigation par onglets */}
-        <div className="mb-8">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              {[
-                { id: 'plans', name: 'Plans disponibles', count: plans.length },
-                { id: 'current', name: 'Mon abonnement', count: currentSubscription ? 1 : 0 },
-                { id: 'billing', name: 'Historique de facturation', count: billingHistory.length }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  {tab.name}
-                  {tab.count > 0 && (
-                    <span className={`ml-2 py-0.5 px-2 text-xs rounded-full ${
-                      activeTab === tab.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </nav>
-          </div>
+        <div className="mb-8 border-b border-gray-200">
+          <nav className="flex space-x-8">
+            {[
+              { id: 'plans', label: '📋 Plans disponibles', count: plans.length },
+              { id: 'current', label: '🔒 Mon abonnement', count: subscription ? 1 : 0 },
+              { id: 'billing', label: '📄 Facturation', count: invoices.length }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`
+                  relative py-4 px-1 font-medium text-sm transition-colors
+                  ${activeTab === tab.id
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                  }
+                `}
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className={`
+                    absolute -top-1 -right-2 px-2 py-0.5 text-xs rounded-full
+                    ${activeTab === tab.id
+                      ? 'bg-blue-100 text-blue-600'
+                      : 'bg-gray-100 text-gray-600'
+                    }
+                  `}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
         </div>
 
-        {/* Contenu des onglets */}
-        <div className="bg-white rounded-lg shadow-lg">
-          {/* Plans disponibles */}
+        {/* Contenu */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          {/* Onglet Plans */}
           {activeTab === 'plans' && (
             <div className="p-8">
-              {/* Sélecteur de cycle de facturation */}
               <div className="flex justify-center mb-12">
-                <div className="bg-gray-100 rounded-lg p-1">
+                <div className="bg-gray-100 p-1 rounded-xl">
                   <button
                     onClick={() => setBillingCycle('monthly')}
-                    className={`px-6 py-2 rounded-md font-medium ${
-                      billingCycle === 'monthly'
-                        ? 'bg-white text-blue-600 shadow-sm'
+                    className={`
+                      px-6 py-3 rounded-lg font-medium transition-all
+                      ${billingCycle === 'monthly'
+                        ? 'bg-white text-blue-600 shadow-md'
                         : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                      }
+                    `}
                   >
                     Mensuel
                   </button>
                   <button
                     onClick={() => setBillingCycle('yearly')}
-                    className={`px-6 py-2 rounded-md font-medium ${
-                      billingCycle === 'yearly'
-                        ? 'bg-white text-blue-600 shadow-sm'
+                    className={`
+                      px-6 py-3 rounded-lg font-medium transition-all
+                      ${billingCycle === 'yearly'
+                        ? 'bg-white text-blue-600 shadow-md'
                         : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                      }
+                    `}
                   >
                     Annuel
-                    <span className="ml-2 text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">
-                      Économisez jusqu'à 20%
+                    <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">
+                      Économisez 20%
                     </span>
                   </button>
                 </div>
               </div>
 
-              {/* Grille des plans */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {plans.map((plan) => (
-                  <div
+                {plans.map(plan => (
+                  <PlanCard
                     key={plan.id}
-                    className={`relative rounded-2xl border-2 p-8 ${
-                      plan.is_popular
-                        ? 'border-blue-500 bg-blue-50 transform scale-105'
-                        : 'border-gray-200'
-                    }`}
-                  >
-                    {plan.is_popular && (
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <span className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-medium">
-                          Plus populaire
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="text-center mb-6">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                        {plan.name}
-                      </h3>
-                      <p className="text-gray-600 mb-4">{plan.description}</p>
-                      
-                      <div className="mb-4">
-                        <span className="text-4xl font-bold text-gray-900">
-                          {getPrice(plan).toFixed(2)}€
-                        </span>
-                        <span className="text-gray-600">
-                          /{billingCycle === 'monthly' ? 'mois' : 'an'}
-                        </span>
-                      </div>
-
-                      {billingCycle === 'yearly' && getSavings(plan) > 0 && (
-                        <div className="text-green-600 font-medium">
-                          Économisez {getSavings(plan)}%
-                        </div>
-                      )}
-                    </div>
-
-                    <ul className="space-y-4 mb-8">
-                      {plan.features.map((feature, index) => (
-                        <li key={index} className="flex items-center">
-                          <svg className="h-5 w-5 text-green-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          <span className="text-gray-700">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <button
-                      onClick={() => handleSubscribe(plan.id)}
-                      className={`w-full py-3 px-4 rounded-lg font-medium ${
-                        plan.is_popular
-                          ? 'bg-blue-600 text-white hover:bg-blue-700'
-                          : 'bg-gray-900 text-white hover:bg-gray-800'
-                      }`}
-                    >
-                      {currentSubscription ? 'Changer de plan' : 'Commencer'}
-                    </button>
-                  </div>
+                    plan={plan}
+                    billingCycle={billingCycle}
+                    isCurrent={subscription?.plan?.id === plan.id}
+                    onSelect={(planId) => subscribe(planId, billingCycle)}
+                  />
                 ))}
               </div>
             </div>
           )}
 
-          {/* Mon abonnement actuel */}
-          {activeTab === 'current' && currentSubscription && (
+          {/* Onglet Abonnement actuel */}
+          {activeTab === 'current' && subscription && (
             <div className="p-8">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-8 mb-8">
+              {/* Header avec statut */}
+              <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-8 text-white mb-8">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                      {currentSubscription.plan.name}
-                    </h2>
-                    <p className="text-gray-600 mb-4">
-                      Statut: <span className={`font-medium ${
-                        currentSubscription.status === 'active' ? 'text-green-600' : 
-                        currentSubscription.status === 'pending' ? 'text-yellow-600' : 
-                        'text-red-600'
-                      }`}>
-                        {currentSubscription.status === 'active' ? 'Actif' : 
-                         currentSubscription.status === 'pending' ? 'En attente' : 
-                         'Annulé'}
+                    <div className="flex items-center gap-3 mb-2">
+                      <h2 className="text-2xl font-bold">{subscription.plan.name}</h2>
+                      <span className={`
+                        px-3 py-1 rounded-full text-xs font-medium
+                        ${getStatusColor(subscription.status)}
+                      `}>
+                        {getStatusLabel(subscription.status)}
                       </span>
+                      {subscription.trial_end_date && new Date(subscription.trial_end_date) > new Date() && (
+                        <span className="bg-white/20 text-white px-3 py-1 rounded-full text-xs">
+                          Essai jusqu'au {formatDate(subscription.trial_end_date)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-blue-100 mb-4">
+                      Cycle de facturation: <span className="font-medium capitalize">{subscription.billing_cycle}</span>
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-500">Début:</span>
-                        <p className="font-medium">{new Date(currentSubscription.start_date).toLocaleDateString('fr-FR')}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <p className="text-blue-200">Début</p>
+                        <p className="font-medium">{formatDate(subscription.start_date)}</p>
                       </div>
-                      <div>
-                        <span className="text-gray-500">Fin:</span>
-                        <p className="font-medium">{new Date(currentSubscription.end_date).toLocaleDateString('fr-FR')}</p>
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <p className="text-blue-200">Fin</p>
+                        <p className="font-medium">
+                          {subscription.end_date ? formatDate(subscription.end_date) : 'Illimitée'}
+                        </p>
                       </div>
-                      <div>
-                        <span className="text-gray-500">Prochaine facturation:</span>
-                        <p className="font-medium">{new Date(currentSubscription.next_billing_date).toLocaleDateString('fr-FR')}</p>
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <p className="text-blue-200">Prochaine facture</p>
+                        <p className="font-medium">
+                          {subscription.next_billing_date ? formatDate(subscription.next_billing_date) : 'N/A'}
+                        </p>
+                      </div>
+                      <div className="bg-white/10 rounded-lg p-3">
+                        <p className="text-blue-200">Montant</p>
+                        <p className="font-medium">
+                          {formatCurrency(subscription.plan.price_monthly)}/mois
+                        </p>
                       </div>
                     </div>
                   </div>
-                  <div className="mt-4 md:mt-0">
-                    <button
-                      onClick={handleCancelSubscription}
-                      className="px-6 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 font-medium"
-                    >
-                      Annuler l'abonnement
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Êtes-vous sûr de vouloir annuler votre abonnement ?')) {
+                        cancel();
+                      }
+                    }}
+                    className="mt-4 md:mt-0 px-6 py-3 bg-white/20 hover:bg-white/30 backdrop-blur rounded-xl font-medium transition-all"
+                  >
+                    Annuler l'abonnement
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Détails du plan</h3>
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Boutiques:</span>
-                        <span className="font-medium">{currentSubscription.plan.max_stores}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Utilisateurs:</span>
-                        <span className="font-medium">{currentSubscription.plan.max_users}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Produits:</span>
-                        <span className="font-medium">{currentSubscription.plan.max_products}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Analytics:</span>
-                        <span className="font-medium">{currentSubscription.plan.analytics ? 'Inclus' : 'Non inclus'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Support:</span>
-                        <span className="font-medium capitalize">{currentSubscription.plan.support_level}</span>
-                      </div>
-                    </div>
+              {/* Limites d'utilisation */}
+              {limits.length > 0 && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Utilisation des ressources
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {limits.map(limit => {
+                      const percentage = Math.min(100, (limit.current_usage / (limit.max_allowed || 1)) * 100);
+                      return (
+                        <div key={limit.id} className="bg-gray-50 rounded-xl p-6">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-gray-600 capitalize font-medium">
+                              {limit.resource_type === 'stores' ? 'Boutiques' :
+                               limit.resource_type === 'employees' ? 'Employés' :
+                               limit.resource_type === 'products' ? 'Produits' : 'Clients'}
+                            </span>
+                            <span className="text-sm font-bold text-gray-900">
+                              {limit.current_usage} / {limit.max_allowed === 999 ? '∞' : limit.max_allowed}
+                            </span>
+                          </div>
+                          <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className={`
+                                h-full rounded-full transition-all duration-500
+                                ${percentage >= 90 ? 'bg-red-500' : 
+                                  percentage >= 70 ? 'bg-yellow-500' : 
+                                  'bg-green-500'}
+                              `}
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
+              )}
 
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Méthode de paiement</h3>
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{currentSubscription.payment_method}</p>
-                        <p className="text-sm text-gray-600">Renouvellement automatique: {currentSubscription.auto_renew ? 'Activé' : 'Désactivé'}</p>
-                      </div>
-                      <button className="text-blue-600 hover:text-blue-700 font-medium">
-                        Modifier
-                      </button>
+              {/* Détails du plan et paiement */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-gray-50 rounded-xl p-6">
+                  <h4 className="font-semibold text-gray-900 mb-4">Détails du plan</h4>
+                  <dl className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+                      <span className="text-sm text-gray-600">Boutiques</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {subscription.plan.max_stores === 999 ? 'Illimité' : subscription.plan.max_stores}
+                      </span>
                     </div>
-                  </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+                      <span className="text-sm text-gray-600">Utilisateurs</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {subscription.plan.max_users === 999 ? 'Illimité' : subscription.plan.max_users}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+                      <span className="text-sm text-gray-600">Produits</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {subscription.plan.max_products === 99999 ? 'Illimité' : subscription.plan.max_products}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+                      <span className="text-sm text-gray-600">Analytics</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {subscription.plan.analytics ? 'Inclus' : 'Non inclus'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+                      <span className="text-sm text-gray-600">Support</span>
+                      <span className="text-sm font-medium text-gray-900 capitalize">
+                        {subscription.plan.support_level}
+                      </span>
+                    </div>
+                  </dl>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl p-6">
+                  <h4 className="font-semibold text-gray-900 mb-4">Méthode de paiement</h4>
+                  <dl className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+                      <span className="text-sm text-gray-600">Méthode</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {subscription.payment_method || 'Non définie'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+                      <span className="text-sm text-gray-600">Renouvellement auto</span>
+                      <span className={`text-sm font-medium ${subscription.auto_renew ? 'text-green-600' : 'text-red-600'}`}>
+                        {subscription.auto_renew ? 'Activé' : 'Désactivé'}
+                      </span>
+                    </div>
+                    {subscription.last_billing_date && (
+                      <div className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
+                        <span className="text-sm text-gray-600">Dernier paiement</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {formatDate(subscription.last_billing_date)}
+                        </span>
+                      </div>
+                    )}
+                  </dl>
+                  <button className="mt-4 text-blue-600 hover:text-blue-800 font-medium text-sm">
+                    Modifier le mode de paiement
+                  </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Historique de facturation */}
+          {/* Onglet Facturation */}
           {activeTab === 'billing' && (
             <div className="p-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Historique des factures</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                Historique des factures
+              </h3>
               
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Montant
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Méthode
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Statut
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {billingHistory.map((invoice) => (
-                      <tr key={invoice.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(invoice.billing_date).toLocaleDateString('fr-FR')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {invoice.amount.toFixed(2)} {invoice.currency}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {invoice.payment_method}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            invoice.status === 'paid' 
-                              ? 'bg-green-100 text-green-800'
-                              : invoice.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {invoice.status === 'paid' ? 'Payé' : 
-                             invoice.status === 'pending' ? 'En attente' : 'Échoué'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <a
-                            href={invoice.invoice_url}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            Télécharger
-                          </a>
-                        </td>
+              {invoices.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          N° Facture
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Période
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Montant
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Statut
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {billingHistory.length === 0 && (
-                <div className="text-center py-12">
-                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">Aucune facture</h3>
-                  <p className="mt-1 text-sm text-gray-500">Aucune facture n'a été générée pour le moment.</p>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {invoices.map(invoice => (
+                        <tr key={invoice.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {invoice.invoice_number}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {formatDate(invoice.billing_period_start)} - {formatDate(invoice.billing_period_end)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {formatCurrency(invoice.total_amount)}
+                            {invoice.tax_amount > 0 && (
+                              <span className="text-xs text-gray-500 block">
+                                dont TVA {formatCurrency(invoice.tax_amount)}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`
+                              inline-flex px-2 py-1 text-xs font-medium rounded-full
+                              ${getStatusColor(invoice.status)}
+                            `}>
+                              {getStatusLabel(invoice.status)}
+                            </span>
+                            {invoice.paid_at && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                le {formatDate(invoice.paid_at)}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            {invoice.invoice_file ? (
+                              <a
+                                href={invoice.invoice_file}
+                                className="text-blue-600 hover:text-blue-800 font-medium"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Télécharger
+                              </a>
+                            ) : (
+                              <span className="text-gray-400">Non disponible</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
+              ) : (
+                <EmptyState
+                  icon="📄"
+                  title="Aucune facture"
+                  description="Les factures apparaîtront ici après votre premier paiement."
+                />
               )}
+            </div>
+          )}
+
+          {/* Message si pas d'abonnement dans l'onglet current */}
+          {activeTab === 'current' && !subscription && (
+            <div className="p-12 text-center">
+              <div className="text-6xl mb-4">🔓</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Aucun abonnement actif</h3>
+              <p className="text-gray-600 mb-6">
+                Vous n'avez pas encore d'abonnement actif. Choisissez un plan pour commencer.
+              </p>
+              <button
+                onClick={() => setActiveTab('plans')}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+              >
+                Voir les plans
+              </button>
             </div>
           )}
         </div>
 
         {/* Section FAQ */}
-        <div className="mt-16 bg-white rounded-lg shadow-lg p-8">
+        <div className="mt-16 bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl p-8 border border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
             Questions fréquentes
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <div className="bg-white rounded-xl p-6 shadow-sm">
+              <h3 className="font-semibold text-gray-900 mb-2">
                 Puis-je changer de plan à tout moment ?
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 text-sm leading-relaxed">
                 Oui, vous pouvez passer à un plan supérieur à tout moment. La différence de prix sera proratisée.
                 Pour les plans inférieurs, le changement prendra effet à la fin de votre cycle de facturation actuel.
               </p>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <div className="bg-white rounded-xl p-6 shadow-sm">
+              <h3 className="font-semibold text-gray-900 mb-2">
                 Y a-t-il des frais de résiliation ?
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 text-sm leading-relaxed">
                 Non, aucun frais de résiliation n'est appliqué. Vous pouvez annuler votre abonnement à tout moment
-                et continuer à profiter des fonctionnalités jusqu'à la fin de votre période de facturation.
+                et continuer à utiliser le service jusqu'à la fin de votre période de facturation.
               </p>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <div className="bg-white rounded-xl p-6 shadow-sm">
+              <h3 className="font-semibold text-gray-900 mb-2">
                 Quels moyens de paiement acceptez-vous ?
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 text-sm leading-relaxed">
                 Nous acceptons les cartes de crédit (Visa, MasterCard), les virements bancaires, 
-                et les portefeuilles électroniques (Wave, Orange Money, etc.).
+                Wave, Orange Money et Moov Money.
               </p>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <div className="bg-white rounded-xl p-6 shadow-sm">
+              <h3 className="font-semibold text-gray-900 mb-2">
                 Proposez-vous une période d'essai ?
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 text-sm leading-relaxed">
                 Oui, nous offrons une période d'essai de 14 jours pour tous nos plans.
                 Aucune carte de crédit n'est requise pour commencer l'essai.
               </p>
