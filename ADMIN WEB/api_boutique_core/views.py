@@ -1071,7 +1071,7 @@ class StoreViewSet(viewsets.ModelViewSet):
         (sans prix d'achat, ni données internes).
         """
         store = self.get_object()  # Vérifie que la boutique existe et est active (via get_queryset)
-        store_products = StoreProduct.objects.filter(store=store, is_active=True,status="active")
+        store_products = StoreProduct.objects.filter(store=store, is_active=True)
         serializer = StoreProductPublicSerializer(store_products, many=True, context={'request': request})
         return Response(serializer.data)
     
