@@ -5,7 +5,13 @@ import {
   ProductCategory,
   CreateProductCategoryDto,
   UpdateProductCategoryDto,
-  ProductCategoryFilter
+  ProductCategoryFilter,
+  generateSubCategory,
+  generateSlug,
+  validateCategoryData,
+  prepareCategoryForApi,
+  categoryFormToDto,
+  PaginatedResponse
 } from '../types/productTypes';
 import { productCategoryService } from '../services/productCategoryService';
 
@@ -23,12 +29,11 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
   const { showToast } = useToast();
   const isInitialized = useRef(false);
   const previousSearchRef = useRef<string | undefined>('');
-  const isLoadingCategoriesRef = useRef(false); // Pour éviter les appels concurrents
+  const isLoadingCategoriesRef = useRef(false);
 
   // ==================== FONCTIONS API ====================
 
   const loadCategories = useCallback(async (filterParams?: ProductCategoryFilter) => {
-    // Éviter les appels concurrents
     if (isLoadingCategoriesRef.current) return;
     isLoadingCategoriesRef.current = true;
     setIsLoadingCategories(true);
@@ -44,14 +49,13 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
       
       let errorMessage = 'Impossible de charger les catégories';
       
-      // ✅ CORRECTION : Ne pas utiliser error.response
-      if (error?.message?.includes('404') || error?.status === 404) {
+      if (error?.response?.status === 404) {
         errorMessage = 'Endpoint /api/categories/ non trouvé';
-      } else if (error?.message?.includes('500')) {
+      } else if (error?.response?.status === 500) {
         errorMessage = 'Erreur serveur';
       } else if (error?.message?.includes('Network Error')) {
         errorMessage = 'Erreur réseau. Vérifiez votre connexion.';
-      } else if (error?.message?.includes('401')) {
+      } else if (error?.response?.status === 401) {
         errorMessage = 'Non autorisé. Connectez-vous.';
       }
       
@@ -77,9 +81,7 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
     } catch (error: any) {
       console.error('❌ Erreur chargement arbre:', error);
       
-      // ✅ CORRECTION : Vérifier si c'est une 404
-      if (error?.message?.includes('404')) {
-        // Construction locale si endpoint non disponible
+      if (error?.response?.status === 404) {
         if (categories.length > 0) {
           const buildTree = (parentId: number | null): ProductCategory[] => {
             return categories
@@ -91,12 +93,7 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
               }));
           };
           setCategoryTree(buildTree(null));
-        } else {
-          setCategoryTree([]);
         }
-      } else {
-        // Si c'est une autre erreur, garder l'arbre vide
-        setCategoryTree([]);
       }
     } finally {
       setIsLoadingTree(false);
@@ -112,9 +109,7 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
     } catch (error: any) {
       console.error('❌ Erreur chargement stats:', error);
       
-      // ✅ CORRECTION : Vérifier si c'est une 404
-      if (error?.message?.includes('404')) {
-        // Calcul local si endpoint non disponible
+      if (error?.response?.status === 404) {
         const localStats = {
           total: categories.length,
           active: categories.filter(c => c.is_active).length,
@@ -125,20 +120,20 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
           updated_at: new Date().toISOString()
         };
         setCategoryStats(localStats);
-      } else {
-        // Garder null si autre erreur
-        setCategoryStats(null);
       }
     } finally {
       setIsLoadingStats(false);
     }
   }, [categories]);
 
-  // ==================== CRUD ====================
+  // ==================== CRUD CORRIGÉES POUR DJANGO ====================
 
+  /**
+   * ✅ CRÉATION CATÉGORIE - Utilise les fonctions de conversion
+   */
   const createCategory = async (data: CreateProductCategoryDto) => {
-    // Validation avant envoi
-    const validationErrors = productCategoryService.validateCategoryData(data);
+    // ⭐ VALIDATION STRICTE
+    const validationErrors = validateCategoryData(data);
     if (validationErrors.length > 0) {
       showToast({
         title: 'Erreur de validation',
@@ -148,14 +143,55 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
       throw new Error(validationErrors.join('. '));
     }
 
+    // ✅ S'assurer que sub_category est présent
+    if (!data.sub_category) {
+      showToast({
+        title: 'Erreur de validation',
+        description: 'Le champ "sub_category" est obligatoire',
+        type: 'error',
+      });
+      throw new Error('Le champ "sub_category" est obligatoire');
+    }
+
+    // ✅ S'assurer que slug est présent
+    if (!data.slug) {
+      showToast({
+        title: 'Erreur de validation',
+        description: 'Le champ "slug" est obligatoire',
+        type: 'error',
+      });
+      throw new Error('Le champ "slug" est obligatoire');
+    }
+
     setIsCreating(true);
+    
     try {
-      const newCategory = await productCategoryService.createCategory(data);
+      // ⭐⭐ CORRECTION CRITIQUE : Nettoyer les données avant envoi
+      const cleanData: CreateProductCategoryDto = {
+        name: data.name.trim(),
+        sub_category: data.sub_category.trim(), // ⭐ OBLIGATOIRE
+        slug: data.slug.trim(),                // ⭐ OBLIGATOIRE
+        description: data.description?.trim() || '',
+        is_active: data.is_active ?? true,
+        sort_order: data.sort_order ?? 0,
+        metadata: data.metadata || {}
+      };
+
+      // ⭐ Gestion du parent
+      if (data.parent && data.parent !== 0) {
+        cleanData.parent = Number(data.parent);
+      }
+      // ❌ NE PAS envoyer parent pour catégorie racine
+
+      console.log('🎯 Création catégorie (hook):', cleanData);
+      
+      const newCategory = await productCategoryService.createCategory(cleanData);
       
       showToast({
         title: 'Succès',
-        description: `Catégorie "${data.name}" créée`,
+        description: `Catégorie "${cleanData.name}" créée avec succès`,
         type: 'success',
+        duration: 3000,
       });
       
       await loadCategories();
@@ -164,22 +200,33 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
       console.error('❌ Erreur création catégorie:', error);
       
       let errorMessage = 'Échec de la création';
+      let errorDetails = '';
       
-      // ✅ CORRECTION : Vérifier si l'erreur contient des données de validation
-      if (error?.message) {
-        errorMessage = error.message;
-      } else if (typeof error === 'object') {
-        // Essayer d'extraire les erreurs de validation
-        const errorString = JSON.stringify(error, null, 2);
-        if (errorString.includes('name') || errorString.includes('description')) {
-          errorMessage = 'Erreurs de validation dans les données';
+      if (error?.response?.data) {
+        const errorData = error.response.data;
+        
+        if (typeof errorData === 'object') {
+          Object.entries(errorData).forEach(([field, messages]) => {
+            if (Array.isArray(messages)) {
+              errorDetails += `• ${field}: ${messages.join(', ')}\n`;
+            } else {
+              errorDetails += `• ${field}: ${messages}\n`;
+            }
+          });
+        } else {
+          errorDetails = errorData;
         }
+        
+        errorMessage = 'Erreurs de validation Django';
+      } else if (error?.message) {
+        errorMessage = error.message;
       }
       
       showToast({
-        title: 'Erreur',
-        description: errorMessage,
+        title: 'Erreur de création',
+        description: errorDetails || errorMessage,
         type: 'error',
+        duration: 5000,
       });
       
       throw error;
@@ -188,9 +235,51 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
     }
   };
 
+  /**
+   * ✅ MISE À JOUR CATÉGORIE
+   */
   const updateCategory = async ({ id, data }: { id: number; data: UpdateProductCategoryDto }) => {
-    // Validation avant envoi
-    const validationErrors = productCategoryService.validateCategoryData(data);
+    const cleanData: UpdateProductCategoryDto = {};
+
+    // ⭐ Copier uniquement les champs modifiés
+    if (data.name !== undefined) {
+      cleanData.name = data.name.trim();
+    }
+
+    if (data.sub_category !== undefined) {
+      cleanData.sub_category = data.sub_category.trim();
+    }
+
+    if (data.slug !== undefined) {
+      cleanData.slug = data.slug.trim();
+    }
+
+    if (data.description !== undefined) {
+      cleanData.description = data.description.trim() || '';
+    }
+
+    if (data.is_active !== undefined) {
+      cleanData.is_active = data.is_active;
+    }
+
+    if (data.sort_order !== undefined) {
+      cleanData.sort_order = data.sort_order;
+    }
+
+    // ⭐ Gestion du parent
+    if (data.parent !== undefined) {
+      if (data.parent && data.parent !== 0) {
+        cleanData.parent = Number(data.parent);
+      }
+      // Si parent === null, on ne l'envoie PAS
+    }
+
+    if (data.metadata !== undefined) {
+      cleanData.metadata = data.metadata;
+    }
+
+    // Validation
+    const validationErrors = validateCategoryData(cleanData);
     if (validationErrors.length > 0) {
       showToast({
         title: 'Erreur de validation',
@@ -200,13 +289,25 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
       throw new Error(validationErrors.join('. '));
     }
 
+    // Ne rien envoyer si aucun changement
+    if (Object.keys(cleanData).length === 0) {
+      showToast({
+        title: 'Information',
+        description: 'Aucune modification détectée',
+        type: 'info',
+      });
+      return;
+    }
+
     setIsUpdating(true);
+    console.log(`🎯 Mise à jour catégorie ${id}:`, cleanData);
+    
     try {
-      const updatedCategory = await productCategoryService.updateCategory(id, data);
+      const updatedCategory = await productCategoryService.updateCategory(id, cleanData);
       
       showToast({
         title: 'Succès',
-        description: 'Catégorie mise à jour',
+        description: 'Catégorie mise à jour avec succès',
         type: 'success',
       });
       
@@ -216,14 +317,28 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
       console.error('❌ Erreur mise à jour catégorie:', error);
       
       let errorMessage = 'Échec de la mise à jour';
+      let errorDetails = '';
       
-      if (error?.message) {
+      if (error?.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'object') {
+          Object.entries(errorData).forEach(([field, messages]) => {
+            if (Array.isArray(messages)) {
+              errorDetails += `• ${field}: ${messages.join(', ')}\n`;
+            } else {
+              errorDetails += `• ${field}: ${messages}\n`;
+            }
+          });
+        } else {
+          errorDetails = errorData;
+        }
+      } else if (error?.message) {
         errorMessage = error.message;
       }
       
       showToast({
-        title: 'Erreur',
-        description: errorMessage,
+        title: 'Erreur de mise à jour',
+        description: errorDetails || errorMessage,
         type: 'error',
       });
       
@@ -236,23 +351,34 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
   const deleteCategory = async (id: number) => {
     setIsDeleting(true);
     try {
-      // Vérifier si la catégorie a des sous-catégories
+      const categoryToDelete = categories.find(c => c.id === id);
+      if (!categoryToDelete) {
+        throw new Error('Catégorie non trouvée');
+      }
+
       const hasSubcategories = categories.some(cat => cat.parent === id);
+      const hasProducts = (categoryToDelete.products_count || 0) > 0;
+      
+      let confirmMessage = `Supprimer la catégorie "${categoryToDelete.name}" ?`;
+      
       if (hasSubcategories) {
-        const confirmDelete = window.confirm(
-          'Cette catégorie a des sous-catégories. Supprimer aussi toutes les sous-catégories ?'
-        );
-        if (!confirmDelete) {
-          setIsDeleting(false);
-          return;
-        }
+        confirmMessage += '\n⚠️ Cette catégorie a des sous-catégories qui seront aussi supprimées.';
+      }
+      
+      if (hasProducts) {
+        confirmMessage += '\n⚠️ Cette catégorie contient des produits.';
+      }
+      
+      if (!window.confirm(confirmMessage)) {
+        setIsDeleting(false);
+        return;
       }
 
       await productCategoryService.deleteCategory(id);
       
       showToast({
         title: 'Succès',
-        description: 'Catégorie supprimée',
+        description: 'Catégorie supprimée avec succès',
         type: 'success',
       });
       
@@ -262,17 +388,25 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
       
       let errorMessage = 'Échec de la suppression';
       
-      // ✅ CORRECTION : Ne pas utiliser error.response
-      if (error?.message?.includes('404')) {
+      if (error?.response?.status === 404) {
         errorMessage = 'Catégorie non trouvée';
-      } else if (error?.message?.includes('400')) {
-        errorMessage = 'Impossible de supprimer : catégorie utilisée par des produits';
+      } else if (error?.response?.status === 400) {
+        const errorData = error.response.data;
+        if (typeof errorData === 'object') {
+          errorMessage = Object.entries(errorData)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+            .join('\n');
+        } else {
+          errorMessage = errorData || 'Impossible de supprimer : catégorie utilisée par des produits';
+        }
+      } else if (error?.response?.data) {
+        errorMessage = JSON.stringify(error.response.data);
       } else if (error?.message) {
         errorMessage = error.message;
       }
       
       showToast({
-        title: 'Erreur',
+        title: 'Erreur de suppression',
         description: errorMessage,
         type: 'error',
       });
@@ -291,7 +425,6 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
 
   const getPossibleParents = useCallback((excludeId?: number): ProductCategory[] => {
     if (!excludeId) return categories;
-    
     return categories.filter(cat => 
       cat.id !== excludeId && 
       (!cat.parent || cat.parent !== excludeId)
@@ -302,20 +435,15 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
     try {
       return await productCategoryService.getCategoryHierarchy(categoryId);
     } catch (error) {
-      console.error(`❌ Erreur hiérarchie catégorie ${categoryId}:`, error);
-      
-      // Construction locale
       const hierarchy: ProductCategory[] = [];
       let currentId: number | null = categoryId;
       
       while (currentId) {
         const category = categories.find(c => c.id === currentId);
         if (!category) break;
-        
         hierarchy.unshift(category);
         currentId = category.parent;
       }
-      
       return hierarchy;
     }
   }, [categories]);
@@ -328,13 +456,12 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
     try {
       return await productCategoryService.searchCategories(searchTerm);
     } catch (error) {
-      console.error('❌ Erreur recherche catégories:', error);
-      
-      // Recherche locale
       const term = searchTerm.toLowerCase();
       return categories.filter(cat => 
         cat.name.toLowerCase().includes(term) ||
-        (cat.description && cat.description.toLowerCase().includes(term))
+        (cat.description && cat.description.toLowerCase().includes(term)) ||
+        cat.sub_category?.toLowerCase().includes(term) ||
+        cat.slug?.toLowerCase().includes(term)
       );
     }
   }, [categories]);
@@ -343,7 +470,6 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
 
   useEffect(() => {
     if (isInitialized.current) return;
-    
     isInitialized.current = true;
     
     const initialize = async () => {
@@ -413,44 +539,5 @@ export const useProductCategories = (filters?: ProductCategoryFilter) => {
     // Méthodes de recherche/filtrage
     getPopularCategories: () => productCategoryService.getPopularCategories(5),
     getCategoryAnalytics: () => productCategoryService.getCategoryAnalytics(),
-  };
-};
-
-// Hook séparé pour une catégorie individuelle
-export const useProductCategory = (id: number) => {
-  const [category, setCategory] = useState<ProductCategory | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const { showToast } = useToast();
-
-  const loadCategory = useCallback(async () => {
-    if (!id) return;
-    
-    setIsLoading(true);
-    try {
-      const cat = await productCategoryService.getCategoryById(id);
-      setCategory(cat);
-    } catch (error: any) {
-      console.error(`❌ Erreur chargement catégorie ${id}:`, error);
-      showToast({
-        title: 'Erreur',
-        description: 'Impossible de charger la catégorie',
-        type: 'error',
-      });
-      setCategory(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [id, showToast]);
-
-  useEffect(() => {
-    if (id) {
-      loadCategory();
-    }
-  }, [id, loadCategory]);
-
-  return {
-    data: category,
-    isLoading,
-    refetch: loadCategory,
   };
 };

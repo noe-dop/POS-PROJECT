@@ -23,7 +23,7 @@ import {
   Crown,
   Settings,
   CreditCard as Payment,
-  Tags // Ajouté ici
+  Tags
 } from 'lucide-react';
 
 // Types
@@ -46,11 +46,11 @@ const cn = (...classes: (string | undefined | null | false)[]): string => {
   return classes.filter(Boolean).join(' ');
 };
 
-// Configuration de la navigation
+// ==================== CONFIGURATION DE LA NAVIGATION CORRIGÉE ====================
 const navigationConfig: NavigationItem[] = [
   { 
     name: 'Tableau de bord', 
-    href: '/', 
+    href: '/dashboard',  // ← CORRIGÉ : '/' → '/dashboard'
     icon: BarChart3,
     badge: 'new'
   },
@@ -77,7 +77,7 @@ const navigationConfig: NavigationItem[] = [
   },
   { 
     name: 'Types de Produits', 
-    href: '/types-produits', // Ajouté ici
+    href: '/types-produits',
     icon: Tags,
     badge: 'beta'
   },
@@ -85,17 +85,6 @@ const navigationConfig: NavigationItem[] = [
     name: 'Inventaire', 
     href: '/inventory', 
     icon: ClipboardList 
-  },
-  { 
-    name: 'Analytiques', 
-    href: '/analytics', 
-    icon: Activity 
-  },
-  { 
-    name: 'Abonnements', 
-    href: '/subscriptions', 
-    icon: Bell,
-    premium: true
   },
   { 
     name: 'Approvisionnement', 
@@ -106,6 +95,12 @@ const navigationConfig: NavigationItem[] = [
     name: 'Stock', 
     href: '/stock', 
     icon: FolderOpen 
+  },
+  // ✅ AJOUT : Lien direct vers le profil
+  { 
+    name: 'Mon Profil', 
+    href: '/profile', 
+    icon: User 
   },
   { 
     name: 'Paramètres', 
@@ -164,7 +159,7 @@ const Badge: React.FC<{ type: 'new' | 'hot' | 'beta'; compact?: boolean }> = ({
   );
 };
 
-// Composant Tooltip corrigé
+// Composant Tooltip
 interface TooltipProps {
   content: string;
   children: React.ReactNode;
@@ -224,6 +219,7 @@ export const Sidebar: React.FC = () => {
   const shouldShowExpanded = isCollapsed && isHovered;
   const isExpanded = !isCollapsed || shouldShowExpanded;
   const isSettingsActive = location.pathname.startsWith('/settings');
+  const isProfileActive = location.pathname === '/profile' || location.pathname === '/settings/profile';
 
   // Fermeture du sidebar mobile au clic externe
   useEffect(() => {
@@ -479,6 +475,7 @@ export const Sidebar: React.FC = () => {
         {/* Navigation principale */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {filteredNavigation.map((item) => {
+            // Gestion spéciale pour la section Paramètres
             if (item.href === '/settings') {
               return (
                 <div key="settings-section" className="space-y-1">
@@ -531,6 +528,7 @@ export const Sidebar: React.FC = () => {
               );
             }
 
+            // ✅ Pour tous les autres éléments (y compris le nouveau "Mon Profil")
             return <NavItem key={item.href} item={item} />;
           })}
         </nav>
@@ -579,7 +577,7 @@ export const Sidebar: React.FC = () => {
             
             {isExpanded && (
               <>
-                <div className="text-xs text-gray-600 font-medium mt -0.5">
+                <div className="text-xs text-gray-600 font-medium mt-0.5">
                   Enterprise Edition
                 </div>
                 <div className="text-[10px] text-gray-500 font-semibold tracking-wide mt-0.5">

@@ -1,0 +1,2097 @@
+ERROR 2026-01-30 16:55:52,342 log Internal Server Error: /api/stores/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:52,364 basehttp "GET /api/stores/ HTTP/1.1" 500 237392
+ERROR 2026-01-30 16:55:52,448 log Internal Server Error: /api/stores/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:52,489 log Internal Server Error: /api/employees/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:52,491 basehttp "GET /api/stores/ HTTP/1.1" 500 237392
+ERROR 2026-01-30 16:55:52,502 basehttp "GET /api/employees/ HTTP/1.1" 500 237497
+ERROR 2026-01-30 16:55:52,593 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:52,610 log Internal Server Error: /api/sales/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:52,622 basehttp "GET /api/products/ HTTP/1.1" 500 237462
+ERROR 2026-01-30 16:55:52,628 basehttp "GET /api/sales/ HTTP/1.1" 500 237357
+ERROR 2026-01-30 16:55:52,732 log Internal Server Error: /api/orders/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:52,733 log Internal Server Error: /api/stores/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:52,768 basehttp "GET /api/orders/ HTTP/1.1" 500 237392
+ERROR 2026-01-30 16:55:52,787 basehttp "GET /api/stores/ HTTP/1.1" 500 237392
+ERROR 2026-01-30 16:55:53,012 log Internal Server Error: /api/employees/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:53,053 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:53,095 log Internal Server Error: /api/sales/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:53,137 log Internal Server Error: /api/orders/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:53,141 basehttp "GET /api/employees/ HTTP/1.1" 500 237497
+ERROR 2026-01-30 16:55:53,189 log Internal Server Error: /api/stores/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:53,191 basehttp "GET /api/products/ HTTP/1.1" 500 237462
+ERROR 2026-01-30 16:55:53,205 basehttp "GET /api/sales/ HTTP/1.1" 500 237357
+ERROR 2026-01-30 16:55:53,212 basehttp "GET /api/orders/ HTTP/1.1" 500 237392
+ERROR 2026-01-30 16:55:53,216 basehttp "GET /api/stores/ HTTP/1.1" 500 237392
+ERROR 2026-01-30 16:55:53,294 log Internal Server Error: /api/employees/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:53,307 basehttp "GET /api/employees/ HTTP/1.1" 500 237497
+ERROR 2026-01-30 16:55:53,401 log Internal Server Error: /api/sales/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:53,407 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:53,430 log Internal Server Error: /api/stores/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:53,445 basehttp "GET /api/sales/ HTTP/1.1" 500 237357
+ERROR 2026-01-30 16:55:53,452 basehttp "GET /api/products/ HTTP/1.1" 500 237462
+ERROR 2026-01-30 16:55:53,465 basehttp "GET /api/stores/ HTTP/1.1" 500 237392
+ERROR 2026-01-30 16:55:53,523 log Internal Server Error: /api/employees/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 16:55:53,535 basehttp "GET /api/employees/ HTTP/1.1" 500 237497
+ERROR 2026-01-30 16:55:53,593 log Internal Server Error: /api/sales/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 17:06:52,082 log Internal Server Error: /api/stores/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-01-30 17:06:52,321 log Internal Server Error: /api/requests/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 629, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 366, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 1949, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\sql\compiler.py", line 1621, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+

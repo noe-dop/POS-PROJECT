@@ -14,7 +14,6 @@ export interface AuthResponse {
     last_name: string;
     phone?: string;
     address?: string;
-    user_type: number;
   };
   tokens?: {
     access: string;
@@ -32,7 +31,6 @@ export interface RegisterData {
   address?: string;
   password: string;
   password_confirm: string;
-  user_type: number;
 }
 
 export interface User {
@@ -43,7 +41,19 @@ export interface User {
   last_name: string;
   phone?: string;
   address?: string;
-  user_type: number;
   is_active?: boolean;
   date_joined?: string;
+}
+
+export interface ApiError {
+  message: string;
+  status?: number;
+  errors?: Record<string, string[]>;
+}
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
 }

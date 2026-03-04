@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 INFO 2026-01-29 11:25:47,529 autoreload Watching for file changes with StatReloader
 INFO 2026-01-29 11:26:16,840 basehttp "POST /api/auth/login/ HTTP/1.1" 200 489
 INFO 2026-01-29 11:27:22,372 autoreload C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py changed, reloading.
@@ -51,3 +52,203 @@ DEBUG 2026-01-29 11:36:14,579 views Response Data: {'success': True, 'message': 
 DEBUG 2026-01-29 11:36:14,585 views Final response data for user vlaly493: {'success': True, 'message': 'Connexion réussie', 'access': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzY5NzcyOTc0LCJpYXQiOjE3Njk2ODY1NzQsImp0aSI6IjNiMDIyMmQxZjdlYTQxMjRhZjJkYzNhMmNlZWFlZTFmIiwidXNlcl9pZCI6IjUifQ.9FZr9VgUzi2vtg379kOVvlpvqccGQxqUaVcTn8ncHlo', 'refresh': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3MDI5MTM3NCwiaWF0IjoxNzY5Njg2NTc0LCJqdGkiOiI3NTBiNDg1NjBiMjE0MTMwYTE2YmJjOThjOTMxMzZiYSIsInVzZXJfaWQiOiI1In0.vpa-ZhqCObhNo-L10RQ_fG4-3zSckksedOhki-f5wDg', 'user': {'id': 5, 'username': 'vlaly493', 'email': 'lalyvignon@gmail.com', 'first_name': 'vignon', 'last_name': 'laly', 'full_name': 'vignon laly', 'phone': '0103742646', 'is_staff': False, 'is_superuser': False, 'role': 'owner', 'owner_id': 5, 'photo': None}, 'token_type': 'Bearer', 'expires_in': 86400.0}
 INFO 2026-01-29 11:36:14,587 basehttp "POST /api/auth/login/ HTTP/1.1" 200 814
 INFO 2026-01-29 11:36:28,705 autoreload C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\backend_boutique\settings.py changed, reloading.
+=======
+ERROR 2026-01-29 15:26:18,549 log Internal Server Error: /swagger/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\views.py", line 129, in get
+    schema = generator.get_schema(request, self.public)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\generators.py", line 337, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\generators.py", line 561, in get_paths
+    operation = self.get_operation(
+        view, path, prefix, method, components, request
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\generators.py", line 609, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\view.py", line 44, in get_operation
+    query = self.get_query_parameters()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\view.py", line 350, in get_query_parameters
+    self.get_filter_parameters() + self.get_pagination_parameters()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\base.py", line 510, in get_filter_parameters
+    self.probe_inspectors(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        self.filter_inspectors, "get_filter_parameters", filter_backend()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\base.py", line 137, in probe_inspectors
+    result = method(obj, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\query.py", line 55, in get_filter_parameters
+    return self.get_filter_backend_params(filter_backend)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\query.py", line 60, in get_filter_backend_params
+    filterset_class = filter_backend.get_filterset_class(
+        self.view,
+        self.view.queryset,
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django_filters\rest_framework\backends.py", line 49, in get_filterset_class
+    class AutoFilterSet(self.filterset_base):
+    ...<2 lines>...
+            fields = filterset_fields
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django_filters\filterset.py", line 82, in __new__
+    new_class.base_filters = new_class.get_filters()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django_filters\filterset.py", line 371, in get_filters
+    raise TypeError(
+    ...<2 lines>...
+    )
+TypeError: 'Meta.fields' must not contain non-model field names: user_type
+ERROR 2026-01-29 15:26:18,559 basehttp "GET /swagger/?format=openapi HTTP/1.1" 500 184674
+ERROR 2026-01-29 15:27:36,803 log Internal Server Error: /swagger/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\views.py", line 129, in get
+    schema = generator.get_schema(request, self.public)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\generators.py", line 337, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\generators.py", line 561, in get_paths
+    operation = self.get_operation(
+        view, path, prefix, method, components, request
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\generators.py", line 609, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\view.py", line 44, in get_operation
+    query = self.get_query_parameters()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\view.py", line 350, in get_query_parameters
+    self.get_filter_parameters() + self.get_pagination_parameters()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\base.py", line 510, in get_filter_parameters
+    self.probe_inspectors(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        self.filter_inspectors, "get_filter_parameters", filter_backend()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\base.py", line 137, in probe_inspectors
+    result = method(obj, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\query.py", line 55, in get_filter_parameters
+    return self.get_filter_backend_params(filter_backend)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\query.py", line 60, in get_filter_backend_params
+    filterset_class = filter_backend.get_filterset_class(
+        self.view,
+        self.view.queryset,
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django_filters\rest_framework\backends.py", line 49, in get_filterset_class
+    class AutoFilterSet(self.filterset_base):
+    ...<2 lines>...
+            fields = filterset_fields
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django_filters\filterset.py", line 82, in __new__
+    new_class.base_filters = new_class.get_filters()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django_filters\filterset.py", line 371, in get_filters
+    raise TypeError(
+    ...<2 lines>...
+    )
+TypeError: 'Meta.fields' must not contain non-model field names: user_type
+ERROR 2026-01-29 15:27:36,817 basehttp "GET /swagger/?format=openapi HTTP/1.1" 500 184674
+ERROR 2026-01-29 16:36:31,887 log Internal Server Error: /swagger/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\views.py", line 129, in get
+    schema = generator.get_schema(request, self.public)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\generators.py", line 337, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\generators.py", line 561, in get_paths
+    operation = self.get_operation(
+        view, path, prefix, method, components, request
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\generators.py", line 609, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\view.py", line 44, in get_operation
+    query = self.get_query_parameters()
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\view.py", line 350, in get_query_parameters
+    self.get_filter_parameters() + self.get_pagination_parameters()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\base.py", line 510, in get_filter_parameters
+    self.probe_inspectors(
+    ~~~~~~~~~~~~~~~~~~~~~^
+        self.filter_inspectors, "get_filter_parameters", filter_backend()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\base.py", line 137, in probe_inspectors
+    result = method(obj, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\query.py", line 55, in get_filter_parameters
+    return self.get_filter_backend_params(filter_backend)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\drf_yasg\inspectors\query.py", line 60, in get_filter_backend_params
+    filterset_class = filter_backend.get_filterset_class(
+        self.view,
+        self.view.queryset,
+    )
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django_filters\rest_framework\backends.py", line 49, in get_filterset_class
+    class AutoFilterSet(self.filterset_base):
+    ...<2 lines>...
+            fields = filterset_fields
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django_filters\filterset.py", line 82, in __new__
+    new_class.base_filters = new_class.get_filters()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django_filters\filterset.py", line 371, in get_filters
+    raise TypeError(
+    ...<2 lines>...
+    )
+TypeError: 'Meta.fields' must not contain non-model field names: user_type
+ERROR 2026-01-29 16:36:31,894 basehttp "GET /swagger/?format=openapi HTTP/1.1" 500 184674
+>>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753

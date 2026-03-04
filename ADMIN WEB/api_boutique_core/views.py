@@ -160,7 +160,6 @@ class PasswordResetRequestView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         result = serializer.save()
-        
         return Response({
             "success": True,
             "message": "Email de réinitialisation envoyé.",
@@ -188,11 +187,11 @@ class PasswordResetConfirmView(generics.GenericAPIView):
 class UserProfileView(APIView):
     """
     Récupérer le profil de l'utilisateur connecté
-    GET /api/auth/profile/
-    """
-    permission_classes = [IsAuthenticated]
-    
+    #GET /api/auth/profile/
+    #PATCH /api/auth/profile/
+    #PUT /api/auth/profile/"""
     def get(self, request, *args, **kwargs):
+        """Récupérer le profil"""
         user = request.user
         
         response_data = {
@@ -206,6 +205,8 @@ class UserProfileView(APIView):
                 "full_name": user.get_full_name(),
                 "phone": user.phone,
                 "address": user.address,
+                "phone": getattr(user, 'phone', ''),
+                "address": getattr(user, 'address', ''),
                 "is_staff": user.is_staff,
                 "is_superuser": user.is_superuser,
                 "date_joined": user.date_joined,
@@ -259,10 +260,107 @@ class UserProfileView(APIView):
                 "first_purchase": customer.first_purchase,
                 "last_purchase": customer.last_purchase
             }
-        
+    
         return Response(response_data, status=status.HTTP_200_OK)
     
+    def patch(self, request, *args, **kwargs):
+        """Mettre à jour partiellement le profil"""
+        user = request.user
+        
+        # Mettre à jour les champs de l'utilisateur
+        if 'first_name' in request.data:
+            user.first_name = request.data['first_name']
+        if 'last_name' in request.data:
+            user.last_name = request.data['last_name']
+        if 'email' in request.data:
+            user.email = request.data['email']
+        if 'phone' in request.data:
+            user.phone = request.data['phone']
+        if 'address' in request.data:
+            user.address = request.data['address']
+        
+        user.save()
+        
+        # Gérer la photo selon le profil
+        if 'photo' in request.FILES:
+            photo = request.FILES['photo']
+            
+            if hasattr(user, 'owner'):
+                user.owner.photo = photo
+                user.owner.save()
+            elif hasattr(user, 'employee'):
+                user.employee.photo = photo
+                user.employee.save()
+            elif hasattr(user, 'customer'):
+                user.customer.photo = photo
+                user.customer.save()
+            elif hasattr(user, 'shareholder'):
+                user.shareholder.photo = photo
+                user.shareholder.save()
+        
+        # Retourner le profil mis à jour
+        return self.get(request)
+    
+    def put(self, request, *args, **kwargs):
+        """Mettre à jour complètement le profil (alias pour PATCH)"""
+        return self.patch(request, *args, **kwargs)
 
+        # api_boutique_core/views.py
+
+# Ajoutez cette nouvelle classe APRÈS UserProfileView
+class ChangePasswordView(APIView):
+    """
+    Changer le mot de passe de l'utilisateur connecté
+    POST /api/auth/change-password/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+        
+        # Vérifications
+        if not current_password or not new_password:
+            return Response({
+                'success': False,
+                'error': 'Les mots de passe sont requis'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Vérifier l'ancien mot de passe
+        if not user.check_password(current_password):
+            return Response({
+                'success': False,
+                'error': 'Mot de passe actuel incorrect'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Vérifier la longueur du nouveau mot de passe
+        if len(new_password) < 6:
+            return Response({
+                'success': False,
+                'error': 'Le nouveau mot de passe doit contenir au moins 6 caractères'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Vérifier que le nouveau mot de passe est différent
+        if user.check_password(new_password):
+            return Response({
+                'success': False,
+                'error': 'Le nouveau mot de passe doit être différent de l\'ancien'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Changer le mot de passe
+        user.set_password(new_password)
+        user.save()
+        
+        # 🚫 OPTION SUPPRIMÉE - La méthode blacklist() n'existe pas
+        # from rest_framework_simplejwt.tokens import RefreshToken
+        # RefreshToken.for_user(user).blacklist()  ← À SUPPRIMER
+        
+        return Response({
+            'success': True,
+            'message': 'Mot de passe modifié avec succès'
+        }, status=status.HTTP_200_OK)
+    
 # =============================================================================
 # VUES D'AUTHENTIFICATION
 # =============================================================================
@@ -1107,18 +1205,22 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     filterset_fields = ['store']
 
-
 # =============================================================================
-# EMPLOYÉS ET RÔLES
+# 1. EMPLOYÉS ET RÔLES - DÉFINIS EN PREMIER
 # =============================================================================
 
 class EmployeeRoleViewSet(viewsets.ModelViewSet):
+    """CRUD pour les rôles d'employés"""
     queryset = EmployeeRole.objects.all()
     serializer_class = EmployeeRoleSerializer
     permission_classes = [AllowAny]
+    filterset_fields = ['code', 'name']
+    search_fields = ['code', 'name', 'description']
+
 
 class EmployeeViewSet(viewsets.ModelViewSet):
-    queryset = Employee.objects.select_related('user', 'store', 'role', 'department')
+    """CRUD pour les employés"""
+    queryset = Employee.objects.select_related('user', 'store', 'role', 'department').all()
     serializer_class = EmployeeSerializer
     permission_classes = [AllowAny]
     @transaction.atomic
@@ -1135,8 +1237,38 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         employee.is_active = not employee.is_active
         employee.save()
         
-        serializer = self.get_serializer(employee)
-        return Response(serializer.data)
+        return Response({
+            "success": True,
+            "message": f"Employé {'activé' if employee.is_active else 'désactivé'}",
+            "is_active": employee.is_active
+        })
+
+
+class EmployeeRegisterView(generics.CreateAPIView):
+    """Inscription d'un nouvel employé"""
+    serializer_class = EmployeeCreateSerializer
+    permission_classes = [AllowAny]
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        employe = serializer.save()
+        
+        return Response({
+            "success": True,
+            "message": "Employé créé avec succès",
+            "employee": {
+                "id": employe.id,
+                "username": employe.user.username,
+                "email": employe.user.email,
+                "first_name": employe.user.first_name,
+                "last_name": employe.user.last_name,
+                "store": employe.store.name,
+                "role": employe.role.name,
+                "hire_date": employe.hire_date
+            }
+        }, status=status.HTTP_201_CREATED)
 
 
 # =============================================================================
@@ -1403,7 +1535,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 class ProductVariantViewSet(BaseAuditViewSet):
     queryset = ProductVariant.objects.select_related('product')
     serializer_class = ProductVariantSerializer
-    filterset_fields = ['product']  # CORRIGÉ : retiré 'selection'
+    filterset_fields = ['product']
     search_fields = ['barcode', 'name']
     permission_classes = [AllowAny]
 
