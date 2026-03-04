@@ -1,6 +1,10 @@
 // produit_form_widget.dart
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:nsp_pos_mobile/core/widgets/image_picker_widget.dart';
 import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
+import 'package:nsp_pos_mobile/features/produits/service/product_service.dart';
+import 'package:nsp_pos_mobile/features/produits/viewmodel/product_brand_model.dart';
 import 'package:nsp_pos_mobile/features/produits/viewmodel/product_model.dart';
 import 'package:nsp_pos_mobile/features/type_produits/provider/type_produit_provider.dart';
 import 'package:nsp_pos_mobile/features/type_produits/viewmodel/type_produit_model.dart';
@@ -27,7 +31,6 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
 
   // Contrôleurs
   late TextEditingController _nomController;
-  late TextEditingController _skuController;
   late TextEditingController _prixVenteController;
   late TextEditingController _prixAchatController;
   late TextEditingController _descriptionController;
@@ -41,18 +44,13 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
   int? _selectedGroupeId;
   int? _selectedTypeId;
   String? _selectedMarque;
+  int? _selectedBrandId;
   String? _selectedStatus = 'Actif';
   List<String> _images = [];
   int _joursEcart = 15;
 
   // Données
-  final List<String> _marques = ['Nike', 'Apple', 'Samsung'];
-  final List<String> _statusList = ['Actif', 'Inactif', 'Rupture'];
-
-  // Listes filtrées pour la recherche
-  List<String> _filteredMarques = [];
-  List<TypeProduit> _filteredTypes =
-      []; // On stocke les objets TypeProduit pour avoir l'ID
+  final List<String> _statusList = ['active', 'draft', 'archived'];
 
   @override
   void initState() {
@@ -60,7 +58,6 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
 
     final produit = widget.produit;
     _nomController = TextEditingController(text: produit?.name ?? '');
-    _skuController = TextEditingController(text: produit?.sku ?? '');
     _prixVenteController = TextEditingController(
       text: produit?.price.toString() ?? '',
     );
@@ -75,26 +72,19 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
     );
     _locationController = TextEditingController(text: produit?.location ?? '');
     _rechercheTypeController = TextEditingController();
-    _rechercheMarqueController = TextEditingController(
-      text: produit?.brand ?? '',
-    );
+    _rechercheMarqueController = TextEditingController();
 
     _selectedCategorieId = produit?.categorieId;
+    _selectedBrandId = produit?.brand;
     _selectedGroupeId = produit?.groupeId;
     _selectedTypeId = produit?.typeId;
-    _selectedMarque = produit?.brand;
     _selectedStatus = produit?.status;
     _images = produit?.imageUrl ?? [];
-
-    _filteredMarques = _marques;
-    _rechercheMarqueController.addListener(_filterMarques);
-    _rechercheTypeController.addListener(_filterTypes);
   }
 
   @override
   void dispose() {
     _nomController.dispose();
-    _skuController.dispose();
     _prixVenteController.dispose();
     _prixAchatController.dispose();
     _descriptionController.dispose();
@@ -105,67 +95,41 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
     super.dispose();
   }
 
-  void _filterMarques() {
-    final query = _rechercheMarqueController.text.toLowerCase();
-    setState(() {
-      _filteredMarques = _marques
-          .where((m) => m.toLowerCase().contains(query))
-          .toList();
-    });
-  }
-
-  void _filterTypes() {
-    final query = _rechercheTypeController.text.toLowerCase();
-    // On a besoin des types disponibles (dépend du groupe sélectionné)
-    // Cette méthode sera appelée après que les types soient chargés via le provider
-    // On mettra à jour _filteredTypes dans le build avec les données du provider
-  }
-
-  void _ajouterImage() {
-    // TODO: Implémenter la sélection d'image
-    if (_images.length < 10) {
-      setState(() {
-        // Simulation
-        _images.add('assets/images/placeholder.jpg');
-      });
-    }
-  }
-
-  void _supprimerImage(int index) {
-    setState(() {
-      _images.removeAt(index);
-    });
-  }
-
   void _soumettre() {
     if (_formKey.currentState!.validate()) {
+      final productProvider = Provider.of<ProductProvider>(
+        context,
+        listen: false,
+      );
       final boutiqueservice = Provider.of<BoutiqueService>(
         context,
         listen: false,
       );
-      final storeId = boutiqueservice.selectedStore!.boutique.id;
+      final int storeId = boutiqueservice.selectedStore!.boutique.id;
 
       final produit = Product(
-        id:
-            widget.produit?.id ??
-            DateTime.now().millisecondsSinceEpoch.toString(),
         name: _nomController.text,
-        sku: _skuController.text,
-        status: _selectedStatus ?? 'Actif',
-        brand: _selectedMarque ?? '',
+        status: _selectedStatus ?? 'active',
+        brand: _selectedBrandId,
         imageUrl: _images,
         description: _descriptionController.text,
         price: double.tryParse(_prixVenteController.text) ?? 0.0,
         cost: double.tryParse(_prixAchatController.text) ?? 0.0,
+        nombreItem: int.tryParse(_stockController.text) ?? 0,
         stock: int.tryParse(_stockController.text) ?? 0,
         location: _locationController.text,
         variants: widget.produit?.variants ?? [],
-        categorieId: _selectedCategorieId,
-        groupeId: _selectedGroupeId,
+        categorieId: _selectedCategorieId!,
+        groupeId: _selectedGroupeId!,
         typeId: _selectedTypeId,
         storeId: storeId,
       );
-      widget.onSave?.call(produit);
+
+      if (widget.produit == null) {
+        productProvider.addProduct(produit);
+      } else {
+        productProvider.updateProduct(produit);
+      }
     }
   }
 
@@ -173,20 +137,10 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
   Widget build(BuildContext context) {
     return Consumer<TypesProduitsViewModel>(
       builder: (context, typeProvider, child) {
-        // Mise à jour des types filtrés en fonction de la recherche
-        final typesDisponibles = _selectedGroupeId != null
-            ? typeProvider.typesProduits
-                  .where((t) => t.groupeId == _selectedGroupeId)
-                  .toList()
-            : <TypeProduit>[];
-        _filteredTypes = typesDisponibles
-            .where(
-              (t) => t.nom.toLowerCase().contains(
-                _rechercheTypeController.text.toLowerCase(),
-              ),
-            )
-            .toList();
-            
+        final productProvider = Provider.of<ProductProvider>(
+          context,
+          listen: true,
+        );
         return Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -198,8 +152,27 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(onPressed: ()=> Navigator.pop(context), icon: Icon(Icons.arrow_back),padding: EdgeInsets.all(8),),
-                    Expanded(child: _buildImagesSection()),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.arrow_back),
+                      padding: EdgeInsets.all(8),
+                    ),
+                    Expanded(
+                      child: // Dans le build, à l'endroit de _buildImagesSection
+                      ImagePickerWidget(
+                        maxImages: 3,
+                        initialImages: widget.produit?.imageUrl!
+                            .map((path) => XFile(path))
+                            .toList(),
+                        onImagesSelected: (images) {
+                          setState(() {
+                            _images = images
+                                .map((xfile) => xfile.path)
+                                .toList();
+                          });
+                        },
+                      ),
+                    ),
                   ],
                 ),
 
@@ -219,15 +192,14 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
                       value!.isEmpty ? 'Ce champ est requis' : null,
                 ),
 
-                const SizedBox(height: 16),
+                // const SizedBox(height: 16),
 
-                _buildTextField(
-                  label: 'SKU *',
-                  controller: _skuController,
-                  validator: (value) =>
-                      value!.isEmpty ? 'Ce champ est requis' : null,
-                ),
-
+                // _buildTextField(
+                //   label: 'SKU *',
+                //   controller: _skuController,
+                //   validator: (value) =>
+                //       value!.isEmpty ? 'Ce champ est requis' : null,
+                // ),
                 const SizedBox(height: 16),
 
                 // Catégorie principale
@@ -247,7 +219,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
                 const SizedBox(height: 16),
 
                 // Marque avec recherche
-                _buildMarqueField(),
+                _buildMarqueField(productProvider),
 
                 const SizedBox(height: 16),
 
@@ -357,11 +329,9 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
                 const SizedBox(height: 16),
 
                 _buildTextField(
-                  label: 'Description *',
+                  label: 'Description',
                   controller: _descriptionController,
                   maxLines: 4,
-                  validator: (value) =>
-                      value!.isEmpty ? 'Ce champ est requis' : null,
                 ),
 
                 const SizedBox(height: 32),
@@ -461,12 +431,11 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
         const SizedBox(height: 4),
         GestureDetector(
           onTap: () {
-            _showTypeBottomSheet(context, provider,(selectedType){
+            _showTypeBottomSheet(context, provider, (selectedType) {
               setState(() {
                 _selectedTypeId = selectedType.id;
                 _rechercheTypeController.text = selectedType.nom;
               });
-
             });
             setState(() {});
           },
@@ -561,7 +530,9 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
                                       )
                                     : null,
                                 onTap: () {
-                                  onTypeSelected(type); // ← on passe le type au parent
+                                  onTypeSelected(
+                                    type,
+                                  ); // ← on passe le type au parent
                                   Navigator.pop(context);
                                 },
                               );
@@ -645,14 +616,14 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
     );
   }
 
-  Widget _buildMarqueField() {
+  Widget _buildMarqueField(ProductProvider provider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Marque *', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         GestureDetector(
-          onTap: () => _showMarqueBottomSheet(context),
+          onTap: () => _showMarqueBottomSheet(context, provider),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             decoration: BoxDecoration(
@@ -682,9 +653,12 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
     );
   }
 
-  void _showMarqueBottomSheet(BuildContext context) {
+  void _showMarqueBottomSheet(
+    BuildContext context,
+    ProductProvider productProvider,
+  ) {
     final TextEditingController searchController = TextEditingController();
-    List<String> filteredMarques = _marques;
+    List<ProductBrand> brands = productProvider.brands;
 
     showModalBottomSheet(
       context: context,
@@ -693,8 +667,8 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
         return StatefulBuilder(
           builder: (context, setState) {
             final query = searchController.text.toLowerCase();
-            final displayedMarques = filteredMarques
-                .where((m) => m.toLowerCase().contains(query))
+            final displayedMarques = brands
+                .where((m) => m.name.toLowerCase().contains(query))
                 .toList();
 
             return Container(
@@ -723,10 +697,10 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
                         : ListView.builder(
                             itemCount: displayedMarques.length,
                             itemBuilder: (ctx, index) {
-                              final marque = displayedMarques[index];
+                              final brand = displayedMarques[index];
                               return ListTile(
-                                title: Text(marque),
-                                trailing: _selectedMarque == marque
+                                title: Text(brand.name),
+                                trailing: _selectedMarque == brand.name
                                     ? const Icon(
                                         Icons.check,
                                         color: Colors.blue,
@@ -734,8 +708,10 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
                                     : null,
                                 onTap: () {
                                   setState(() {
-                                    _selectedMarque = marque;
-                                    _rechercheMarqueController.text = marque;
+                                    _selectedBrandId = brand.id;
+                                    _selectedMarque = brand.name;
+                                    _rechercheMarqueController.text =
+                                        brand.name;
                                   });
                                   Navigator.pop(context);
                                 },
@@ -747,7 +723,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
                   OutlinedButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      _showCreateMarqueDialog(context);
+                      _showCreateMarqueDialog(context, productProvider);
                     },
                     child: const Text('+ Créer une nouvelle marque'),
                   ),
@@ -760,7 +736,10 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
     );
   }
 
-  void _showCreateMarqueDialog(BuildContext context) {
+  void _showCreateMarqueDialog(
+    BuildContext context,
+    ProductProvider productProvider,
+  ) {
     final TextEditingController nomController = TextEditingController();
     showDialog(
       context: context,
@@ -781,14 +760,18 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
               child: const Text('Annuler'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (nomController.text.isNotEmpty) {
-                  setState(() {
-                    _marques.add(nomController.text);
-                    _selectedMarque = nomController.text;
-                    _rechercheMarqueController.text = nomController.text;
+                  await productProvider.createBrand({
+                    'name': nomController.text,
                   });
-                  Navigator.pop(ctx);
+                  if (mounted) {
+                    setState(() {
+                      _selectedMarque = nomController.text;
+                      _rechercheMarqueController.text = nomController.text;
+                    });
+                    Navigator.pop(ctx);
+                  }
                 }
               },
               child: const Text('Créer'),
@@ -893,121 +876,12 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
     );
   }
 
-  Widget _buildImagesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Images du produit',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-
-        if (_images.isNotEmpty)
-          Container(
-            height: 150,
-            margin: const EdgeInsets.only(bottom: 16),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _images.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  width: 150,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    image: DecorationImage(
-                      image: AssetImage(_images[index]),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-        Container(
-          width: double.infinity,
-          height: 120,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: TextButton(
-            onPressed: _ajouterImage,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add_photo_alternate, color: Colors.blue, size: 40),
-                const SizedBox(height: 8),
-                const Text(
-                  'Ajouter une image',
-                  style: TextStyle(color: Colors.blue),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        if (_images.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: List.generate(_images.length, (index) {
-              return Stack(
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      image: DecorationImage(
-                        image: AssetImage(_images[index]),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: GestureDetector(
-                      onTap: () => _supprimerImage(index),
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }),
-          ),
-        ],
-
-        const SizedBox(height: 8),
-        Text(
-          '${_images.length}/10 images',
-          style: TextStyle(color: Colors.grey[600]),
-        ),
-      ],
-    );
-  }
-
   Widget _buildActionButtons() {
     return Row(
       children: [
         Expanded(
           child: OutlinedButton(
-            onPressed: (){
+            onPressed: () {
               widget.onCancel ?? Navigator.pop(context);
             },
             style: OutlinedButton.styleFrom(

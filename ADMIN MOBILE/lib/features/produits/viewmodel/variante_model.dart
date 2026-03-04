@@ -1,13 +1,15 @@
 class Variant {
-  final String barcode;
-  final String description;
-  final int quantity;
-  final double salePrice1;
-  final double? salePrice2;
-  final double? comparePrice;
-  final String? imageUrl;
+  int? id;
+  String barcode;
+  String description;
+  int quantity;
+  double salePrice1;
+  double? salePrice2;
+  double? comparePrice;
+  String? imageUrl;
 
   Variant({
+    this.id,
     required this.barcode,
     required this.description,
     required this.quantity,

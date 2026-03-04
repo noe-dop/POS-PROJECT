@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/core/services/notifications.dart';
 import 'package:nsp_pos_mobile/core/services/storage_service.dart';
-import 'package:nsp_pos_mobile/features/dashboard/widgets/side_menu.dart';
+import 'package:nsp_pos_mobile/app/side_menu.dart';
 import 'package:nsp_pos_mobile/features/type_produits/provider/type_produit_provider.dart';
 import 'package:nsp_pos_mobile/features/type_produits/widgets/categorie_list_sidebar.dart';
 import 'package:provider/provider.dart';

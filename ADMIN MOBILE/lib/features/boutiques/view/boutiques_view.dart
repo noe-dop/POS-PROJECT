@@ -9,7 +9,7 @@ import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart'
 import 'package:nsp_pos_mobile/features/boutiques/view/detail_boutique_view.dart';
 import 'package:nsp_pos_mobile/features/boutiques/view/edit_boutique_view.dart';
 import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_model.dart';
-import 'package:nsp_pos_mobile/features/dashboard/widgets/side_menu.dart';
+import 'package:nsp_pos_mobile/app/side_menu.dart';
 import 'package:nsp_pos_mobile/localization/locale_keys.dart';
 import 'package:provider/provider.dart';
 

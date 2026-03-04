@@ -1,5 +1,6 @@
 // product_detail_view.dart
 import 'package:flutter/material.dart';
+import 'package:nsp_pos_mobile/features/produits/view/product_variant_page.dart';
 import 'package:nsp_pos_mobile/features/produits/viewmodel/product_model.dart';
 
 class ProductDetailView extends StatefulWidget {
@@ -50,8 +51,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
           ],
 
           // Carrousel d'images
-          if (widget.product.imageUrl.isNotEmpty)
-            _buildImageCarousel(),
+          if (widget.product.imageUrl!.isNotEmpty) _buildImageCarousel(),
 
           const SizedBox(height: 16),
 
@@ -108,18 +108,20 @@ class _ProductDetailViewState extends State<ProductDetailView> {
       children: [
         // Image principale
         Container(
-          height: widget.isMobile ? 250 : 350,
-          width: double.infinity,
+          height: widget.isMobile ? 150 : 200,
+          width: 500,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             color: Colors.grey[200],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: widget.product.imageUrl.isNotEmpty
-                ? Image.asset(
-                    widget.product.imageUrl[_currentImageIndex],
-                    fit: BoxFit.cover,
+            child: widget.product.imageUrl!.isNotEmpty
+                ? Image.network(
+                    widget.product.imageUrl![_currentImageIndex],
+                    fit: BoxFit.contain,
+                    width: 80,
+                    height: 80,
                     errorBuilder: (context, error, stackTrace) {
                       return Center(
                         child: Icon(
@@ -136,13 +138,13 @@ class _ProductDetailViewState extends State<ProductDetailView> {
           ),
         ),
 
-        if (widget.product.imageUrl.length > 1) ...[
+        if (widget.product.imageUrl!.length > 1) ...[
           const SizedBox(height: 12),
           // Indicateurs
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(
-              widget.product.imageUrl.length,
+              widget.product.imageUrl!.length,
               (index) => GestureDetector(
                 onTap: () => setState(() => _currentImageIndex = index),
                 child: Container(
@@ -165,7 +167,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
             height: 70,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: widget.product.imageUrl.length,
+              itemCount: widget.product.imageUrl!.length,
               itemBuilder: (context, index) {
                 return GestureDetector(
                   onTap: () => setState(() => _currentImageIndex = index),
@@ -180,9 +182,32 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                             : Colors.transparent,
                         width: 2,
                       ),
-                      image: DecorationImage(
-                        image: AssetImage(widget.product.imageUrl[index]),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        widget.product.imageUrl![index],
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey[300],
+                            child: const Icon(
+                              Icons.broken_image,
+                              color: Colors.grey,
+                            ),
+                          );
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -214,7 +239,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
               ),
               const SizedBox(height: 4),
               Text(
-                widget.product.sku,
+                widget.product.sku!,
                 style: TextStyle(
                   fontSize: widget.isMobile ? 14 : 16,
                   color: Colors.grey[600],
@@ -262,13 +287,13 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         children: [
           _buildInfoCard(
             'Prix de vente',
-            '${widget.product.price.toStringAsFixed(2)} €',
+            '${widget.product.price?.toStringAsFixed(2)} €',
             Colors.blue[50]!,
           ),
           const SizedBox(height: 12),
           _buildInfoCard(
             'Coût par article',
-            '${widget.product.cost.toStringAsFixed(2)} €',
+            '${widget.product.cost?.toStringAsFixed(2)} €',
             Colors.green[50]!,
           ),
         ],
@@ -279,7 +304,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
           Expanded(
             child: _buildInfoCard(
               'Prix de vente',
-              '${widget.product.price.toStringAsFixed(2)} €',
+              '${widget.product.price?.toStringAsFixed(2)} €',
               Colors.blue[50]!,
             ),
           ),
@@ -287,7 +312,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
           Expanded(
             child: _buildInfoCard(
               'Coût par article',
-              '${widget.product.cost.toStringAsFixed(2)} €',
+              '${widget.product.cost?.toStringAsFixed(2)} €',
               Colors.green[50]!,
             ),
           ),
@@ -309,12 +334,14 @@ class _ProductDetailViewState extends State<ProductDetailView> {
           _buildInfoCard(
             'Statut',
             widget.product.status,
-            widget.product.status == 'Actif' ? Colors.green[50]! : Colors.orange[50]!,
+            widget.product.status == 'Actif'
+                ? Colors.green[50]!
+                : Colors.orange[50]!,
           ),
           const SizedBox(height: 12),
           _buildInfoCard(
             'Emplacement',
-            widget.product.location,
+            widget.product.location ?? '',
             Colors.purple[50]!,
           ),
         ],
@@ -334,14 +361,16 @@ class _ProductDetailViewState extends State<ProductDetailView> {
             child: _buildInfoCard(
               'Statut',
               widget.product.status,
-              widget.product.status == 'Actif' ? Colors.green[50]! : Colors.orange[50]!,
+              widget.product.status == 'Actif'
+                  ? Colors.green[50]!
+                  : Colors.orange[50]!,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: _buildInfoCard(
               'Emplacement',
-              widget.product.location,
+              widget.product.location ?? '',
               Colors.purple[50]!,
             ),
           ),
@@ -392,11 +421,20 @@ class _ProductDetailViewState extends State<ProductDetailView> {
             _buildSectionTitle('Variantes'),
             ElevatedButton.icon(
               onPressed: () {
-                // TODO: Ouvrir formulaire d'ajout de variante
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ProductVariantsPage(product: widget.product),
+                  ),
+                ).then((_) {
+                  // Recharger le produit si nécessaire
+                  setState(() {});
+                });
               },
               icon: Icon(Icons.add, size: widget.isMobile ? 16 : 18),
               label: Text(
-                'Ajouter une variante',
+                'Gérer les variantes',
                 style: TextStyle(fontSize: widget.isMobile ? 12 : 14),
               ),
             ),
@@ -430,22 +468,30 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                   _buildDataColumn('Prix comp.'),
                   _buildDataColumn('Actions'),
                 ],
-                rows: widget.product.variants.map((variant) {
+                rows: widget.product.variants!.map((variant) {
                   return DataRow(
                     cells: [
                       DataCell(Text(variant.barcode, style: _cellStyle())),
                       DataCell(Text(variant.description, style: _cellStyle())),
-                      DataCell(Text('${variant.quantity}', style: _cellStyle())),
-                      DataCell(Text('${variant.salePrice1} €', style: _cellStyle())),
+                      DataCell(
+                        Text('${variant.quantity}', style: _cellStyle()),
+                      ),
+                      DataCell(
+                        Text('${variant.salePrice1} €', style: _cellStyle()),
+                      ),
                       DataCell(
                         Text(
-                          variant.salePrice2 != null ? '${variant.salePrice2} €' : '-',
+                          variant.salePrice2 != null
+                              ? '${variant.salePrice2} €'
+                              : '-',
                           style: _cellStyle(),
                         ),
                       ),
                       DataCell(
                         Text(
-                          variant.comparePrice != null ? '${variant.comparePrice} €' : '-',
+                          variant.comparePrice != null
+                              ? '${variant.comparePrice} €'
+                              : '-',
                           style: _cellStyle(),
                         ),
                       ),
@@ -454,7 +500,10 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: Icon(Icons.edit, size: widget.isMobile ? 16 : 18),
+                              icon: Icon(
+                                Icons.edit,
+                                size: widget.isMobile ? 16 : 18,
+                              ),
                               onPressed: () {},
                               padding: EdgeInsets.zero,
                             ),
@@ -483,10 +532,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
 
   DataColumn _buildDataColumn(String label) {
     return DataColumn(
-      label: Text(
-        label,
-        style: TextStyle(fontSize: widget.isMobile ? 12 : 14),
-      ),
+      label: Text(label, style: TextStyle(fontSize: widget.isMobile ? 12 : 14)),
     );
   }
 

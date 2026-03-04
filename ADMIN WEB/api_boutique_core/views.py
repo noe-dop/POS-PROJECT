@@ -1,6 +1,7 @@
 # views.py
 from rest_framework import viewsets, status, filters, generics,permissions
 from rest_framework.decorators import action
+from django.db.models import Exists, OuterRef
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.exceptions import PermissionDenied
@@ -17,7 +18,7 @@ import csv
 from datetime import datetime
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .permissions import IsAdminOrOwner
+from .permissions import IsAdminOrOwner, CanManageStoreProducts
 # Import des modèles
 from .models import (
     User, Owner, Shareholder, Customer, Address, Currency,
@@ -832,10 +833,11 @@ class StoreViewSet(viewsets.ModelViewSet):
     
     def get_permissions(self):
         """Permissions adaptées à chaque action"""
-        if self.action in ['list', 'retrieve', 'nearby']:
+        if self.action in ['list','public_products']:
             # Public: voir les boutiques
             return [permissions.AllowAny()]
-        elif self.action in ['my_accessible_stores', 'dashboard']:
+        elif self.action in [ 'retrieve', 'nearby','my_accessible_stores', 'dashboard',
+                             'available_products','products']:
             # Connecté: voir ses boutiques accessibles
             return [permissions.IsAuthenticated()]
         else:
@@ -848,7 +850,7 @@ class StoreViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         # Pour les actions publiques: seulement boutiques actives
-        if self.action in ['list', 'retrieve', 'nearby']:
+        if self.action in ['list', 'retrieve', 'nearby','public_products']:
             return queryset.filter(is_active=True)
         
         # Pour utilisateur non connecté
@@ -1061,6 +1063,43 @@ class StoreViewSet(viewsets.ModelViewSet):
             ).count()
         
         return stats
+    
+    @action(detail=True, methods=['get'])
+    def public_products(self, request, pk=None):
+        """
+        Retourne les produits de la boutique avec les informations publiques
+        (sans prix d'achat, ni données internes).
+        """
+        store = self.get_object()  # Vérifie que la boutique existe et est active (via get_queryset)
+        store_products = StoreProduct.objects.filter(store=store, is_active=True,status="active")
+        serializer = StoreProductPublicSerializer(store_products, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def products(self, request, pk=None):
+        store = self.get_object()
+        store_products = StoreProduct.objects.filter(store=store, is_active=True)
+        serializer = StoreProductSerializer(store_products, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'], url_path='available-products')
+    def available_products(self, request, pk=None):
+        store = self.get_object()  # Vérifie l'accès via permissions du viewset
+        # Produits non liés
+        has_store_product = StoreProduct.objects.filter(
+            store=store,
+            product=OuterRef('pk')
+        )
+        products = Product.objects.filter(is_active=True).annotate(
+            is_linked=Exists(has_store_product)
+        ).filter(is_linked=False)
+        
+        page = self.paginate_queryset(products)
+        if page is not None:
+            serializer = ProductSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        serializer = ProductSerializer(products, many=True, context={'request': request})
+        return Response(serializer.data)
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.select_related('store', 'manager__user')
@@ -1332,12 +1371,18 @@ class ProductCategoryViewSet(viewsets.ModelViewSet):
 
         return Response(types)
 
-class ProductBrandViewSet(BaseAuditViewSet):
+class ProductBrandViewSet(viewsets.ModelViewSet):
     queryset = ProductBrand.objects.filter(is_active=True)
     serializer_class = ProductBrandSerializer
     search_fields = ['name']
+    permission_classes= [AllowAny]
 
-class ProductViewSet(BaseAuditViewSet):
+    @transaction.atomic
+    def create(self,request, *args, **kwargs):
+        return super().create(request, *args,**kwargs)
+
+
+class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.select_related('group', 'brand').prefetch_related('variants')
     serializer_class = ProductSerializer
     filterset_fields = ['group', 'brand']  
@@ -1354,13 +1399,38 @@ class ProductViewSet(BaseAuditViewSet):
         stocks = Stock.objects.filter(product=product)
         serializer = StockSerializer(stocks, many=True)
         return Response(serializer.data)
-
+    
 class ProductVariantViewSet(BaseAuditViewSet):
     queryset = ProductVariant.objects.select_related('product')
     serializer_class = ProductVariantSerializer
     filterset_fields = ['product']  # CORRIGÉ : retiré 'selection'
     search_fields = ['barcode', 'name']
+    permission_classes = [AllowAny]
 
+    @transaction.atomic
+    def create(self,request, *args, **kwargs):
+        return super().create(request, *args,**kwargs)
+
+
+class StoreProductViewSet(viewsets.ModelViewSet):
+    queryset = StoreProduct.objects.select_related('store', 'product', 'supplier').all()
+    permission_classes = [IsAuthenticated, ] #CanManageStoreProducts à ajouter pour employee qui ont acces
+    filterset_fields = ['store', 'product', 'is_active']
+    search_fields = ['product__name', 'product__sku']
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return StoreProductCreateSerializer
+        return StoreProductSerializer
+
+    # def perform_create(self, serializer):
+    #     # Vous pouvez ajouter des validations supplémentaires ici
+    #     serializer.save()
+
+class StoreProductVariantViewSet(BaseAuditViewSet):
+    queryset = StoreProductVariant.objects.select_related('store_product', 'variant')
+    serializer_class = StoreProductVariantSerializer
+    permission_classes = [AllowAny]
 
 # =============================================================================
 # GESTION DES STOCKS
@@ -1490,31 +1560,6 @@ class InventoryCountItemViewSet(BaseAuditViewSet):
     queryset = InventoryCountItem.objects.select_related('inventory_count', 'product', 'variant')
     serializer_class = InventoryCountItemSerializer
     permission_classes = [AllowAny]
-
-# class StoreProductViewSet(BaseAuditViewSet):
-#     queryset = StoreProduct.objects.select_related('store', 'product')
-#     serializer_class = StoreProductSerializer
-#     filterset_fields = ['store', 'product', 'is_active']
-class StoreProductViewSet(viewsets.ModelViewSet):
-    serializer_class = StoreProductSerializer
-
-    def get_queryset(self):
-        # Si nous sommes en train de générer le schéma, retourner un queryset vide
-        if getattr(self, 'swagger_fake_view', False):
-            return StoreProduct.objects.none()
-
-        store_id = self.kwargs.get('store_id')
-        if store_id :
-            # Si l'URL ne contient pas store_id, on peut lever une exception ou retourner vide selon le contexte
-            return StoreProduct.objects.filter(store_id=store_id, is_active=True)
-        
-        return StoreProduct.objects.filter(is_active=True)
-
-class StoreProductVariantViewSet(BaseAuditViewSet):
-    queryset = StoreProductVariant.objects.select_related('store_product', 'variant')
-    serializer_class = StoreProductVariantSerializer
-    permission_classes = [AllowAny]
-
 
 # =============================================================================
 # CAISSES

@@ -771,7 +771,7 @@ class ProductBrand(models.Model):
         verbose_name_plural = "Marques"
         ordering = ['name']
 
-class Product(AuditModel):
+class Product(models.Model):
     SKU_PREFIX = "PROD"
     
     group = models.ForeignKey(
@@ -803,6 +803,7 @@ class Product(AuditModel):
         null=True,
         blank=True,
         related_name='products_as_type')
+    nombre_item = models.IntegerField('nombre_item',default=1)
     base_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     STATUS_CHOICES = [
@@ -811,6 +812,9 @@ class Product(AuditModel):
     ('archived', 'Archivé'),
     ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True, db_index=True)
     
     class Meta:
         verbose_name = "Produit"
@@ -825,7 +829,21 @@ class Product(AuditModel):
         ]
 
     def save(self, *args, **kwargs):
-        if not self.sku:
+        if not self.sku and self.group:
+            # Générer un code à partir du nom du groupe (2 lettres)
+            group_name = self.group.name
+            # Exemple: "Frais libre service" -> "FL"
+            words = group_name.split()
+            if len(words) >= 2:
+                code = words[0][0].upper() + words[1][0].upper()
+            else:
+                code = words[0][:2].upper()
+            
+            # Compter les produits existants dans ce groupe
+            count = Product.objects.filter(group=self.group).count()
+            # Le nouveau produit aura le numéro count+1
+            self.sku = f"{code}-{count+1:05d}"
+        elif not self.sku:
             last_product = Product.objects.order_by('-id').first()
             next_id = (last_product.id + 1) if last_product else 1
             self.sku = f"{self.SKU_PREFIX}{next_id:06d}"
@@ -881,7 +899,9 @@ class StoreProduct(AuditModel):
         on_delete=models.PROTECT, 
         related_name='products',
         verbose_name="Fournisseur",
-        db_index=True
+        db_index=True,
+        null= True,
+        blank=True
     )
     store_cost_price = models.DecimalField(
         "Prix d'achat boutique", 
@@ -906,7 +926,7 @@ class StoreProduct(AuditModel):
     )
     
     qt_item = models.DecimalField(
-        "Quantité par item", 
+        "Quantité item", 
         max_digits=10, 
         decimal_places=2, 
         default=1

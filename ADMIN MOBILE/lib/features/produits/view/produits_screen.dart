@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:nsp_pos_mobile/features/dashboard/widgets/side_menu.dart';
+import 'package:nsp_pos_mobile/app/side_menu.dart';
+import 'package:nsp_pos_mobile/core/services/notifications.dart';
 import 'package:nsp_pos_mobile/features/produits/service/product_service.dart';
 import 'package:nsp_pos_mobile/features/produits/view/product_detail_view.dart';
 import 'package:nsp_pos_mobile/features/produits/viewmodel/product_model.dart';
 import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_model.dart';
 import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
 import 'package:nsp_pos_mobile/features/produits/widgets/produit_form_widget.dart';
+import 'package:nsp_pos_mobile/features/produits/widgets/select_existing_product.dart';
 import 'package:nsp_pos_mobile/features/type_produits/provider/type_produit_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -54,7 +56,8 @@ class _ProductsPageState extends State<ProductsPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => Material(child: ProduitFormWidget(produit: produit)),
+          builder: (context) =>
+              Material(child: ProduitFormWidget(produit: produit)),
           fullscreenDialog: true,
         ),
       );
@@ -79,7 +82,10 @@ class _ProductsPageState extends State<ProductsPage> {
         builder: (context, provider, child) {
           return Scaffold(
             appBar: AppBar(
-              title: const Text('Gestion des Produits',overflow: TextOverflow.clip,),
+              title: const Text(
+                'Gestion des Produits',
+                overflow: TextOverflow.clip,
+              ),
               centerTitle: true,
               actions: [
                 // Dropdown de sélection de boutique
@@ -126,7 +132,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 : _buildDesktopLayout(context, provider, isTablet),
             floatingActionButton: isMobile && !_showDetails
                 ? FloatingActionButton(
-                    onPressed: () => _ouvrirFormulaireProduit(),
+                    onPressed: () => _openAddProductFlow(),
                     tooltip: 'Ajouter un produit',
                     child: const Icon(Icons.add),
                   )
@@ -186,6 +192,9 @@ class _ProductsPageState extends State<ProductsPage> {
     BuildContext context,
     ProductProvider provider,
   ) {
+    // print(provider.products.first);
+    // print(provider.filteredProducts.first);
+    // print("Nombre de produit dans filtrered ${provider.filteredProducts.length}");
     final isMobile = MediaQuery.of(context).size.width < 768;
 
     return Column(
@@ -238,7 +247,7 @@ class _ProductsPageState extends State<ProductsPage> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => _ouvrirFormulaireProduit(),
+              onPressed: () => _openAddProductFlow(),
               icon: const Icon(Icons.add, size: 20),
               label: const Text('Ajouter un Produit'),
               style: ElevatedButton.styleFrom(
@@ -250,13 +259,16 @@ class _ProductsPageState extends State<ProductsPage> {
 
         // Liste des produits
         Expanded(
-          child: ListView.builder(
-            itemCount: provider.filteredProducts.length,
-            itemBuilder: (context, index) {
-              final product = provider.filteredProducts[index];
-              return _buildProductItem(context, provider, product);
-            },
-          ),
+          child: provider.products.isEmpty
+              ? const Center(child: Text('Aucun produit trouvé'))
+              : ListView.builder(
+                  itemCount: provider.filteredProducts.length,
+                  itemBuilder: (context, index) {
+                    final product = provider.filteredProducts[index];
+                    print(product);
+                    return _buildProductItem(context, provider, product);
+                  },
+                ),
         ),
       ],
     );
@@ -268,9 +280,15 @@ class _ProductsPageState extends State<ProductsPage> {
     Product product,
   ) {
     final isMobile = MediaQuery.of(context).size.width < 768;
+    final bool isDraft = product.status.toLowerCase() == 'draft';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      shape: isDraft ? 
+      RoundedRectangleBorder(
+        side: const BorderSide(color: Colors.red,width: 1.5),
+        borderRadius: BorderRadius.circular(8)
+      ) : null,
       child: ListTile(
         leading: Container(
           width: 50,
@@ -279,10 +297,10 @@ class _ProductsPageState extends State<ProductsPage> {
             color: Colors.grey[200],
             borderRadius: BorderRadius.circular(8),
           ),
-          child: product.imageUrl.isNotEmpty
+          child: product.imageUrl!.isNotEmpty
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(product.imageUrl[0], fit: BoxFit.cover),
+                  child: Image.network(product.imageUrl![0], fit: BoxFit.cover),
                 )
               : Icon(Icons.shopping_bag, color: Colors.grey[600]),
         ),
@@ -304,22 +322,22 @@ class _ProductsPageState extends State<ProductsPage> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: product.status == 'Actif'
+                    color: product.status == 'active'
                         ? Colors.green[50]
-                        : Colors.orange[50],
+                        : product.status =='draft' ? Colors.red[50]: Colors.orange[50],
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
-                      color: product.status == 'Actif'
+                      color: product.status == 'active'
                           ? Colors.green
-                          : Colors.orange,
+                          : product.status == 'draft'?  Colors.red: Colors.orange,
                     ),
                   ),
                   child: Text(
                     product.status,
                     style: TextStyle(
-                      color: product.status == 'Actif'
+                      color: product.status == 'active'
                           ? Colors.green
-                          : Colors.orange,
+                          : product.status=='draft' ? Colors.red: Colors.orange,
                       fontSize: 12,
                     ),
                   ),
@@ -328,7 +346,7 @@ class _ProductsPageState extends State<ProductsPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              product.sku,
+              product.sku!,
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
@@ -368,6 +386,114 @@ class _ProductsPageState extends State<ProductsPage> {
     );
   }
 
+  /// Ouvre le flux d'ajout : d'abord la liste des produits existants non liés
+  void _openAddProductFlow() {
+    final boutiqueService = context.read<BoutiqueService>();
+    final currentStore = boutiqueService.selectedStore;
+    if (currentStore == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez sélectionner une boutique')),
+      );
+      return;
+    }
+
+    final isMobile = MediaQuery.of(context).size.width < 768;
+    if (isMobile) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SelectExistingProductSheet(
+            storeId: currentStore.boutique.id,
+            onProductSelected: (product) {
+              // Lier le produit existant à la boutique
+              _linkProductToStore(product);
+            },
+            onCreateNew: () {
+              Navigator.pop(context); // ferme le bottom sheet
+              _openCreateProductForm();
+            },
+          ),
+        ),
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
+            child: SelectExistingProductSheet(
+              storeId: currentStore.boutique.id,
+              onProductSelected: (product) {
+                Navigator.pop(context);
+                _linkProductToStore(product);
+              },
+              onCreateNew: () {
+                Navigator.pop(context);
+                _openCreateProductForm();
+              },
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  /// Ouvre le formulaire de création d'un nouveau produit (comportement original)
+  void _openCreateProductForm({Product? produit}) {
+    final isMobile = MediaQuery.of(context).size.width < 768;
+    if (isMobile) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.8,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Material(child: ProduitFormWidget(produit: produit)),
+          );
+        },
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              Material(child: ProduitFormWidget(produit: produit)),
+          fullscreenDialog: true,
+        ),
+      );
+    }
+  }
+
+  /// Lie un produit existant à la boutique courante
+  void _linkProductToStore(Product product) async {
+    final provider = context.read<ProductProvider>();
+    final success = await provider.linkProductToStore(product);
+    if (mounted) {
+      if (success) {
+        NotificationService.showSuccess(
+          context,
+          'Produit "${product.name}" ajouté à la boutique',
+        );
+        // Les listes sont déjà rechargées dans linkProductToStore
+        Navigator.pop(context); // Ferme le bottom sheet après ajout
+      } else {
+        NotificationService.showError(context, 'Erreur : ${provider.error}');
+      }
+    }
+  }
+
   void _confirmDelete(BuildContext context, Product product) {
     showDialog(
       context: context,
@@ -382,7 +508,7 @@ class _ProductsPageState extends State<ProductsPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              context.read<ProductProvider>().deleteProduct(product.id);
+              context.read<ProductProvider>().deleteProduct(product.id!);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Supprimer'),

@@ -295,7 +295,7 @@ class BoutiqueService extends ChangeNotifier {
             .toList();
 
         // Charger la boutique précédemment sélectionnée
-        await _loadSelectedStore();
+        await loadSelectedStore();
         storage.saveAllStores(_accessibleStores);
         _calculeStats();
 
@@ -444,7 +444,7 @@ class BoutiqueService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _loadSelectedStore() async {
+  Future<void> loadSelectedStore() async {
     final stored = await storage.getSelectedStore();
     if (stored != null) {
       final store = StoreWithPermission.fromJson(stored);

@@ -2,7 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
 import 'package:nsp_pos_mobile/features/caisse/viewmodel/currency_config.dart';
-import 'package:nsp_pos_mobile/features/dashboard/widgets/side_menu.dart';
+import 'package:nsp_pos_mobile/app/side_menu.dart';
 import 'package:nsp_pos_mobile/localization/locale_keys.dart';
 import '../services/caisse_service.dart';
 

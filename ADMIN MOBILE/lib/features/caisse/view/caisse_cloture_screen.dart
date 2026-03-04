@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/features/caisse/viewmodel/caisse_session.dart';
-import 'package:nsp_pos_mobile/features/dashboard/widgets/side_menu.dart';
+import 'package:nsp_pos_mobile/app/side_menu.dart';
 
 class CaisseClotureScreen extends StatelessWidget {
   final dynamic sessionData;

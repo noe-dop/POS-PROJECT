@@ -2,81 +2,115 @@
 import 'variante_model.dart';
 
 class Product {
-  final String id;
+  int? id;
   String name;
-  String sku;
+  String? sku;
   String status;
-  String brand;
-  List<String> imageUrl;
+  int? brand;
+  List<String>? imageUrl;
   String description;
-  double price;
-  double cost;
-  int stock;
-  String location;
-  List<Variant> variants;
-  int? categorieId;  // ID de la catégorie principale
-  int? groupeId;     // ID du groupe (obligatoire ?)
-  int? typeId;       // ID du type (optionnel)
+  double? price;
+  double? cost;
+  int? nombreItem;
+  int? stock;
+  String? location;
+  List<Variant>? variants;
+  int categorieId; // ID de la catégorie principale
+  int groupeId; // ID du groupe (obligatoire ?)
+  int? typeId; // ID du type (optionnel)
   int storeId;
+  List<String>? searchVector;
 
   Product({
-    required this.id,
+    this.id,
     required this.name,
-    required this.sku,
+    this.sku,
     required this.status,
     required this.brand,
     required this.imageUrl,
     required this.description,
     required this.price,
     required this.cost,
-    required this.stock,
-    required this.location,
+    required this.nombreItem,
+    this.stock,
+    this.location,
     required this.variants,
-    this.categorieId,
-    this.groupeId,
+    required this.categorieId,
+    required this.groupeId,
     this.typeId,
-    required this.storeId
+    required this.storeId,
+    this.searchVector,
   });
 
-  factory Product.fromJson(Map<String, dynamic> json) {
-  return Product(
-    id: json['id'].toString(), // if int, convert to String
-    name: json['name'] ?? '',
-    sku: json['sku'] ?? '',
-    status: json['status'] ?? '',
-    brand: json['brand'] ?? '',
-    imageUrl: (json['image_url'] as List?)?.map((e) => e.toString()).toList() ?? [],
-    description: json['description'] ?? '',
-    price: (json['price'] as num?)?.toDouble() ?? 0.0,
-    cost: (json['cost'] as num?)?.toDouble() ?? 0.0,
-    stock: json['stock'] ?? 0,
-    location: json['location'] ?? '',
-    variants: (json['variants'] as List?)?.map((v) => Variant.fromJson(v)).toList() ?? [],
-    categorieId: json['categorie_id'],
-    groupeId: json['groupe_id'],
-    typeId: json['type_id'],
-    storeId: json['store_id'] ?? 0,
-  );
-}
+  factory Product.fromJson(Map<String, dynamic> json,int? storeId) {
+    List<String>? imagesList = [];
+    if (json['photo'] != null && json['photo'].toString().isNotEmpty) {
+      imagesList.add(json['photo'].toString());
+    }
+    if (json['additional_images_urls'] is List) {
+      imagesList.addAll(
+        (json['additional_images_urls'] as List)
+            .map((e) => e.toString())
+            .where((url) => url.isNotEmpty)
+            .toList(),
+      );
+    }
+    if (json['images_urls'] is List) {
+      imagesList.addAll(
+        (json['images_urls'] as List)
+            .map((e) => e.toString())
+            .where((url) => url.isNotEmpty)
+            .toList(),
+      );
+    }
+    for (var  element in json.values) {
+      print(element);
+      print(element.runtimeType);
+    }
+    return Product(
+      id: json['id'],
+      name: json['name'] ?? '',
+      sku: json['sku'] ?? '',
+      status: json['status'] ?? '',
+      brand: json['brand'],
+      imageUrl: imagesList,
+      description: json['description'] ?? '',
+      price: double.tryParse(json['base_price'].toString()) ?? 0.0,
+      cost: double.tryParse(json['cost_price'].toString()) ?? 0.0,
+      nombreItem: json["nombre_item"] ?? 0,
+      stock: json['stock'] ?? 0,
+      location: json['location'] ?? '',
+      variants:
+          (json['variants'] as List?)
+              ?.map((v) => Variant.fromJson(v))
+              .toList() ??
+          [],
+      categorieId: json['main_category_id'],
+      groupeId: json['group'],
+      typeId: json['product_type'],
+      storeId: json['store_id'] ?? storeId!,
+      // searchVector: json()
+    );
+  }
 
-Map<String, dynamic> toJson() {
-  return {
-    'id': id,
-    'name': name,
-    'sku': sku,
-    'status': status,
-    'brand': brand,
-    'image_url': imageUrl,
-    'description': description,
-    'price': price,
-    'cost': cost,
-    'stock': stock,
-    'location': location,
-    'variants': variants.map((v) => v.toJson()).toList(),
-    'categorie_id': categorieId,
-    'groupe_id': groupeId,
-    'type_id': typeId,
-    'store_id': storeId,
-  };
-}
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'sku': sku,
+      'status': status,
+      'brand': brand,
+      'image_url': imageUrl,
+      'description': description,
+      'price': price,
+      'cost': cost,
+      'stock': stock,
+      'location': location,
+      'variants': variants?.map((v) => v.toJson()).toList(),
+      'categorie_id': categorieId,
+      'groupe_id': groupeId,
+      'type_id': typeId,
+      'store_id': storeId,
+    };
+  }
 }
