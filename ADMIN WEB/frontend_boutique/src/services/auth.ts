@@ -1,7 +1,7 @@
 import { apiService } from './api';
 import { LoginData, AuthResponse, User } from '@types';
 
-// Définir RegisterData localement (sans user_type)
+// Interface pour les données d'inscription
 interface RegisterData {
   username: string;
   email: string;
@@ -13,118 +13,142 @@ interface RegisterData {
   password_confirm: string;
 }
 
+// Interface pour la réponse standard de l'API Django
+interface DjangoAuthResponse {
+  success: boolean;
+  message: string;
+  access: string;
+  refresh: string;
+  user: User;
+  expires_in?: number;
+}
+
 export const authService = {
+  /**
+   * Connexion utilisateur
+   */
   async login(credentials: LoginData): Promise<AuthResponse> {
-    console.log("🔐 Envoi des identifiants à l'API");
+    console.log("🔐 Envoi des identifiants à l'API", credentials.username);
     
-    const loginData = {
-      username: credentials.username.trim(),
-      password: credentials.password
-    };
-    
-    const response = await apiService.post<any>('/auth/login/', loginData);
-    console.log("✅ Réponse login:", response.data);
-    
-    // ✅ CORRECTION SIMPLIFIÉE : On retourne directement la réponse de l'API
-    // L'API Django REST devrait retourner un format standard
-    const apiResponse = response.data;
-    
-    // Stocker le token si présent
-    if (apiResponse.access || apiResponse.token) {
-      localStorage.setItem('access_token', apiResponse.access || apiResponse.token);
-    }
-    
-    // Si l'API retourne déjà un user, on l'utilise
-    if (apiResponse.user) {
-      console.log("✅ Utilisateur dans la réponse login:", apiResponse.user);
-      return apiResponse;
-    }
-    
-    // Sinon, on récupère l'utilisateur séparément
     try {
-      console.log("👤 Récupération des infos utilisateur...");
-      const userResponse = await apiService.get<User>('/auth/user/');
-      console.log("✅ Utilisateur récupéré:", userResponse.data);
-      
-      // Construire la réponse d'authentification
-      const authResponse: AuthResponse = {
-        user: userResponse.data,
-        tokens: apiResponse.tokens || {
-          access: apiResponse.access,
-          refresh: apiResponse.refresh
-        }
+      const loginData = {
+        username: credentials.username.trim(),
+        password: credentials.password
       };
       
-      console.log("✅ Réponse authentification complète:", authResponse);
-      return authResponse;
+      const response = await apiService.post<DjangoAuthResponse>('/auth/login/', loginData);
+      console.log("✅ Réponse API reçue:", response.data);
       
-    } catch (userError) {
-      console.error("❌ Erreur récupération utilisateur:", userError);
+      const apiResponse = response.data;
       
-      // Fallback minimal
-      const fallbackUser: User = {
-        id: Date.now(),
-        username: credentials.username,
-        email: credentials.username.includes('@') ? credentials.username : `${credentials.username}@example.com`,
-        first_name: '',
-        last_name: '',
-        is_active: true,
-        date_joined: new Date().toISOString(),
-        permissions: undefined,
-        role: '',
-        full_name: '',
-        user_type: 0,
-        phone: '',
-        is_staff: false,
-        is_superuser: false,
-        updated_at: ''
+      if (!apiResponse.success) {
+        throw new Error(apiResponse.message || 'Erreur de connexion');
+      }
+      
+      this.updateTokens(apiResponse.access, apiResponse.refresh);
+      
+      if (!apiResponse.user) {
+        throw new Error("Réponse API invalide: utilisateur manquant");
+      }
+      
+      localStorage.setItem('user', JSON.stringify(apiResponse.user));
+      console.log("✅ Utilisateur stocké:", apiResponse.user.username);
+      
+      return {
+        success: apiResponse.success,
+        message: apiResponse.message,
+        access: apiResponse.access,
+        refresh: apiResponse.refresh,
+        user: apiResponse.user,
+        expires_in: apiResponse.expires_in
       };
       
-      const authResponse: AuthResponse = {
-        user: fallbackUser,
-        message: 'Connexion réussie (mode fallback)'
-      };
+    } catch (error: any) {
+      console.error("❌ Erreur lors du login:", error);
       
-      console.log("⚠️ Utilisation utilisateur fallback:", authResponse);
-      return authResponse;
+      let errorMessage = "Erreur de connexion";
+      
+      if (error.response) {
+        const data = error.response.data;
+        if (data.message) errorMessage = data.message;
+        else if (data.error) errorMessage = data.error;
+        else if (data.non_field_errors) errorMessage = data.non_field_errors.join(', ');
+        else if (data.detail) errorMessage = data.detail;
+      } else if (error.request) {
+        errorMessage = "Le serveur ne répond pas. Vérifiez votre connexion.";
+      } else {
+        errorMessage = error.message || "Erreur inconnue";
+      }
+      
+      throw new Error(errorMessage);
     }
   },
 
+  /**
+   * Déconnexion utilisateur
+   */
   async logout(): Promise<void> {
-    try {
-      // Optionnel: appeler l'API de déconnexion si disponible
-      // await apiService.post('/auth/logout/');
-      
-      // Nettoyage local
-      localStorage.removeItem('user');
-      localStorage.removeItem('authTokens');
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      sessionStorage.clear();
-      
-      console.log("✅ Déconnexion effectuée");
-    } catch (error) {
-      console.error('Logout error:', error);
-      // On nettoie quand même le local storage
-      localStorage.clear();
+    console.log("🚪 Déconnexion...");
+    
+    const refreshToken = localStorage.getItem('refresh_token');
+    
+    if (refreshToken) {
+      try {
+        await apiService.post('/auth/logout/', { refresh: refreshToken });
+        console.log("✅ API logout réussie");
+      } catch (error) {
+        console.warn("⚠️ Erreur lors du logout API (ignorée):", error);
+      }
     }
+    
+    this.clearLocalStorage();
+    console.log("✅ Déconnexion effectuée, tokens nettoyés");
   },
 
-  async getCurrentUser(): Promise<User> {
+  /**
+   * Récupérer l'utilisateur courant
+   */
+  async getCurrentUser(forceRefresh = false): Promise<User> {
     try {
-      const response = await apiService.get<User>('/auth/user/');
-      return response.data;
+      if (forceRefresh) {
+        console.log("🔄 Rafraîchissement forcé depuis l'API...");
+        const response = await apiService.get<User>('/auth/profile/');
+        const user = response.data;
+        localStorage.setItem('user', JSON.stringify(user));
+        return user;
+      }
+      
+      const storedUser = localStorage.getItem('user');
+      if (storedUser && this.isAuthenticated()) {
+        try {
+          const user = JSON.parse(storedUser);
+          console.log("👤 Utilisateur récupéré du localStorage:", user.username);
+          return user;
+        } catch (e) {
+          console.warn("⚠️ Erreur parsing user du localStorage");
+        }
+      }
+      
+      console.log("🔄 Récupération utilisateur depuis l'API...");
+      const response = await apiService.get<User>('/auth/profile/');
+      const user = response.data;
+      
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      return user;
     } catch (error) {
-      console.error('Erreur récupération utilisateur:', error);
+      console.error('❌ Erreur récupération utilisateur:', error);
       throw error;
     }
   },
 
+  /**
+   * Inscription utilisateur
+   */
   async register(userData: RegisterData) {
     console.log("📝 Tentative d'inscription pour:", userData.username);
     
     try {
-      // Préparer les données pour l'API
       const registerData = {
         username: userData.username,
         email: userData.email,
@@ -136,27 +160,33 @@ export const authService = {
         password_confirm: userData.password_confirm
       };
       
-      console.log("🔄 Envoi des données à l'API...", registerData);
-      
-      // Note: Le backend doit déterminer automatiquement le type d'utilisateur
-      // ou avoir des endpoints séparés pour chaque type
-      const response = await apiService.post('/owner/register/', registerData);
+      console.log("🔄 Envoi des données à l'API...");
+      const response = await apiService.post('/auth/register/', registerData);
       
       console.log("✅ Inscription réussie !");
+      
+      if (response.data.access) {
+        this.updateTokens(response.data.access, response.data.refresh);
+      }
+      
+      if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
       return response.data;
       
     } catch (error: any) {
       console.error("❌ Erreur lors de l'inscription:", error);
       
-      // Amélioration du message d'erreur
+      let errorMessage = "Erreur lors de l'inscription";
+      
       if (error.response?.data) {
         const errorData = error.response.data;
-        console.log("🔍 Détails de l'erreur:", errorData);
         
-        // Construire un message d'erreur plus lisible
-        let errorMessage = "Erreur lors de l'inscription";
         if (typeof errorData === 'string') {
           errorMessage = errorData;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
         } else if (errorData.non_field_errors) {
           errorMessage = errorData.non_field_errors.join(', ');
         } else if (errorData.email) {
@@ -166,24 +196,204 @@ export const authService = {
         } else if (errorData.password) {
           errorMessage = `Mot de passe: ${errorData.password.join(', ')}`;
         }
-        
-        throw new Error(errorMessage);
       }
       
+      throw new Error(errorMessage);
+    }
+  },
+
+  /**
+   * Rafraîchir le token d'accès
+   */
+  async refreshToken(): Promise<boolean> {
+    const refreshToken = localStorage.getItem('refresh_token');
+    
+    if (!refreshToken) {
+      console.log("❌ Pas de refresh token disponible");
+      return false;
+    }
+    
+    try {
+      console.log("🔄 Tentative de rafraîchissement du token...");
+      const response = await apiService.post('/auth/token/refresh/', {
+        refresh: refreshToken
+      });
+      
+      if (response.data.access) {
+        this.updateTokens(response.data.access, response.data.refresh || refreshToken);
+        console.log("✅ Token rafraîchi avec succès");
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("❌ Erreur rafraîchissement token:", error);
+      this.clearLocalStorage();
+      return false;
+    }
+  },
+
+  /**
+   * Vérifier si l'utilisateur est authentifié
+   */
+  isAuthenticated(): boolean {
+    const token = localStorage.getItem('access_token');
+    return !!token;
+  },
+
+  /**
+   * Obtenir le token d'accès
+   */
+  getToken(): string | null {
+    return localStorage.getItem('access_token');
+  },
+
+  /**
+   * Obtenir le refresh token
+   */
+  getRefreshToken(): string | null {
+    return localStorage.getItem('refresh_token');
+  },
+
+  /**
+   * Mettre à jour les tokens
+   */
+  updateTokens(access: string, refresh?: string): void {
+    localStorage.setItem('access_token', access);
+    if (refresh) {
+      localStorage.setItem('refresh_token', refresh);
+    }
+    localStorage.setItem('authTokens', JSON.stringify({ 
+      access, 
+      refresh: refresh || null 
+    }));
+    console.log("✅ Tokens mis à jour");
+  },
+
+  /**
+   * Nettoyer le localStorage
+   */
+  clearLocalStorage(): void {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('authTokens');
+    sessionStorage.clear();
+    console.log("🧹 localStorage nettoyé");
+  },
+
+  /**
+   * Vérifier si le token est expiré
+   */
+  isTokenExpired(token?: string): boolean {
+    const accessToken = token || this.getToken();
+    if (!accessToken) return true;
+    
+    try {
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      const exp = payload.exp * 1000;
+      return Date.now() >= exp;
+    } catch (e) {
+      console.warn("⚠️ Impossible de décoder le token");
+      return true;
+    }
+  },
+
+  // ============ MÉTHODES SPÉCIFIQUES PAR RÔLE ============
+
+  /**
+   * Inscription en tant que propriétaire
+   */
+  async registerOwner(data: RegisterData) {
+    return apiService.post('/auth/owners/register/', data);
+  },
+
+  /**
+   * Inscription en tant qu'actionnaire
+   */
+  async registerShareholder(data: RegisterData & { investment_amount?: number }) {
+    return apiService.post('/auth/shareholders/register/', data);
+  },
+
+  /**
+   * Inscription en tant que client
+   */
+  async registerCustomer(data: RegisterData & { birth_date?: string; preferences?: any }) {
+    return apiService.post('/auth/customers/register/', data);
+  },
+
+  /**
+   * Récupérer le profil propriétaire
+   */
+  async getOwnerProfile() {
+    return apiService.get('/auth/owners/profile/');
+  },
+
+  /**
+   * Récupérer le profil employé
+   */
+  async getEmployeeProfile() {
+    return apiService.get('/auth/employees/profile/');
+  },
+
+  /**
+   * Récupérer le profil actionnaire
+   */
+  async getShareholderProfile() {
+    return apiService.get('/auth/shareholders/profile/');
+  },
+
+  /**
+   * Récupérer le profil client
+   */
+  async getCustomerProfile() {
+    return apiService.get('/auth/customers/profile/');
+  },
+
+  /**
+   * Changer le mot de passe
+   */
+  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    try {
+      await apiService.post('/auth/change-password/', {
+        old_password: oldPassword,
+        new_password: newPassword
+      });
+      console.log("✅ Mot de passe changé avec succès");
+    } catch (error) {
+      console.error("❌ Erreur changement mot de passe:", error);
       throw error;
     }
   },
 
-  // Méthode optionnelle pour enregistrer un type spécifique d'utilisateur
-  async registerOwner(data: RegisterData) {
-    return apiService.post('/api/owners/register/', data);
+  /**
+   * Demander la réinitialisation du mot de passe
+   */
+  async forgotPassword(email: string): Promise<void> {
+    try {
+      await apiService.post('/auth/forgot-password/', { email });
+      console.log("✅ Email de réinitialisation envoyé");
+    } catch (error) {
+      console.error("❌ Erreur demande réinitialisation:", error);
+      throw error;
+    }
   },
 
-  async registerShareholder(data: RegisterData & { investment_amount?: number }) {
-    return apiService.post('/api/shareholders/register/', data);
-  },
-
-  async registerCustomer(data: RegisterData & { birth_date?: string; preferences?: any }) {
-    return apiService.post('/api/customers/register/', data);
+  /**
+   * Réinitialiser le mot de passe avec un token
+   */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    try {
+      await apiService.post('/auth/reset-password/', {
+        token,
+        new_password: newPassword
+      });
+      console.log("✅ Mot de passe réinitialisé avec succès");
+    } catch (error) {
+      console.error("❌ Erreur réinitialisation mot de passe:", error);
+      throw error;
+    }
   }
 };
+
+export default authService;

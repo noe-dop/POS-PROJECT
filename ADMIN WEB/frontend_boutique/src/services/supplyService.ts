@@ -1,7 +1,9 @@
-// src/services/supplyService.ts
-import { api } from './api';
+// src/services/supplyService.ts - VERSION FINALE CORRIGÉE
+import api from './api';
 
-// Types basés sur votre modèle Django
+// ============================================================================
+// TYPES (basés sur les modèles Django)
+// ============================================================================
 
 export interface Store {
   id: number;
@@ -22,7 +24,8 @@ export interface Supplier {
   emplacement?: string;
   contact_person?: string;
   payment_terms?: string;
-  store: number; // OBLIGATOIRE - ID du magasin
+  store: number;
+  store_name?: string;
   address?: string;
   phone?: string;
   created_at?: string;
@@ -35,7 +38,7 @@ export interface RetailSupply {
   name_product: string;
   qt_add: number;
   total_pdx: number;
-  supply: number; // ID de l'approvisionnement
+  supply: number;
   supply_reference?: string;
   created_at?: string;
   updated_at?: string;
@@ -44,12 +47,12 @@ export interface RetailSupply {
 export interface Supply {
   id: number;
   ref_supply: string;
-  supplier?: Supplier | null;
+  supplier?: number | null;
   supplier_name?: string;
-  store: number; // ID du magasin
+  store: number;
   store_object?: Store;
   store_name?: string;
-  utilisateur: number; // OBLIGATOIRE - ID de l'Employee
+  utilisateur: number;
   utilisateur_object?: any;
   utilisateur_name?: string;
   total_command: number;
@@ -62,23 +65,21 @@ export interface Supply {
   updated_at?: string;
 }
 
-// CORRECTIF SELON MODÈLE DJANGO : AJOUTER UTILISATEUR OBLIGATOIRE
 export interface CreateSupplyData {
   ref_supply: string;
-  supplier?: number | null; // Nullable selon le modèle
-  store: number; // OBLIGATOIRE - ID du magasin
+  supplier?: number | null;
+  store: number;
   total_command: number;
-  utilisateur: number; // OBLIGATOIRE - ID de l'Employee
-  status: 'pending' | 'received' | 'cancelled';
+  utilisateur: number;
+  status?: 'pending' | 'received' | 'cancelled';  // ← RENDU OPTIONNEL
 }
 
-// Ajouter un type pour la mise à jour (partial de CreateSupplyData)
 export interface UpdateSupplyData {
   ref_supply?: string;
-  supplier?: number | null; // Nullable selon le modèle
-  store?: number; // ID du magasin
+  supplier?: number | null;
+  store?: number;
   total_command?: number;
-  utilisateur?: number; // ID de l'Employee
+  utilisateur?: number;
   status?: 'pending' | 'received' | 'cancelled';
 }
 
@@ -89,251 +90,238 @@ export interface CreateSupplierData {
   emplacement?: string;
   contact_person?: string;
   payment_terms?: string;
-  store: number; // OBLIGATOIRE - ID du magasin
+  store: number;
   address?: string;
   phone?: string;
 }
 
+export interface CreateRetailSupplyData {
+  ref: number;           // ID du produit
+  name_product: string;  // Nom du produit
+  qt_add: number;        // Quantité ajoutée
+  total_pdx: number;     // Total après ajout
+  supply: number;        // ID de l'approvisionnement
+}
+
+export interface SupplyStats {
+  total_pending: number;
+  total_received: number;
+  total_cancelled: number;
+  total_supplies: number;
+  total_amount: number;
+  monthly_trend: number;
+}
+
+export interface ApiPaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+export interface SupplyFilters {
+  search?: string;
+  status?: string;
+  store?: number | string;
+  supplier?: number;
+  start_date?: string;
+  end_date?: string;
+  page?: number;
+  page_size?: number;
+  ordering?: string;
+}
+
+// ============================================================================
+// SERVICE
+// ============================================================================
+
 class SupplyService {
-  /**
-   * Récupérer tous les approvisionnements avec filtres optionnels
-   */
-  async getSupplies(params?: any): Promise<Supply[]> {
-    try {
-      console.log('📦 Chargement des approvisionnements depuis la base de données...', params);
+  
+  private handleApiResponse<T>(response: any, defaultValue: T[] = []): T[] {
+    if (!response) return defaultValue;
+    
+    // Si la réponse est déjà un tableau
+    if (Array.isArray(response)) {
+      return response;
+    }
+    
+    // Si la réponse a une propriété 'data' qui est un tableau
+    if (response.data && Array.isArray(response.data)) {
+      return response.data;
+    }
+    
+    // Si la réponse est une pagination Django (results)
+    if (response.results && Array.isArray(response.results)) {
+      return response.results;
+    }
+    
+    // Si la réponse est un objet unique
+    if (response && typeof response === 'object' && !Array.isArray(response) && response.id) {
+      return [response] as T[];
+    }
+    
+    return defaultValue;
+  }
+
+  private handleError(error: any, defaultMessage: string): never {
+    console.error('❌ Erreur API:', error);
+    
+    if (error.response?.data) {
+      const data = error.response.data;
+      console.error('📋 Réponse erreur:', data);
       
-      // Nettoyer les paramètres - supprimer les valeurs vides ou 'all'
+      // Erreur Django standard
+      if (typeof data === 'object') {
+        const errors: string[] = [];
+        
+        // Parcourir les champs d'erreur
+        Object.entries(data).forEach(([key, value]) => {
+          if (key === 'detail') {
+            if (typeof value === 'string') errors.push(value);
+          } else if (key === 'non_field_errors' && Array.isArray(value)) {
+            errors.push(...value);
+          } else if (Array.isArray(value)) {
+            errors.push(`${key}: ${value.join(', ')}`);
+          } else if (typeof value === 'string') {
+            errors.push(`${key}: ${value}`);
+          } else if (value && typeof value === 'object') {
+            errors.push(`${key}: ${JSON.stringify(value)}`);
+          }
+        });
+        
+        if (errors.length > 0) {
+          throw new Error(errors.join('; '));
+        }
+      }
+      
+      // Erreur avec détail
+      if (data.detail) {
+        throw new Error(data.detail);
+      }
+      
+      // Erreur avec message
+      if (data.message) {
+        throw new Error(data.message);
+      }
+      
+      // Erreur sous forme de string
+      if (typeof data === 'string') {
+        throw new Error(data);
+      }
+    }
+    
+    // Erreur générique
+    throw new Error(defaultMessage);
+  }
+
+  // ============================================================================
+  // SUPPLIES
+  // ============================================================================
+
+  async getSupplies(params?: SupplyFilters): Promise<Supply[]> {
+    try {
+      console.log('📦 Chargement des approvisionnements...', params);
+      
       const cleanParams: Record<string, any> = {};
       if (params) {
         Object.keys(params).forEach(key => {
-          const value = params[key];
+          const value = params[key as keyof SupplyFilters];
           if (value !== undefined && value !== null && value !== '' && value !== 'all') {
             cleanParams[key] = value;
           }
         });
       }
       
-      console.log('🔧 Paramètres nettoyés:', cleanParams);
-      
       const response = await api.get<any>('/supplies/', { params: cleanParams });
       
-      console.log('📋 Réponse API approvisionnements:', response);
-      
-      let supplies: Supply[] = [];
-      
-      // Gérer tous les formats de réponse possibles
-      if (Array.isArray(response)) {
-        supplies = response;
-      } else if (response && Array.isArray(response.results)) {
-        supplies = response.results;
-      } else if (response && Array.isArray(response.data)) {
-        supplies = response.data;
-      } else if (response && typeof response === 'object' && response.data && Array.isArray(response.data)) {
-        supplies = response.data;
-      } else if (response && typeof response === 'object') {
-        // Si c'est un objet unique, le convertir en tableau
-        supplies = [response];
-      } else {
-        console.warn('❌ Format de réponse inattendu, retour tableau vide:', response);
-        supplies = [];
+      // Gérer la réponse paginée
+      if (response && typeof response === 'object' && 'results' in response) {
+        return this.handleApiResponse<Supply>(response);
       }
       
-      console.log(`✅ ${supplies.length} approvisionnement(s) chargé(s) depuis la base de données`);
+      // Gérer la réponse directe
+      const supplies = this.handleApiResponse<Supply>(response);
+      console.log(`✅ ${supplies.length} approvisionnement(s) chargé(s)`);
       return supplies;
     } catch (error) {
-      console.error('❌ Erreur lors du chargement des approvisionnements:', error);
-      throw new Error('Impossible de charger les approvisionnements');
+      return this.handleError(error, 'Impossible de charger les approvisionnements');
     }
   }
 
-  /**
-   * Récupérer tous les fournisseurs
-   */
-  async getSuppliers(params?: any): Promise<Supplier[]> {
-    try {
-      console.log('📞 Chargement des fournisseurs depuis la base de données...', params);
-      
-      const response = await api.get<any>('/suppliers/', { params });
-      console.log('📋 Réponse API fournisseurs:', response);
-      
-      let suppliers: Supplier[] = [];
-      
-      // Gérer tous les formats de réponse possibles
-      if (Array.isArray(response)) {
-        suppliers = response;
-      } else if (response && Array.isArray(response.results)) {
-        suppliers = response.results;
-      } else if (response && Array.isArray(response.data)) {
-        suppliers = response.data;
-      } else if (response && typeof response === 'object') {
-        // Si c'est un objet unique, le convertir en tableau
-        suppliers = [response];
-      } else {
-        console.warn('❌ Format de réponse inattendu, retour tableau vide:', response);
-        suppliers = [];
-      }
-      
-      console.log(`✅ ${suppliers.length} fournisseur(s) chargé(s) depuis la base de données`);
-      return suppliers;
-    } catch (error) {
-      console.error('❌ Erreur lors du chargement des fournisseurs:', error);
-      throw new Error('Impossible de charger les fournisseurs');
-    }
-  }
-
-  /**
-   * Récupérer tous les magasins
-   */
-  async getStores(): Promise<Store[]> {
-    try {
-      console.log('🏪 Chargement des magasins depuis la base de données...');
-      
-      const response = await api.get<any>('/stores/');
-      console.log('📋 Réponse API magasins:', response);
-      
-      let stores: Store[] = [];
-      
-      // Gérer tous les formats de réponse possibles
-      if (Array.isArray(response)) {
-        stores = response;
-      } else if (response && Array.isArray(response.results)) {
-        stores = response.results;
-      } else if (response && Array.isArray(response.data)) {
-        stores = response.data;
-      } else if (response && typeof response === 'object') {
-        // Si c'est un objet unique, le convertir en tableau
-        stores = [response];
-      } else {
-        console.warn('❌ Format de réponse inattendu, retour tableau vide:', response);
-        stores = [];
-      }
-      
-      console.log(`✅ ${stores.length} magasin(s) chargé(s) depuis la base de données`);
-      return stores;
-    } catch (error) {
-      console.error('❌ Erreur lors du chargement des magasins:', error);
-      throw new Error('Impossible de charger les magasins');
-    }
-  }
-
-  /**
-   * Récupérer un approvisionnement par ID
-   */
   async getSupplyById(id: number): Promise<Supply> {
     try {
-      console.log(`📦 Chargement de l'approvisionnement ${id} depuis la base de données...`);
+      console.log(`📦 Chargement approvisionnement ${id}...`);
       const response = await api.get<Supply>(`/supplies/${id}/`);
-      console.log('✅ Approvisionnement chargé:', response);
       return response;
     } catch (error) {
-      console.error(`❌ Erreur récupération approvisionnement ${id}:`, error);
-      throw new Error(`Impossible de charger l'approvisionnement ${id}`);
+      return this.handleError(error, `Impossible de charger l'approvisionnement ${id}`);
     }
   }
 
-  /**
-   * Créer un approvisionnement
-   */
   async createSupply(supplyData: CreateSupplyData): Promise<Supply> {
     try {
-      // VÉRIFICATION DES DONNÉES OBLIGATOIRES
-      if (!supplyData.store || supplyData.store <= 0) {
-        throw new Error('Le magasin est obligatoire et doit être valide');
+      console.log('📤 Création approvisionnement - Données reçues:', supplyData);
+      
+      // Validations
+      if (!supplyData.utilisateur || supplyData.utilisateur === 0) {
+        throw new Error("L'utilisateur est requis et doit être un ID valide");
+      }
+      if (!supplyData.store || supplyData.store === 0) {
+        throw new Error('Le magasin est requis et doit être un ID valide');
+      }
+      if (!supplyData.ref_supply) {
+        throw new Error('La référence est requise');
       }
       
-      if (!supplyData.utilisateur || supplyData.utilisateur <= 0) {
-        throw new Error('L\'utilisateur (employé) est obligatoire');
-      }
-      
-      if (!supplyData.total_command || supplyData.total_command < 0) {
-        throw new Error('Le total de la commande doit être un nombre positif');
-      }
-      
-      // FORMATAGE CORRECT POUR DJANGO
+      // Construction du payload
       const payload: Record<string, any> = {
-        ref_supply: supplyData.ref_supply,
-        store: supplyData.store,
-        utilisateur: supplyData.utilisateur,
-        total_command: Number(supplyData.total_command),
-        status: supplyData.status || 'pending',
+        ref_supply: String(supplyData.ref_supply).trim(),
+        total_command: Number(supplyData.total_command).toFixed(2),
+        status: supplyData.status || 'pending',  // Valeur par défaut
+        store: Number(supplyData.store),
+        utilisateur: Number(supplyData.utilisateur),
       };
-
-      // Gérer correctement supplier (peut être null ou undefined)
-      if (supplyData.supplier !== undefined && supplyData.supplier !== null) {
-        const supplierId = Number(supplyData.supplier);
-        if (!isNaN(supplierId) && supplierId > 0) {
-          payload.supplier = supplierId;
-        } else {
-          console.warn('⚠️ ID fournisseur non valide, ignoré:', supplyData.supplier);
-        }
+      
+      // Ajouter le fournisseur si présent
+      if (supplyData.supplier && supplyData.supplier > 0) {
+        payload.supplier = Number(supplyData.supplier);
+      } else {
+        payload.supplier = null;
       }
 
-      console.log('📤 Création approvisionnement - Payload final:');
-      console.log('Données envoyées:', JSON.stringify(payload, null, 2));
+      console.log('📦 Payload final:', JSON.stringify(payload, null, 2));
       
       const response = await api.post<Supply>('/supplies/', payload);
-      console.log('✅ Approvisionnement créé avec succès');
+      console.log('✅ Approvisionnement créé avec succès:', response);
       return response;
     } catch (error: any) {
-      console.error('❌ Erreur création approvisionnement:', error);
-      
-      // Afficher les détails de l'erreur Django
+      console.error('❌ Erreur createSupply:', error);
       if (error.response?.data) {
-        console.error('📋 ERREURS DE VALIDATION DJANGO:');
-        console.error(JSON.stringify(error.response.data, null, 2));
-        
-        // Formater les erreurs pour l'affichage
-        if (typeof error.response.data === 'object') {
-          const errors: string[] = [];
-          Object.keys(error.response.data).forEach(key => {
-            const value = error.response.data[key];
-            if (Array.isArray(value)) {
-              errors.push(`${key}: ${value.join(', ')}`);
-            } else if (typeof value === 'string') {
-              errors.push(value);
-            }
-          });
-          
-          if (errors.length > 0) {
-            throw new Error(`Erreurs de validation: ${errors.join('; ')}`);
-          }
-        }
+        console.error('📋 Détails Django:', error.response.data);
       }
-      
-      throw new Error(`Impossible de créer l'approvisionnement: ${error.response?.data?.detail || error.message}`);
+      return this.handleError(error, 'Erreur lors de la création');
     }
   }
 
-  /**
-   * Mettre à jour un approvisionnement - CORRIGÉ
-   */
-  async updateSupply(id: number, supplyData: Partial<CreateSupplyData>): Promise<Supply> {
+  async updateSupply(id: number, supplyData: UpdateSupplyData): Promise<Supply> {
     try {
-      console.log('🔄 Mise à jour de l\'approvisionnement:', { id, supplyData });
+      console.log('🔄 Mise à jour approvisionnement:', { id, supplyData });
       
       const payload: Record<string, any> = {};
       
-      // Ajouter seulement les champs fournis avec formatage approprié
+      // Ajouter uniquement les champs modifiés
       if (supplyData.supplier !== undefined) {
-        if (supplyData.supplier === null || supplyData.supplier === '') {
-          payload.supplier = null;
-        } else {
-          const supplierId = Number(supplyData.supplier);
-          if (!isNaN(supplierId) && supplierId > 0) {
-            payload.supplier = supplierId;
-          }
-        }
+        payload.supplier = supplyData.supplier && supplyData.supplier > 0 
+          ? Number(supplyData.supplier) 
+          : null;
       }
       
       if (supplyData.store !== undefined) {
-        const storeId = Number(supplyData.store);
-        if (!isNaN(storeId) && storeId > 0) {
-          payload.store = storeId;
-        }
+        payload.store = Number(supplyData.store);
       }
       
       if (supplyData.total_command !== undefined) {
-        payload.total_command = Number(supplyData.total_command);
+        payload.total_command = Number(supplyData.total_command).toFixed(2);
       }
       
       if (supplyData.status !== undefined) {
@@ -341,153 +329,279 @@ class SupplyService {
       }
       
       if (supplyData.utilisateur !== undefined) {
-        const utilisateurId = Number(supplyData.utilisateur);
-        if (!isNaN(utilisateurId) && utilisateurId > 0) {
-          payload.utilisateur = utilisateurId;
-        }
+        payload.utilisateur = Number(supplyData.utilisateur);
       }
       
       if (supplyData.ref_supply !== undefined) {
-        payload.ref_supply = supplyData.ref_supply;
+        payload.ref_supply = String(supplyData.ref_supply).trim();
       }
 
-      console.log('📤 Payload envoyé pour mise à jour:', JSON.stringify(payload, null, 2));
-      
       const response = await api.patch<Supply>(`/supplies/${id}/`, payload);
-      console.log('✅ Approvisionnement mis à jour avec succès');
+      console.log(`✅ Approvisionnement ${id} mis à jour`);
       return response;
     } catch (error: any) {
-      console.error(`❌ Erreur mise à jour approvisionnement ${id}:`, error);
-      
-      // Afficher les détails de l'erreur
-      if (error.response) {
-        console.error('📋 Détails de l\'erreur:', {
-          status: error.response.status,
-          data: error.response.data
-        });
-        
-        // Formater un message d'erreur plus utile
-        let errorMessage = `Impossible de mettre à jour l'approvisionnement ${id}`;
-        
-        if (error.response.status === 400) {
-          if (error.response.data) {
-            const errors = [];
-            for (const [key, value] of Object.entries(error.response.data)) {
-              if (Array.isArray(value)) {
-                errors.push(`${key}: ${value.join(', ')}`);
-              } else if (typeof value === 'string') {
-                errors.push(value);
-              }
-            }
-            if (errors.length > 0) {
-              errorMessage = `Erreurs de validation: ${errors.join('; ')}`;
-            }
-          }
-        } else if (error.response.status === 404) {
-          errorMessage = `L'approvisionnement ${id} n'existe pas`;
-        } else if (error.response.status === 403) {
-          errorMessage = 'Vous n\'avez pas la permission de modifier cet approvisionnement';
-        } else if (error.response.status === 401) {
-          errorMessage = 'Veuillez vous reconnecter';
-        }
-        
-        throw new Error(errorMessage);
-      }
-      
-      throw new Error(`Impossible de mettre à jour l'approvisionnement ${id}`);
+      return this.handleError(error, `Impossible de mettre à jour l'approvisionnement ${id}`);
     }
   }
 
-  /**
-   * Supprimer un approvisionnement
-   */
   async deleteSupply(id: number): Promise<void> {
     try {
-      console.log('🗑️ Suppression approvisionnement:', id);
       await api.delete(`/supplies/${id}/`);
-      console.log('✅ Approvisionnement supprimé');
+      console.log(`✅ Approvisionnement ${id} supprimé`);
     } catch (error) {
-      console.error(`❌ Erreur suppression approvisionnement ${id}:`, error);
-      throw new Error(`Impossible de supprimer l'approvisionnement ${id}`);
+      return this.handleError(error, `Impossible de supprimer l'approvisionnement ${id}`);
     }
   }
 
-  /**
-   * Rechercher des approvisionnements - CORRIGÉ
-   */
+  async updateSupplyStatus(id: number, status: Supply['status']): Promise<Supply> {
+    try {
+      const response = await api.patch<Supply>(`/supplies/${id}/`, { status });
+      console.log(`✅ Statut approvisionnement ${id} mis à jour: ${status}`);
+      return response;
+    } catch (error) {
+      return this.handleError(error, `Impossible de mettre à jour le statut`);
+    }
+  }
+
   async searchSupplies(searchTerm: string, status?: string, store?: number | string): Promise<Supply[]> {
     try {
-      const params: Record<string, any> = {};
+      const params: SupplyFilters = {};
       
-      // Recherche textuelle
       if (searchTerm && searchTerm.trim() !== '') {
         params.search = searchTerm.trim();
       }
       
-      // Filtre par statut
-      if (status && status !== 'all' && status !== '' && status !== undefined) {
+      if (status && status !== 'all' && status !== '') {
         params.status = status;
       }
       
-      // Filtre par magasin
-      if (store && store !== 'all' && store !== '' && store !== undefined) {
-        const storeId = typeof store === 'string' ? parseInt(store, 10) : store;
-        if (!isNaN(storeId) && storeId > 0) {
-          params.store = storeId;
-        }
+      if (store && store !== 'all' && store !== '') {
+        params.store = Number(store);
       }
 
-      console.log('🔍 Recherche approvisionnements avec params:', params);
-      
-      // Utiliser getSupplies qui gère déjà les paramètres
-      const results = await this.getSupplies(params);
-      console.log(`🔍 ${results.length} résultat(s) trouvé(s)`);
-      
-      return results;
+      return await this.getSupplies(params);
     } catch (error) {
-      console.error('❌ Erreur recherche approvisionnements:', error);
-      throw new Error('Impossible de rechercher les approvisionnements');
+      return this.handleError(error, 'Impossible de rechercher les approvisionnements');
     }
   }
 
-  /**
-   * Récupérer les statistiques
-   */
-  async getSupplyStats(): Promise<{
-    total_pending: number;
-    total_received: number;
-    total_cancelled: number;
-    total_supplies: number;
-    total_amount: number;
-    monthly_trend: number;
-  }> {
+  // ============================================================================
+  // SUPPLIERS
+  // ============================================================================
+
+  async getSuppliers(params?: any): Promise<Supplier[]> {
+    try {
+      console.log('📞 Chargement des fournisseurs...', params);
+      
+      const response = await api.get<any>('/suppliers/', { params });
+      const suppliers = this.handleApiResponse<Supplier>(response);
+      
+      console.log(`✅ ${suppliers.length} fournisseur(s) chargé(s)`);
+      return suppliers;
+    } catch (error) {
+      return this.handleError(error, 'Impossible de charger les fournisseurs');
+    }
+  }
+
+  async createSupplier(supplierData: CreateSupplierData): Promise<Supplier> {
+    try {
+      // Validations
+      if (!supplierData.store || supplierData.store <= 0) {
+        throw new Error('Le magasin est obligatoire');
+      }
+      
+      if (!supplierData.name || !supplierData.name.trim()) {
+        throw new Error('Le nom du fournisseur est requis');
+      }
+      
+      // Construction du payload
+      const payload = {
+        name: supplierData.name.trim(),
+        num_supplier: supplierData.num_supplier?.trim() || '',
+        email: supplierData.email?.trim() || '',
+        emplacement: supplierData.emplacement?.trim() || '',
+        contact_person: supplierData.contact_person?.trim() || '',
+        payment_terms: supplierData.payment_terms?.trim() || '',
+        store: Number(supplierData.store),
+        address: supplierData.address?.trim() || '',
+        phone: supplierData.phone?.trim() || ''
+      };
+
+      const response = await api.post<Supplier>('/suppliers/', payload);
+      console.log('✅ Fournisseur créé avec succès');
+      return response;
+    } catch (error: any) {
+      return this.handleError(error, 'Erreur lors de la création du fournisseur');
+    }
+  }
+
+  async deleteSupplier(id: number): Promise<void> {
+    try {
+      await api.delete(`/suppliers/${id}/`);
+      console.log(`✅ Fournisseur ${id} supprimé`);
+    } catch (error) {
+      return this.handleError(error, `Impossible de supprimer le fournisseur ${id}`);
+    }
+  }
+
+  // ============================================================================
+  // STORES
+  // ============================================================================
+
+  async getStores(): Promise<Store[]> {
+    try {
+      console.log('🏪 Chargement des magasins...');
+      
+      const response = await api.get<any>('/stores/');
+      const stores = this.handleApiResponse<Store>(response);
+      
+      console.log(`✅ ${stores.length} magasin(s) chargé(s)`);
+      return stores;
+    } catch (error) {
+      return this.handleError(error, 'Impossible de charger les magasins');
+    }
+  }
+
+  // ============================================================================
+  // RETAIL SUPPLIES
+  // ============================================================================
+
+  async createRetailSupply(data: CreateRetailSupplyData): Promise<RetailSupply> {
+    try {
+      console.log('📦 Création RetailSupply:', data);
+      
+      // Validations
+      if (!data.ref || data.ref <= 0) {
+        throw new Error('Réf produit invalide');
+      }
+      if (!data.name_product || !data.name_product.trim()) {
+        throw new Error('Nom produit requis');
+      }
+      if (data.qt_add <= 0) {
+        throw new Error('Quantité doit être positive');
+      }
+      if (!data.supply || data.supply <= 0) {
+        throw new Error('ID approvisionnement invalide');
+      }
+      
+      const payload = {
+        ref: Number(data.ref),
+        name_product: String(data.name_product).trim(),
+        qt_add: Number(data.qt_add),
+        total_pdx: Number(data.total_pdx),
+        supply: Number(data.supply)
+      };
+
+      console.log('📤 Payload RetailSupply:', payload);
+      
+      const response = await api.post<RetailSupply>('/retail-supplies/', payload);
+      console.log('✅ RetailSupply créé avec succès');
+      return response;
+    } catch (error: any) {
+      console.error('❌ Erreur createRetailSupply:', error);
+      return this.handleError(error, 'Erreur lors de la création du produit lié');
+    }
+  }
+
+  async createMultipleRetailSupplies(supplyId: number, items: Omit<CreateRetailSupplyData, 'supply'>[]): Promise<RetailSupply[]> {
+    try {
+      console.log(`📦 Création de ${items.length} RetailSupply pour supply ${supplyId}`);
+      
+      // Valider qu'il y a des items
+      if (!items || items.length === 0) {
+        throw new Error('Aucun article à créer');
+      }
+      
+      const results: RetailSupply[] = [];
+      const errors: Error[] = [];
+      
+      // Créer chaque item séquentiellement
+      for (let i = 0; i < items.length; i++) {
+        try {
+          const item = items[i];
+          const retailSupply = await this.createRetailSupply({
+            ...item,
+            supply: supplyId
+          });
+          results.push(retailSupply);
+          console.log(`✅ Item ${i+1}/${items.length} créé`);
+        } catch (error) {
+          console.error(`❌ Erreur item ${i+1}:`, error);
+          errors.push(error as Error);
+        }
+      }
+      
+      // Si tous les items ont échoué, lever une erreur
+      if (results.length === 0 && errors.length > 0) {
+        throw new Error(`Échec de création de tous les items: ${errors[0].message}`);
+      }
+      
+      console.log(`✅ ${results.length}/${items.length} RetailSupply créés avec succès`);
+      return results;
+    } catch (error) {
+      return this.handleError(error, 'Erreur lors de la création des produits liés');
+    }
+  }
+
+  async getRetailSupplies(supplyId: number): Promise<RetailSupply[]> {
+    try {
+      console.log(`📋 Chargement des RetailSupply pour supply ${supplyId}...`);
+      
+      if (!supplyId || supplyId <= 0) {
+        throw new Error('ID approvisionnement invalide');
+      }
+      
+      const response = await api.get<any>(`/retail-supplies/?supply=${supplyId}`);
+      const items = this.handleApiResponse<RetailSupply>(response);
+      
+      console.log(`✅ ${items.length} RetailSupply chargés`);
+      return items;
+    } catch (error) {
+      return this.handleError(error, 'Impossible de charger les produits liés');
+    }
+  }
+
+  // ============================================================================
+  // STATISTIQUES
+  // ============================================================================
+
+  async getSupplyStats(): Promise<SupplyStats> {
     try {
       const supplies = await this.getSupplies();
       
-      // S'assurer que supplies est un tableau
       const suppliesArray = Array.isArray(supplies) ? supplies : [];
       
       const total_supplies = suppliesArray.length;
       const total_pending = suppliesArray.filter(s => s.status === 'pending').length;
       const total_received = suppliesArray.filter(s => s.status === 'received').length;
       const total_cancelled = suppliesArray.filter(s => s.status === 'cancelled').length;
-      const total_amount = suppliesArray.reduce((sum, supply) => sum + (supply.total_command || 0), 0);
+      const total_amount = suppliesArray.reduce((sum, s) => sum + (Number(s.total_command) || 0), 0);
       
-      const stats = {
+      // Calculer la tendance mensuelle
+      const now = new Date();
+      const thisMonth = suppliesArray.filter(s => {
+        const date = new Date(s.date_supply);
+        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+      }).length;
+      
+      const lastMonth = suppliesArray.filter(s => {
+        const date = new Date(s.date_supply);
+        const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        return date.getMonth() === lastMonthDate.getMonth() && date.getFullYear() === lastMonthDate.getFullYear();
+      }).length;
+      
+      const monthly_trend = lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth) * 100 : 0;
+      
+      return {
         total_supplies,
         total_pending,
         total_received,
         total_cancelled,
         total_amount,
-        monthly_trend: this.calculateMonthlyTrend(suppliesArray)
+        monthly_trend: Math.round(monthly_trend * 100) / 100
       };
-
-      console.log('📊 Statistiques calculées:', stats);
-      return stats;
     } catch (error) {
-      console.error('Erreur calcul stats:', error);
-      
-      // Retourner des valeurs par défaut en cas d'erreur
+      console.error('Erreur getSupplyStats:', error);
       return {
         total_supplies: 0,
         total_pending: 0,
@@ -499,134 +613,84 @@ class SupplyService {
     }
   }
 
-  /**
-   * Mettre à jour le statut d'un approvisionnement
-   */
-  async updateSupplyStatus(id: number, status: Supply['status']): Promise<Supply> {
+  async getCurrentEmployee(): Promise<{ id: number; user: number; store: number; name?: string }> {
     try {
-      console.log('🔄 Mise à jour statut:', { id, status });
-      const response = await api.patch<Supply>(`/supplies/${id}/`, { status });
-      console.log('✅ Statut mis à jour');
-      return response;
-    } catch (error) {
-      console.error(`❌ Erreur mise à jour statut ${id}:`, error);
-      throw new Error(`Impossible de mettre à jour le statut de l'approvisionnement ${id}`);
-    }
-  }
-
-  /**
-   * Créer un nouveau fournisseur
-   */
-  async createSupplier(supplierData: CreateSupplierData): Promise<Supplier> {
-    try {
-      // VÉRIFICATION : store est obligatoire
-      if (!supplierData.store || supplierData.store <= 0) {
-        throw new Error('Le magasin est obligatoire et doit être valide');
-      }
-      
-      if (!supplierData.name || !supplierData.name.trim()) {
-        throw new Error('Le nom du fournisseur est requis');
-      }
-      
-      console.log('📤 Création fournisseur:', supplierData);
-      const response = await api.post<Supplier>('/suppliers/', supplierData);
-      console.log('✅ Fournisseur créé');
-      return response;
-    } catch (error) {
-      console.error('❌ Erreur création fournisseur:', error);
-      throw new Error('Impossible de créer le fournisseur');
-    }
-  }
-
-  /**
-   * Supprimer un fournisseur
-   */
-  async deleteSupplier(id: number): Promise<void> {
-    try {
-      console.log('🗑️ Suppression fournisseur:', id);
-      await api.delete(`/suppliers/${id}/`);
-      console.log('✅ Fournisseur supprimé');
-    } catch (error) {
-      console.error(`❌ Erreur suppression fournisseur ${id}:`, error);
-      throw new Error(`Impossible de supprimer le fournisseur ${id}`);
-    }
-  }
-
-  /**
-   * Calculer la tendance mensuelle
-   */
-  private calculateMonthlyTrend(supplies: Supply[]): number {
-    try {
-      if (!supplies || supplies.length === 0) {
-        return 0;
-      }
-      
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      
-      const currentMonthSupplies = supplies.filter(supply => {
-        try {
-          const supplyDate = new Date(supply.date_supply);
-          return supplyDate.getMonth() === currentMonth && supplyDate.getFullYear() === currentYear;
-        } catch {
-          return false;
-        }
-      });
-
-      const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-      const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-      
-      const previousMonthSupplies = supplies.filter(supply => {
-        try {
-          const supplyDate = new Date(supply.date_supply);
-          return supplyDate.getMonth() === previousMonth && supplyDate.getFullYear() === previousYear;
-        } catch {
-          return false;
-        }
-      });
-
-      if (previousMonthSupplies.length === 0) return 0;
-
-      const currentAmount = currentMonthSupplies.reduce((sum, s) => sum + (s.total_command || 0), 0);
-      const previousAmount = previousMonthSupplies.reduce((sum, s) => sum + (s.total_command || 0), 0);
-
-      return previousAmount > 0 ? ((currentAmount - previousAmount) / previousAmount) * 100 : 0;
-    } catch (error) {
-      console.error('Erreur calcul tendance mensuelle:', error);
-      return 0;
-    }
-  }
-
-  /**
-   * Récupérer l'employé connecté
-   */
-  async getCurrentEmployee(): Promise<{ id: number; user: number; store: number; }> {
-    try {
-      console.log('👤 Récupération de l\'employé connecté...');
+      console.log('👤 Récupération employé connecté...');
       const response = await api.get('/employees/current/');
-      console.log('✅ Employé récupéré');
       return response;
     } catch (error) {
-      console.error('❌ Erreur récupération employé:', error);
-      throw new Error('Impossible de récupérer l\'employé connecté');
+      return this.handleError(error, 'Impossible de récupérer l\'employé connecté');
     }
   }
 
-  /**
-   * Récupérer les employés d'un magasin
-   */
-  async getEmployeesByStore(storeId: number): Promise<Array<{ id: number; name: string; user: number }>> {
+  // ============================================================================
+  // UTILITAIRES
+  // ============================================================================
+
+  generateReference(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `PO-${year}${month}${day}-${random}`;
+  }
+
+  formatDate(date: string | Date): string {
     try {
-      console.log(`👥 Récupération des employés du magasin ${storeId}...`);
-      const response = await api.get(`/employees/?store=${storeId}`);
-      console.log(`✅ ${response?.length || 0} employé(s) récupéré(s)`);
-      return response || [];
-    } catch (error) {
-      console.error('❌ Erreur récupération employés:', error);
-      throw new Error('Impossible de récupérer les employés');
+      const d = new Date(date);
+      return d.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch {
+      return String(date);
     }
+  }
+
+  formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 2
+    }).format(amount);
+  }
+
+  validateSupplyData(data: CreateSupplyData): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    if (!data.ref_supply || !data.ref_supply.trim()) {
+      errors.push('Référence requise');
+    }
+    
+    if (!data.store || data.store <= 0) {
+      errors.push('Magasin invalide');
+    }
+    
+    if (!data.utilisateur || data.utilisateur <= 0) {
+      errors.push('Utilisateur invalide');
+    }
+    
+    if (data.total_command === undefined || data.total_command < 0) {
+      errors.push('Total commande invalide');
+    }
+    
+    // Validation du statut (optionnel)
+    if (data.status && !['pending', 'received', 'cancelled'].includes(data.status)) {
+      errors.push('Statut invalide');
+    }
+    
+    return {
+      valid: errors.length === 0,
+      errors
+    };
   }
 }
 
-export const supplyService = new SupplyService();
+// ============================================================================
+// EXPORT
+// ============================================================================
+
+const supplyService = new SupplyService();
 export default supplyService;

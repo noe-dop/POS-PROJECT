@@ -935,7 +935,7 @@ class ProductSerializer(BaseAuditSerializer):
         return 0
 
 # =============================================================================
-# GESTION DES STOCKS
+# GESTION DES STOCKS - VERSION CORRIGÉE
 # =============================================================================
 
 class WarehouseSerializer(serializers.ModelSerializer):
@@ -954,6 +954,7 @@ class WarehouseSerializer(serializers.ModelSerializer):
 
         return (total_stock / obj.capacity * 100) if obj.capacity and obj.capacity > 0 else 0
 
+
 class BatchSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_sku = serializers.CharField(source='product.sku', read_only=True)
@@ -966,6 +967,7 @@ class BatchSerializer(serializers.ModelSerializer):
     def get_is_expired(self, obj):
         from django.utils import timezone
         return obj.expiry_date < timezone.now().date() if obj.expiry_date else False
+
 
 class StockSerializer(BaseAuditSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
@@ -985,6 +987,7 @@ class StockSerializer(BaseAuditSerializer):
     def get_needs_restock(self, obj):
         return obj.needs_restock()
 
+
 class StockMovementItemSerializer(BaseAuditSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     variant_name = serializers.CharField(source='variant.name', read_only=True)
@@ -993,6 +996,7 @@ class StockMovementItemSerializer(BaseAuditSerializer):
     class Meta:
         model = StockMovementItem
         fields = '__all__'
+
 
 class StockMovementSerializer(BaseAuditSerializer):
     store_name = serializers.CharField(source='store.name', read_only=True)
@@ -1003,6 +1007,7 @@ class StockMovementSerializer(BaseAuditSerializer):
         model = StockMovement
         fields = '__all__'
 
+
 class InventoryCountItemSerializer(BaseAuditSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     variant_name = serializers.CharField(source='variant.name', read_only=True)
@@ -1011,6 +1016,7 @@ class InventoryCountItemSerializer(BaseAuditSerializer):
         model = InventoryCountItem
         fields = '__all__'
 
+
 class InventoryCountSerializer(BaseAuditSerializer):
     store_name = serializers.CharField(source='store.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -1018,7 +1024,12 @@ class InventoryCountSerializer(BaseAuditSerializer):
     
     class Meta:
         model = InventoryCount
+        # SUPPRIME ou COMMENTE cette ligne :
+        # exclude = ['notes']
+        
+        # REMETS celle-ci :
         fields = '__all__'
+
 
 class StoreProductSerializer(BaseAuditSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)

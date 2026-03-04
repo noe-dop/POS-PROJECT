@@ -1,540 +1,501 @@
-// src/hooks/useInventory.ts
-import { useState, useEffect, useCallback, useRef } from 'react';
+// src/hooks/useInventory.ts - VERSION COMPLÈTE FONCTIONNELLE
+import { useState, useEffect, useCallback } from 'react';
 import { 
   inventoryService, 
   InventoryUtils,
   type InventoryCount,
   type InventoryStats,
   type InventoryCountItem,
-  type CreateInventoryPayload 
+  type CreateInventoryPayload,
+  type UpdateInventoryPayload,
+  type InventoryStatus
 } from '../services/inventoryService';
 
-interface LocalInventoryCount extends InventoryCount {
+// =============================================================================
+// TYPES
+// =============================================================================
+
+export interface LocalInventoryCount extends InventoryCount {
   progress: number;
   store_name: string;
-  total_items_counted?: number;
-  total_discrepancies?: number;
-  discrepancy_value?: number;
   items?: InventoryCountItem[];
+  notes?: string;
 }
 
-interface Store {
+export interface Store {
   id: number;
   name: string;
   address?: string;
+  phone?: string;
+  email?: string;
+  is_active: boolean;
 }
 
-interface InventoryState {
+export interface UseInventoryReturn {
+  // État
   inventories: LocalInventoryCount[];
   stats: InventoryStats | null;
   stores: Store[];
   loading: boolean;
-  loadingStats: boolean;
-  loadingStores: boolean;
   error: string | null;
-  statsError: string | null;
-}
-
-interface ActionLoadingState {
-  deletingId: number | null;
-  startingId: number | null;
-  completingId: number | null;
-  creating: boolean;
-  counting: number | null;
-}
-
-interface UseInventoryReturn extends InventoryState {
+  
+  // Filtres
+  filters: {
+    status: InventoryStatus | 'all';
+    store: number | 'all';
+    search: string;
+  };
+  setFilters: (filters: Partial<{
+    status: InventoryStatus | 'all';
+    store: number | 'all';
+    search: string;
+  }>) => void;
+  resetFilters: () => void;
+  
   // Actions
   refresh: () => Promise<void>;
   createInventory: (payload: CreateInventoryPayload) => Promise<LocalInventoryCount>;
+  updateInventory: (id: number, payload: UpdateInventoryPayload) => Promise<LocalInventoryCount>;
   startCounting: (inventoryId: number) => Promise<void>;
   completeInventory: (inventoryId: number) => Promise<void>;
+  cancelInventory: (inventoryId: number) => Promise<void>;
   deleteInventory: (inventoryId: number) => Promise<void>;
   
-  // Actions de chargement
-  actionLoading: ActionLoadingState;
+  // Items
+  loadInventoryItems: (inventoryId: number) => Promise<InventoryCountItem[]>;
+  updateInventoryItem: (itemId: number, countedQuantity: number) => Promise<InventoryCountItem>;
+  
+  // Utilitaires
+  getInventoryById: (id: number) => LocalInventoryCount | undefined;
+  getInventoryItems: (inventoryId: number) => InventoryCountItem[];
+  
+  // États de chargement
+  actionLoading: {
+    deletingId: number | null;
+    startingId: number | null;
+    completingId: number | null;
+    cancellingId: number | null;
+    updatingId: number | null;
+    creating: boolean;
+    counting: number | null;
+    loadingItems: number | null;
+  };
   
   // Messages
   successMessage: string | null;
+  errorMessage: string | null;
   setSuccessMessage: (message: string | null) => void;
-  
-  // Méthodes utilitaires
-  getInventoryById: (id: number) => LocalInventoryCount | undefined;
-  getInventoryItems: (inventoryId: number) => Promise<InventoryCountItem[]>;
+  setErrorMessage: (message: string | null) => void;
 }
 
+// =============================================================================
+// HOOK PRINCIPAL
+// =============================================================================
+
 export const useInventory = (): UseInventoryReturn => {
-  // États principaux
-  const [state, setState] = useState<InventoryState>({
-    inventories: [],
-    stats: null,
-    stores: [],
-    loading: true,
-    loadingStats: true,
-    loadingStores: false,
-    error: null,
-    statsError: null
+  // États
+  const [inventories, setInventories] = useState<LocalInventoryCount[]>([]);
+  const [stats, setStats] = useState<InventoryStats | null>(null);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Filtres
+  const [filters, setFiltersState] = useState({
+    status: 'all' as InventoryStatus | 'all',
+    store: 'all' as number | 'all',
+    search: ''
   });
 
-  // États pour les actions en cours
-  const [actionLoading, setActionLoading] = useState<ActionLoadingState>({
-    deletingId: null,
-    startingId: null,
-    completingId: null,
+  // Actions en cours
+  const [actionLoading, setActionLoading] = useState({
+    deletingId: null as number | null,
+    startingId: null as number | null,
+    completingId: null as number | null,
+    cancellingId: null as number | null,
+    updatingId: null as number | null,
     creating: false,
-    counting: null
+    counting: null as number | null,
+    loadingItems: null as number | null
   });
 
-  // Message de succès
+  // Messages
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Ref pour éviter les boucles infinies
-  const hasLoaded = useRef(false);
-  const isMounted = useRef(true);
+  // Cache pour les items
+  const [itemsCache, setItemsCache] = useState<Record<number, InventoryCountItem[]>>({});
 
-  // Nettoyage à la destruction
-  useEffect(() => {
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
+  // ===========================================================================
+  // CHARGEMENT DES DONNÉES
+  // ===========================================================================
 
-  // ============================================
-  // MÉTHODES DE CHARGEMENT
-  // ============================================
-
-  const loadStores = useCallback(async (): Promise<Store[]> => {
+  const loadStores = useCallback(async () => {
     try {
-      setState(prev => ({ ...prev, loadingStores: true }));
-      
       const storesData = await inventoryService.getStores();
-      
-      // Transformer les données de l'API en format Store
-      const stores: Store[] = storesData.map((store: any) => ({
-        id: store.id,
-        name: store.name,
-        address: store.address || store.address_details?.full_address
-      }));
-      
-      if (isMounted.current) {
-        setState(prev => ({ ...prev, stores, loadingStores: false }));
-      }
-      
-      return stores;
+      setStores(storesData);
     } catch (err) {
       console.error('Erreur chargement magasins:', err);
-      
-      // Fallback minimal
-      const fallbackStores: Store[] = [
-        { id: 1, name: 'Magasin Principal' },
-        { id: 2, name: 'Succursale Est' },
-        { id: 3, name: 'Succursale Ouest' }
-      ];
-      
-      if (isMounted.current) {
-        setState(prev => ({ ...prev, stores: fallbackStores, loadingStores: false }));
-      }
-      
-      return fallbackStores;
     }
   }, []);
 
-  const loadInventories = useCallback(async (): Promise<LocalInventoryCount[]> => {
+  const loadInventories = useCallback(async () => {
     try {
-      console.log('🔄 Chargement des inventaires...');
-      const inventoriesData = await inventoryService.getInventories();
+      setLoading(true);
+      setError(null);
       
-      console.log(`📦 ${inventoriesData.length} inventaires récupérés`);
+      // Appliquer les filtres
+      const apiFilters: any = {};
+      if (filters.status !== 'all') apiFilters.status = filters.status;
+      if (filters.store !== 'all') apiFilters.store = filters.store;
+      if (filters.search) apiFilters.search = filters.search;
       
-      // Transformer les données sans charger les items immédiatement
-      const inventoriesWithDetails = inventoriesData.map((inv): LocalInventoryCount => {
-        // Calculer la progression sans items
-        const progress = InventoryUtils.getProgressPercentage(inv);
-        
-        return {
-          ...inv,
-          progress,
-          store_name: inv.store_name || 'Non spécifié',
-          total_items_counted: inv.total_items_counted || 0,
-          total_discrepancies: inv.total_discrepancies || 0,
-          discrepancy_value: inv.discrepancy_value || 0,
-          items: [] // Chargé à la demande
-        };
-      });
-
-      if (isMounted.current) {
-        setState(prev => ({ ...prev, inventories: inventoriesWithDetails }));
-        console.log(`✅ ${inventoriesWithDetails.length} inventaires transformés`);
-      }
+      const inventoriesData = await inventoryService.getInventories(apiFilters);
       
-      return inventoriesWithDetails;
-    } catch (err: any) {
-      console.error('❌ Erreur chargement inventaires:', err);
-      
-      if (isMounted.current) {
-        setState(prev => ({ 
-          ...prev, 
-          error: 'Impossible de charger les inventaires: ' + (err.message || 'Erreur inconnue')
-        }));
-      }
-      
-      return [];
-    }
-  }, []);
-
-  const loadStats = useCallback(async (inventoriesData: LocalInventoryCount[]) => {
-    if (!isMounted.current) return;
-    
-    setState(prev => ({ ...prev, loadingStats: true, statsError: null }));
-    
-    try {
-      console.log('📊 Chargement des statistiques...');
-      const statsData = await inventoryService.getInventoryStats();
-      
-      if (isMounted.current) {
-        setState(prev => ({ ...prev, stats: statsData, loadingStats: false }));
-        console.log('✅ Stats chargées');
-      }
-    } catch (statsErr: any) {
-      console.warn('⚠️ Stats API non disponible, calcul local...');
-      
-      // Calculer les stats localement
-      const inProgress = inventoriesData.filter(inv => inv.status === 'in_progress').length;
-      const planned = inventoriesData.filter(inv => inv.status === 'planned').length;
-      const completed = inventoriesData.filter(inv => inv.status === 'completed').length;
-      const cancelled = inventoriesData.filter(inv => inv.status === 'cancelled').length;
-      
-      const totalDiscrepancies = inventoriesData.reduce(
-        (sum, inv) => sum + (inv.total_discrepancies || 0), 0
-      );
-      
-      const totalDiscrepancyValue = inventoriesData.reduce(
-        (sum, inv) => sum + (inv.discrepancy_value || 0), 0
-      );
-      
-      const localStats: InventoryStats = {
-        total_inventories: inventoriesData.length,
-        in_progress_inventories: inProgress,
-        completed_inventories: completed,
-        planned_inventories: planned,
-        cancelled_inventories: cancelled,
-        total_discrepancies: totalDiscrepancies,
-        total_discrepancy_value: totalDiscrepancyValue,
-        average_discrepancy_rate: totalDiscrepancies > 0 ? 
-          (totalDiscrepancies / inventoriesData.length) : 0,
-        recent_inventories_count: 0
-      };
-      
-      if (isMounted.current) {
-        setState(prev => ({ 
-          ...prev, 
-          stats: localStats, 
-          statsError: 'Statistiques calculées localement',
-          loadingStats: false 
-        }));
-        console.log('✅ Stats calculées localement');
-      }
-    }
-  }, []);
-
-  // ============================================
-  // CHARGEMENT GLOBAL
-  // ============================================
-
-  const loadAllData = useCallback(async () => {
-    // Éviter les appels multiples
-    if (hasLoaded.current && isMounted.current) {
-      setState(prev => ({ ...prev, loading: false }));
-      return;
-    }
-    
-    if (!isMounted.current) return;
-    
-    setState(prev => ({ ...prev, loading: true, error: null }));
-    setSuccessMessage(null);
-
-    try {
-      console.log('🚀 Démarrage chargement données...');
-      
-      // Charger les magasins et inventaires en parallèle
-      const [loadedInventories] = await Promise.all([
-        loadInventories(),
-        loadStores()
-      ]);
-      
-      // Charger les stats après
-      await loadStats(loadedInventories);
-      
-      hasLoaded.current = true;
-      console.log('✅ Chargement initial terminé');
-      
-    } catch (err: any) {
-      console.error('❌ Erreur générale:', err);
-      if (isMounted.current) {
-        setState(prev => ({ 
-          ...prev, 
-          error: err.message || 'Impossible de charger les données'
-        }));
-      }
-    } finally {
-      if (isMounted.current) {
-        setState(prev => ({ ...prev, loading: false }));
-      }
-    }
-  }, [loadStores, loadInventories, loadStats]);
-
-  // ============================================
-  // ACTIONS PRINCIPALES
-  // ============================================
-
-  const refresh = useCallback(async () => {
-    console.log('🔄 Rafraîchissement manuel');
-    
-    // Réinitialiser le flag de chargement pour forcer le rechargement
-    hasLoaded.current = false;
-    
-    setState(prev => ({ ...prev, loading: true, error: null }));
-    
-    try {
-      const loadedInventories = await loadInventories();
-      await Promise.all([
-        loadStats(loadedInventories),
-        loadStores()
-      ]);
-      
-      setSuccessMessage('Données rafraîchies avec succès');
-      
-      // Supprimer le message après 3 secondes
-      setTimeout(() => {
-        if (isMounted.current) {
-          setSuccessMessage(null);
-        }
-      }, 3000);
-      
-    } catch (err: any) {
-      console.error('❌ Erreur rafraîchissement:', err);
-      if (isMounted.current) {
-        setState(prev => ({ 
-          ...prev, 
-          error: 'Erreur lors du rafraîchissement: ' + (err.message || 'Erreur inconnue')
-        }));
-      }
-    } finally {
-      if (isMounted.current) {
-        setState(prev => ({ ...prev, loading: false }));
-      }
-    }
-  }, [loadStores, loadInventories, loadStats]);
-
-  const createInventory = useCallback(async (payload: CreateInventoryPayload): Promise<LocalInventoryCount> => {
-    setActionLoading(prev => ({ ...prev, creating: true }));
-    
-    try {
-      console.log('📤 Création inventaire:', payload);
-      
-      // Appel API
-      const createdInventory = await inventoryService.createInventory(payload);
-      
-      // Transformer l'inventaire créé
-      const localInventory: LocalInventoryCount = {
-        ...createdInventory,
-        progress: InventoryUtils.getProgressPercentage(createdInventory),
-        store_name: createdInventory.store_name || 'Non spécifié',
-        total_items_counted: createdInventory.total_items_counted || 0,
-        total_discrepancies: createdInventory.total_discrepancies || 0,
-        discrepancy_value: createdInventory.discrepancy_value || 0,
-        items: []
-      };
-      
-      // Ajouter à la liste locale
-      setState(prev => ({
-        ...prev,
-        inventories: [localInventory, ...prev.inventories]
+      // Transformer les données
+      const inventoriesWithDetails: LocalInventoryCount[] = inventoriesData.map(inv => ({
+        ...inv,
+        progress: InventoryUtils.getProgressPercentage(inv, itemsCache[inv.id]),
+        store_name: inv.store_name || 'Magasin inconnu',
+        items: itemsCache[inv.id] || [],
+        notes: inv.metadata?.notes || ''
       }));
       
-      // Mettre à jour les stats
-      await loadStats([localInventory, ...state.inventories]);
+      setInventories(inventoriesWithDetails);
       
-      setSuccessMessage('Inventaire créé avec succès !');
+    } catch (err: any) {
+      console.error('Erreur chargement inventaires:', err);
+      setError(err.message || 'Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, itemsCache]);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const statsData = await inventoryService.getInventoryStats();
+      setStats(statsData);
+    } catch (err) {
+      console.error('Erreur chargement stats:', err);
+    }
+  }, []);
+
+  const loadAllData = useCallback(async () => {
+    await Promise.all([
+      loadStores(),
+      loadInventories(),
+      loadStats()
+    ]);
+  }, [loadStores, loadInventories, loadStats]);
+
+  // Chargement initial
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
+  // Rechargement quand les filtres changent
+  useEffect(() => {
+    if (!loading) {
+      loadInventories();
+    }
+  }, [filters.status, filters.store, filters.search]);
+
+  // ===========================================================================
+  // GESTION DES FILTRES
+  // ===========================================================================
+
+  const setFilters = useCallback((newFilters: Partial<typeof filters>) => {
+    setFiltersState(prev => ({ ...prev, ...newFilters }));
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setFiltersState({
+      status: 'all',
+      store: 'all',
+      search: ''
+    });
+    setSuccessMessage('Filtres réinitialisés');
+    setTimeout(() => setSuccessMessage(null), 2000);
+  }, []);
+
+  // ===========================================================================
+  // ACTIONS SUR LES INVENTAIRES
+  // ===========================================================================
+
+  const refresh = useCallback(async () => {
+    setItemsCache({});
+    await loadAllData();
+    setSuccessMessage('Données rafraîchies');
+    setTimeout(() => setSuccessMessage(null), 3000);
+  }, [loadAllData]);
+
+  const createInventory = useCallback(async (payload: CreateInventoryPayload) => {
+    setActionLoading(prev => ({ ...prev, creating: true }));
+    setErrorMessage(null);
+    
+    try {
+      const created = await inventoryService.createInventory(payload);
       
-      return localInventory;
-    } catch (error: any) {
-      console.error('❌ Erreur création:', error);
-      throw error;
+      const newInventory: LocalInventoryCount = {
+        ...created,
+        progress: 0,
+        store_name: created.store_name || 'Magasin inconnu',
+        items: [],
+        notes: created.metadata?.notes || ''
+      };
+      
+      setInventories(prev => [newInventory, ...prev]);
+      setSuccessMessage('Inventaire créé');
+      setTimeout(() => setSuccessMessage(null), 3000);
+      
+      return newInventory;
+    } catch (err: any) {
+      setErrorMessage(err.message);
+      throw err;
     } finally {
       setActionLoading(prev => ({ ...prev, creating: false }));
     }
-  }, [state.inventories, loadStats]);
+  }, []);
 
-  const startCounting = useCallback(async (inventoryId: number) => {
-    setActionLoading(prev => ({ ...prev, counting: inventoryId }));
+  const updateInventory = useCallback(async (id: number, payload: UpdateInventoryPayload) => {
+    setActionLoading(prev => ({ ...prev, updatingId: id }));
+    setErrorMessage(null);
     
     try {
-      console.log(`▶️ Démarrage comptage inventaire #${inventoryId}`);
+      const updated = await inventoryService.updateInventory(id, payload);
       
-      await inventoryService.startInventory(inventoryId);
+      const transformed = {
+        ...updated,
+        progress: InventoryUtils.getProgressPercentage(updated, itemsCache[id]),
+        store_name: updated.store_name || 'Magasin inconnu',
+        items: itemsCache[id] || [],
+        notes: updated.metadata?.notes || ''
+      };
       
-      // Mettre à jour l'état local
-      setState(prev => ({
-        ...prev,
-        inventories: prev.inventories.map(inv => 
-          inv.id === inventoryId 
-            ? { ...inv, status: 'in_progress', progress: 50 }
-            : inv
-        )
-      }));
+      setInventories(prev => prev.map(i => i.id === id ? transformed : i));
+      setSuccessMessage('Inventaire modifié');
+      setTimeout(() => setSuccessMessage(null), 3000);
       
-      setSuccessMessage('Comptage démarré avec succès');
+      return transformed;
+    } catch (err: any) {
+      setErrorMessage(err.message);
+      throw err;
+    } finally {
+      setActionLoading(prev => ({ ...prev, updatingId: null }));
+    }
+  }, [itemsCache]);
+
+  const startCounting = useCallback(async (id: number) => {
+    setActionLoading(prev => ({ ...prev, startingId: id }));
+    setErrorMessage(null);
+    
+    try {
+      const updated = await inventoryService.startInventory(id);
+      setInventories(prev => prev.map(i => i.id === id ? { 
+        ...i, 
+        status: updated.status,
+        started_at: updated.started_at,
+        progress: 50 
+      } : i));
+      setSuccessMessage('Comptage démarré');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message);
+      throw err;
+    } finally {
+      setActionLoading(prev => ({ ...prev, startingId: null }));
+    }
+  }, []);
+
+  const completeInventory = useCallback(async (id: number) => {
+    setActionLoading(prev => ({ ...prev, completingId: id }));
+    setErrorMessage(null);
+    
+    try {
+      const updated = await inventoryService.completeInventory(id);
+      setInventories(prev => prev.map(i => i.id === id ? { 
+        ...i, 
+        status: updated.status,
+        completed_at: updated.completed_at,
+        progress: 100 
+      } : i));
+      setSuccessMessage('Inventaire terminé');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message);
+      throw err;
+    } finally {
+      setActionLoading(prev => ({ ...prev, completingId: null }));
+    }
+  }, []);
+
+  const cancelInventory = useCallback(async (id: number) => {
+    setActionLoading(prev => ({ ...prev, cancellingId: id }));
+    setErrorMessage(null);
+    
+    try {
+      const updated = await inventoryService.cancelInventory(id);
+      setInventories(prev => prev.map(i => i.id === id ? { 
+        ...i, 
+        status: updated.status,
+        progress: 0 
+      } : i));
+      setSuccessMessage('Inventaire annulé');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message);
+      throw err;
+    } finally {
+      setActionLoading(prev => ({ ...prev, cancellingId: null }));
+    }
+  }, []);
+
+  const deleteInventory = useCallback(async (id: number) => {
+    setActionLoading(prev => ({ ...prev, deletingId: id }));
+    setErrorMessage(null);
+    
+    try {
+      await inventoryService.deleteInventory(id);
+      setInventories(prev => prev.filter(i => i.id !== id));
+      setItemsCache(prev => {
+        const newCache = { ...prev };
+        delete newCache[id];
+        return newCache;
+      });
+      setSuccessMessage('Inventaire supprimé');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      setErrorMessage(err.message);
+      throw err;
+    } finally {
+      setActionLoading(prev => ({ ...prev, deletingId: null }));
+    }
+  }, []);
+
+  // ===========================================================================
+  // ACTIONS SUR LES ITEMS
+  // ===========================================================================
+
+  const loadInventoryItems = useCallback(async (inventoryId: number) => {
+    if (itemsCache[inventoryId]) {
+      return itemsCache[inventoryId];
+    }
+    
+    setActionLoading(prev => ({ ...prev, loadingItems: inventoryId }));
+    
+    try {
+      const items = await inventoryService.getInventoryItems(inventoryId);
       
-    } catch (error: any) {
-      console.error('❌ Erreur démarrage comptage:', error);
-      throw error;
+      setItemsCache(prev => ({ ...prev, [inventoryId]: items }));
+      
+      setInventories(prev => prev.map(i => i.id === inventoryId ? {
+        ...i,
+        items,
+        progress: InventoryUtils.getProgressPercentage(i, items),
+        total_items_counted: items.filter(it => it.counted_quantity !== null).length,
+        total_discrepancies: items.filter(it => it.discrepancy !== 0).length
+      } : i));
+      
+      return items;
+    } catch (err) {
+      console.error('Erreur chargement items:', err);
+      return [];
+    } finally {
+      setActionLoading(prev => ({ ...prev, loadingItems: null }));
+    }
+  }, [itemsCache]);
+
+  const updateInventoryItem = useCallback(async (itemId: number, countedQuantity: number) => {
+    setActionLoading(prev => ({ ...prev, counting: itemId }));
+    setErrorMessage(null);
+    
+    try {
+      const updated = await inventoryService.updateInventoryItem(itemId, countedQuantity);
+      
+      // Mettre à jour le cache
+      setItemsCache(prev => {
+        const newCache = { ...prev };
+        for (const invId in newCache) {
+          const idx = newCache[invId].findIndex(i => i.id === itemId);
+          if (idx >= 0) {
+            newCache[invId][idx] = updated;
+            
+            // Mettre à jour l'inventaire correspondant
+            setInventories(inv => inv.map(i => i.id === Number(invId) ? {
+              ...i,
+              items: newCache[invId],
+              progress: InventoryUtils.getProgressPercentage(i, newCache[invId]),
+              total_items_counted: newCache[invId].filter(it => it.counted_quantity !== null).length,
+              total_discrepancies: newCache[invId].filter(it => it.discrepancy !== 0).length
+            } : i));
+            break;
+          }
+        }
+        return newCache;
+      });
+      
+      setSuccessMessage('Article mis à jour');
+      setTimeout(() => setSuccessMessage(null), 2000);
+      return updated;
+    } catch (err: any) {
+      setErrorMessage(err.message);
+      throw err;
     } finally {
       setActionLoading(prev => ({ ...prev, counting: null }));
     }
   }, []);
 
-  const completeInventory = useCallback(async (inventoryId: number) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir terminer cet inventaire ?')) {
-      return;
-    }
+  // ===========================================================================
+  // UTILITAIRES
+  // ===========================================================================
 
-    setActionLoading(prev => ({ ...prev, completingId: inventoryId }));
-    
-    try {
-      console.log(`✅ Terminaison inventaire #${inventoryId}`);
-      
-      await inventoryService.completeInventory(inventoryId);
-      
-      // Mettre à jour l'état local
-      setState(prev => ({
-        ...prev,
-        inventories: prev.inventories.map(inv => 
-          inv.id === inventoryId 
-            ? { ...inv, status: 'completed', progress: 100 }
-            : inv
-        )
-      }));
-      
-      // Recharger les stats
-      await loadStats(state.inventories);
-      
-      setSuccessMessage('Inventaire terminé avec succès !');
-      
-    } catch (error: any) {
-      console.error('❌ Erreur validation:', error);
-      throw error;
-    } finally {
-      setActionLoading(prev => ({ ...prev, completingId: null }));
-    }
-  }, [state.inventories, loadStats]);
+  const getInventoryById = useCallback((id: number) => {
+    return inventories.find(i => i.id === id);
+  }, [inventories]);
 
-  const deleteInventory = useCallback(async (inventoryId: number) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet inventaire ?')) {
-      return;
-    }
+  const getInventoryItems = useCallback((inventoryId: number) => {
+    return itemsCache[inventoryId] || [];
+  }, [itemsCache]);
 
-    setActionLoading(prev => ({ ...prev, deletingId: inventoryId }));
-    
-    try {
-      console.log(`🗑️ Suppression inventaire #${inventoryId}`);
-      
-      await inventoryService.deleteInventory(inventoryId);
-      
-      // Retirer de la liste locale
-      setState(prev => ({
-        ...prev,
-        inventories: prev.inventories.filter(inv => inv.id !== inventoryId)
-      }));
-      
-      // Recharger les stats
-      await loadStats(state.inventories.filter(inv => inv.id !== inventoryId));
-      
-      setSuccessMessage('Inventaire supprimé avec succès');
-      
-    } catch (error: any) {
-      console.error('❌ Erreur suppression:', error);
-      throw error;
-    } finally {
-      setActionLoading(prev => ({ ...prev, deletingId: null }));
-    }
-  }, [state.inventories, loadStats]);
-
-  // ============================================
-  // MÉTHODES UTILITAIRES
-  // ============================================
-
-  const getInventoryById = useCallback((id: number): LocalInventoryCount | undefined => {
-    return state.inventories.find(inv => inv.id === id);
-  }, [state.inventories]);
-
-  const getInventoryItems = useCallback(async (inventoryId: number): Promise<InventoryCountItem[]> => {
-    try {
-      console.log(`📋 Chargement items inventaire #${inventoryId}`);
-      
-      const items = await inventoryService.getInventoryItems(inventoryId);
-      
-      // Mettre à jour l'inventaire local avec les items
-      setState(prev => ({
-        ...prev,
-        inventories: prev.inventories.map(inv => 
-          inv.id === inventoryId 
-            ? { ...inv, items, progress: InventoryUtils.getProgressPercentage(inv, items) }
-            : inv
-        )
-      }));
-      
-      return items;
-    } catch (error) {
-      console.error('❌ Erreur chargement items:', error);
-      return [];
-    }
-  }, []);
-
-  // ============================================
-  // INITIALISATION
-  // ============================================
-
-  useEffect(() => {
-    console.log('🏁 Hook useInventory initialisé');
-    loadAllData();
-    
-    return () => {
-      console.log('🗑️ Hook useInventory nettoyé');
-    };
-  }, [loadAllData]);
-
-  // ============================================
-  // RETOUR DU HOOK
-  // ============================================
+  // ===========================================================================
+  // RETOUR
+  // ===========================================================================
 
   return {
     // État
-    inventories: state.inventories,
-    stats: state.stats,
-    stores: state.stores,
-    loading: state.loading,
-    loadingStats: state.loadingStats,
-    loadingStores: state.loadingStores,
-    error: state.error,
-    statsError: state.statsError,
+    inventories,
+    stats,
+    stores,
+    loading,
+    error,
+    
+    // Filtres
+    filters,
+    setFilters,
+    resetFilters,
     
     // Actions
     refresh,
     createInventory,
+    updateInventory,
     startCounting,
     completeInventory,
+    cancelInventory,
     deleteInventory,
+    loadInventoryItems,
+    updateInventoryItem,
     
-    // Actions de chargement
+    // Utilitaires
+    getInventoryById,
+    getInventoryItems,
+    
+    // États de chargement
     actionLoading,
     
     // Messages
     successMessage,
+    errorMessage,
     setSuccessMessage,
-    
-    // Méthodes utilitaires
-    getInventoryById,
-    getInventoryItems
+    setErrorMessage
   };
 };

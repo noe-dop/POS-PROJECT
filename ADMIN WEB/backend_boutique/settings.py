@@ -91,17 +91,29 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backend_boutique.wsgi.application'
 
 # ——————————————————————
-# Base de données — PostgreSQL
+# Base de données — PostgreSQL avec correction pour Supabase
 # ——————————————————————
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
+    # 🔥 CORRECTION CRITIQUE : Utiliser le port 6543 pour Supabase (transaction pooler)
+    if 'supabase.com' in DATABASE_URL:
+        DATABASE_URL = DATABASE_URL.replace(':5432', ':6543')
+        print(f"✅ URL base de données corrigée pour Supabase (port 6543)")
+    
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
-            conn_max_age=600,
+            conn_max_age=0,  # 🔥 CORRECTION : 0 au lieu de 600 pour éviter l'épuisement du pool
             conn_health_checks=True
         )
     }
+    
+    # 🔥 AJOUT : Forcer SSL pour Supabase
+    DATABASES['default']['OPTIONS'] = {
+        'sslmode': 'require',
+    }
+    
+    print(f"✅ Configuration DB: conn_max_age=0, SSL requis")
 else:
     DATABASES = {
         'default': {
@@ -111,8 +123,10 @@ else:
             'PASSWORD': os.environ.get("DB_PASSWORD"),
             'HOST': 'localhost',
             'PORT': os.environ.get("DB_PORT"),
+            'CONN_MAX_AGE': 0,
         }
     }
+
 # ——————————————————————
 # Configuration du Cache - NOUVEAU
 # ——————————————————————

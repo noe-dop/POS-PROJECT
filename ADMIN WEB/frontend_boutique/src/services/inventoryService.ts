@@ -1,4 +1,4 @@
-// src/services/inventoryService.ts - SERVICE CORRIGÉ COMPLÈTEMENT
+// src/services/inventoryService.ts - VERSION CORRIGÉE AVEC API RÉELLE
 import { apiService } from './api';
 import { 
   InventoryCount, 
@@ -7,21 +7,20 @@ import {
   CreateInventoryPayload,
   UpdateInventoryPayload,
   InventoryFilters,
-  InventoryStatus
+  InventoryStatus,
+  Store
 } from '../types/inventory';
 
 class InventoryService {
   
   // ============================================
-  // CONFIGURATION - AJOUT DES SLASHES FINAUX
+  // CONFIGURATION
   // ============================================
   
-  // IMPORTANT: Les URLs doivent toujours finir par un slash
-  // pour être compatibles avec Django et APPEND_SLASH
   private readonly baseUrl = '/inventory-counts/';
   
   // ============================================
-  // INVENTAIRES - VERSION CORRIGÉE AVEC SLASHES
+  // INVENTAIRES
   // ============================================
   
   /**
@@ -29,9 +28,8 @@ class InventoryService {
    */
   async getInventories(filters?: InventoryFilters): Promise<InventoryCount[]> {
     try {
-      console.log('🔍 getInventories appelé');
+      console.log('🔍 getInventories appelé avec filtres:', filters);
       
-      // Construire les paramètres
       const params: Record<string, any> = {};
       
       if (filters) {
@@ -44,6 +42,9 @@ class InventoryService {
         if (filters.search) {
           params.search = filters.search;
         }
+        if (filters.is_active !== undefined) {
+          params.is_active = filters.is_active;
+        }
         if (filters.page) {
           params.page = filters.page;
         }
@@ -55,37 +56,35 @@ class InventoryService {
       // Toujours trier par date décroissante
       params.ordering = '-count_date';
       
-      console.log('📤 Params:', params);
+      console.log('📤 Params envoyés:', params);
       
-      // IMPORTANT: Appel GET avec URL avec slash
       const response = await apiService.get<any>(this.baseUrl, { params });
       console.log('✅ Réponse API reçue, statut:', response.status);
       
-      // Gestion des différents formats de réponse
       let items: any[] = [];
       
+      // Gestion des différents formats de réponse Django
       if (response.data) {
-        // Format Django REST Framework paginé
         if (response.data.results && Array.isArray(response.data.results)) {
           items = response.data.results;
+          console.log('📦 Format paginé Django détecté');
         }
-        // Format tableau simple
         else if (Array.isArray(response.data)) {
           items = response.data;
+          console.log('📦 Format tableau simple détecté');
         }
-        // Format personnalisé
         else if (response.data.data && Array.isArray(response.data.data)) {
           items = response.data.data;
+          console.log('📦 Format avec propriété data détecté');
         }
-        // Objet unique
-        else if (typeof response.data === 'object') {
+        else if (typeof response.data === 'object' && response.data.id) {
           items = [response.data];
+          console.log('📦 Objet unique détecté');
         }
       }
       
-      console.log(`📦 ${items.length} items extraits`);
+      console.log(`📦 ${items.length} items extraits de la réponse`);
       
-      // Transformer les données
       const inventories = items.map(item => this.transformInventory(item));
       
       console.log(`✅ ${inventories.length} inventaires transformés`);
@@ -98,7 +97,7 @@ class InventoryService {
         data: error.response?.data
       });
       
-      // En cas d'erreur, retourner un tableau vide pour éviter de bloquer l'interface
+      // En cas d'erreur, on retourne un tableau vide
       return [];
     }
   }
@@ -110,11 +109,10 @@ class InventoryService {
     try {
       console.log(`🔍 Récupération inventaire #${id}`);
       
-      // IMPORTANT: ID avant le slash final - format: /inventory-counts/{id}/
       const url = `${this.baseUrl}${id}/`;
       console.log(`🌐 GET URL: ${url}`);
       
-      const response = await apiService.get<InventoryCount>(url);
+      const response = await apiService.get<any>(url);
       
       if (!response.data) {
         console.warn(`⚠️ Inventaire #${id} - réponse vide`);
@@ -130,12 +128,12 @@ class InventoryService {
         return null;
       }
       console.error(`❌ Erreur getInventory #${id}:`, error.message);
-      return null;
+      throw error;
     }
   }
   
   /**
-   * Crée un nouvel inventaire - CORRECTION CRITIQUE ICI
+   * Crée un nouvel inventaire
    */
   async createInventory(payload: CreateInventoryPayload): Promise<InventoryCount> {
     try {
@@ -149,23 +147,28 @@ class InventoryService {
         throw new Error('Le magasin est obligatoire');
       }
       
-      // Formatage des données
-      const apiPayload = {
+      // Construction du payload selon la structure API Django
+      const apiPayload: Record<string, any> = {
         reference: payload.reference.trim(),
         store: payload.store,
         status: payload.status || 'planned',
         count_date: payload.count_date || new Date().toISOString(),
-        notes: payload.notes || ''
+        is_active: true
       };
       
-      console.log('📦 Payload API:', apiPayload);
+      // Ajouter metadata si notes est présent
+      if (payload.notes) {
+        apiPayload.metadata = {
+          notes: payload.notes
+        };
+      }
+      
+      console.log('📦 Payload API (création):', apiPayload);
       console.log(`🌐 POST URL: ${this.baseUrl}`);
       
-      // IMPORTANT: Utiliser this.baseUrl qui a déjà le slash final
-      // Vérifier que l'URL est correcte
-      const response = await apiService.post<InventoryCount>(this.baseUrl, apiPayload);
+      const response = await apiService.post<any>(this.baseUrl, apiPayload);
       
-      console.log(`✅ Réponse reçue, statut: ${response.status}`, response.data);
+      console.log(`✅ Réponse reçue, statut: ${response.status}`);
       
       if (!response.data) {
         throw new Error('Réponse vide du serveur');
@@ -177,33 +180,26 @@ class InventoryService {
       return inventory;
       
     } catch (error: any) {
-      console.error('❌ Erreur createInventory:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method
-        }
-      });
+      console.error('❌ Erreur createInventory:', error);
       
-      // Extraire le message d'erreur détaillé
+      // Extraire le message d'erreur Django
       let errorMessage = 'Erreur lors de la création';
       if (error.response?.data) {
         const data = error.response.data;
-        if (data.detail) {
+        
+        if (typeof data === 'string') {
+          errorMessage = data;
+        } else if (data.detail) {
           errorMessage = data.detail;
         } else if (data.reference) {
-          errorMessage = `Référence: ${data.reference}`;
+          errorMessage = `Référence: ${Array.isArray(data.reference) ? data.reference.join(', ') : data.reference}`;
         } else if (data.store) {
-          errorMessage = `Magasin: ${data.store}`;
+          errorMessage = `Magasin: ${Array.isArray(data.store) ? data.store.join(', ') : data.store}`;
         } else if (data.non_field_errors) {
           errorMessage = Array.isArray(data.non_field_errors) 
             ? data.non_field_errors.join(', ') 
             : data.non_field_errors;
-        } else if (typeof data === 'string') {
-          errorMessage = data;
-        } else if (typeof data === 'object') {
+        } else {
           errorMessage = JSON.stringify(data);
         }
       }
@@ -219,17 +215,37 @@ class InventoryService {
     try {
       console.log(`✏️ Mise à jour inventaire #${id}:`, payload);
       
-      // IMPORTANT: ID avant le slash final
       const url = `${this.baseUrl}${id}/`;
       console.log(`🌐 PATCH URL: ${url}`);
       
-      const response = await apiService.patch<InventoryCount>(url, payload);
+      // Construction du payload pour PATCH
+      const apiPayload: Record<string, any> = {};
+      
+      if (payload.reference !== undefined) apiPayload.reference = payload.reference;
+      if (payload.store !== undefined) apiPayload.store = payload.store;
+      if (payload.status !== undefined) apiPayload.status = payload.status;
+      if (payload.count_date !== undefined) apiPayload.count_date = payload.count_date;
+      if (payload.started_at !== undefined) apiPayload.started_at = payload.started_at;
+      if (payload.completed_at !== undefined) apiPayload.completed_at = payload.completed_at;
+      if (payload.is_active !== undefined) apiPayload.is_active = payload.is_active;
+      
+      // Gestion des notes dans metadata
+      if (payload.notes !== undefined) {
+        // Récupérer d'abord l'inventaire pour merger les metadata
+        const currentInventory = await this.getInventory(id);
+        apiPayload.metadata = {
+          ...(currentInventory?.metadata || {}),
+          notes: payload.notes
+        };
+      }
+      
+      const response = await apiService.patch<any>(url, apiPayload);
       
       if (!response.data) {
         throw new Error('Réponse vide du serveur');
       }
       
-      console.log(`✅ Inventaire #${id} mis à jour, statut:`, response.status);
+      console.log(`✅ Inventaire #${id} mis à jour`);
       return this.transformInventory(response.data);
       
     } catch (error: any) {
@@ -245,7 +261,6 @@ class InventoryService {
     try {
       console.log(`🗑️ Suppression inventaire #${id}`);
       
-      // IMPORTANT: ID avant le slash final
       const url = `${this.baseUrl}${id}/`;
       console.log(`🌐 DELETE URL: ${url}`);
       
@@ -294,6 +309,23 @@ class InventoryService {
     }
   }
   
+  /**
+   * Annule un inventaire
+   */
+  async cancelInventory(id: number): Promise<InventoryCount> {
+    try {
+      console.log(`⏹️ Annulation inventaire #${id}`);
+      
+      return await this.updateInventory(id, {
+        status: 'cancelled'
+      });
+      
+    } catch (error: any) {
+      console.error(`❌ Erreur cancelInventory #${id}:`, error.message);
+      throw error;
+    }
+  }
+  
   // ============================================
   // ITEMS D'INVENTAIRE
   // ============================================
@@ -305,44 +337,49 @@ class InventoryService {
     try {
       console.log(`📋 Récupération items inventaire #${inventoryId}`);
       
-      // Essayer différents endpoints avec slashes corrects
-      const endpoints = [
-        `${this.baseUrl}${inventoryId}/items/`,
-        `/inventory-count-items/?inventory_count=${inventoryId}`,
-        `/inventory-count-items/?inventory=${inventoryId}`
-      ];
+      // Endpoint standard Django Rest Framework
+      const endpoint = `/inventory-count-items/?inventory_count=${inventoryId}`;
       
-      for (const endpoint of endpoints) {
-        try {
-          console.log(`🌐 Essai GET: ${endpoint}`);
-          const response = await apiService.get<any>(endpoint);
-          let items: any[] = [];
-          
-          // Extraction des données
-          if (response.data?.results && Array.isArray(response.data.results)) {
-            items = response.data.results;
-          } else if (Array.isArray(response.data)) {
-            items = response.data;
-          } else if (response.data?.data && Array.isArray(response.data.data)) {
-            items = response.data.data;
-          }
-          
-          if (items.length > 0) {
-            console.log(`✅ ${items.length} items trouvés via ${endpoint}`);
-            return items.map(item => this.transformInventoryItem(item, inventoryId));
-          }
-        } catch (error) {
-          // Continuer avec l'endpoint suivant
-          console.log(`⚠️ Endpoint ${endpoint} non disponible:`, error.message);
-        }
+      console.log(`🌐 GET: ${endpoint}`);
+      const response = await apiService.get<any>(endpoint);
+      
+      let items: any[] = [];
+      
+      if (response.data?.results && Array.isArray(response.data.results)) {
+        items = response.data.results;
+      } else if (Array.isArray(response.data)) {
+        items = response.data;
       }
       
-      console.log(`⚠️ Aucun item trouvé pour inventaire #${inventoryId}`);
-      return [];
+      console.log(`✅ ${items.length} items trouvés`);
+      return items.map(item => this.transformInventoryItem(item, inventoryId));
       
     } catch (error: any) {
       console.error(`❌ Erreur getInventoryItems #${inventoryId}:`, error.message);
       return [];
+    }
+  }
+  
+  /**
+   * Met à jour un item d'inventaire
+   */
+  async updateInventoryItem(itemId: number, countedQuantity: number): Promise<InventoryCountItem> {
+    try {
+      console.log(`✏️ Mise à jour item #${itemId} -> ${countedQuantity}`);
+      
+      const url = `/inventory-count-items/${itemId}/`;
+      
+      const payload = {
+        counted_quantity: countedQuantity
+      };
+      
+      const response = await apiService.patch<any>(url, payload);
+      
+      return this.transformInventoryItem(response.data);
+      
+    } catch (error: any) {
+      console.error(`❌ Erreur updateInventoryItem #${itemId}:`, error.message);
+      throw error;
     }
   }
   
@@ -357,10 +394,8 @@ class InventoryService {
     try {
       console.log('📊 Calcul des statistiques');
       
-      // Récupérer tous les inventaires
       const inventories = await this.getInventories();
       
-      // Calculer les statistiques localement
       const stats = this.calculateStats(inventories);
       
       console.log('✅ Statistiques calculées:', stats);
@@ -368,19 +403,7 @@ class InventoryService {
       
     } catch (error: any) {
       console.error('❌ Erreur calcul statistiques:', error);
-      
-      // Retourner des statistiques par défaut
-      return {
-        total_inventories: 0,
-        in_progress_inventories: 0,
-        completed_inventories: 0,
-        planned_inventories: 0,
-        cancelled_inventories: 0,
-        total_discrepancies: 0,
-        total_discrepancy_value: 0,
-        average_discrepancy_rate: 0,
-        recent_inventories_count: 0
-      };
+      throw error;
     }
   }
   
@@ -391,25 +414,21 @@ class InventoryService {
   /**
    * Récupère les magasins disponibles
    */
-  async getStores(): Promise<any[]> {
+  async getStores(): Promise<Store[]> {
     try {
       console.log('🏪 Récupération magasins');
       
-      // IMPORTANT: Slash final pour les stores aussi
       const url = '/stores/';
       console.log(`🌐 GET URL: ${url}`);
       
       const response = await apiService.get<any>(url);
       
-      let stores: any[] = [];
+      let stores: Store[] = [];
       
-      // Gestion des différents formats
       if (response.data?.results && Array.isArray(response.data.results)) {
         stores = response.data.results;
       } else if (Array.isArray(response.data)) {
         stores = response.data;
-      } else if (response.data?.data && Array.isArray(response.data.data)) {
-        stores = response.data.data;
       }
       
       console.log(`✅ ${stores.length} magasins récupérés`);
@@ -417,13 +436,7 @@ class InventoryService {
       
     } catch (error: any) {
       console.error('❌ Erreur récupération magasins:', error.message);
-      
-      // Retourner des magasins de test en cas d'erreur
-      return [
-        { id: 1, name: 'Magasin Principal' },
-        { id: 2, name: 'Succursale Est' },
-        { id: 3, name: 'Succursale Ouest' }
-      ];
+      throw error;
     }
   }
   
@@ -435,31 +448,38 @@ class InventoryService {
    * Transforme les données d'API en modèle InventoryCount
    */
   private transformInventory(data: any): InventoryCount {
+    // Extraire notes depuis metadata si présent
+    const notes = data.metadata?.notes || data.notes || '';
+    
     return {
-      id: data.id || 0,
-      reference: data.reference || `INV-${data.id || 'NEW'}`,
-      store: data.store || data.store_id || 0,
-      store_name: data.store_name || data.store?.name || 'Magasin inconnu',
-      status: this.normalizeStatus(data.status),
-      count_date: data.count_date || data.created_at || new Date().toISOString(),
+      id: data.id,
+      reference: data.reference,
+      store: data.store,
+      store_name: data.store_name || '',
+      status: data.status,
+      count_date: data.count_date,
       planned_date: data.planned_date,
       started_at: data.started_at,
       completed_at: data.completed_at,
-      notes: data.notes || '',
-      total_items_counted: data.total_items_counted || data.items_count || 0,
+      notes: notes,
+      total_items_counted: data.total_items_counted || 0,
       total_discrepancies: data.total_discrepancies || 0,
-      discrepancy_value: data.discrepancy_value || 0,
-      created_at: data.created_at || new Date().toISOString(),
-      updated_at: data.updated_at || new Date().toISOString(),
+      discrepancy_value: typeof data.discrepancy_value === 'string' 
+        ? parseFloat(data.discrepancy_value) || 0 
+        : data.discrepancy_value || 0,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
       created_by: data.created_by,
       updated_by: data.updated_by,
-      is_active: data.is_active !== false,
+      is_active: data.is_active,
+      metadata: data.metadata || {},
       
-      // Pour compatibilité
-      name: data.name || data.reference || 'Inventaire',
-      items_count: data.total_items_counted || data.items_count || 0,
-      progress: data.progress || 0,
-      items: data.items || []
+      // Champs de compatibilité
+      name: data.reference,
+      items_count: data.total_items_counted || 0,
+      progress: 0,
+      items: [],
+      status_display: this.getStatusDisplay(data.status)
     };
   }
   
@@ -467,71 +487,60 @@ class InventoryService {
    * Transforme les données d'API en modèle InventoryCountItem
    */
   private transformInventoryItem(data: any, inventoryId?: number): InventoryCountItem {
-    // Calculer le décalage si non fourni
     const expected = data.expected_quantity || 0;
-    const counted = data.counted_quantity || 0;
-    const discrepancy = data.discrepancy !== undefined 
-      ? data.discrepancy 
-      : counted - expected;
-    
-    // Calculer le pourcentage de décalage
-    const discrepancyPercentage = expected > 0 
-      ? Math.abs((discrepancy / expected) * 100) 
-      : 0;
+    const counted = data.counted_quantity;
+    const discrepancy = counted !== null && counted !== undefined ? counted - expected : 0;
     
     return {
-      id: data.id || 0,
-      inventory_count: data.inventory_count || data.inventory_count_id || inventoryId || 0,
-      product: data.product || data.product_id || 0,
-      variant: data.variant || data.variant_id,
+      id: data.id,
+      inventory_count: data.inventory_count || inventoryId || 0,
+      product: data.product,
+      variant: data.variant,
       expected_quantity: expected,
       counted_quantity: counted,
       discrepancy: discrepancy,
-      notes: data.notes || '',
-      created_at: data.created_at || new Date().toISOString(),
-      updated_at: data.updated_at || new Date().toISOString(),
+      notes: data.notes,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
       created_by: data.created_by,
       updated_by: data.updated_by,
-      is_active: data.is_active !== false,
+      is_active: data.is_active,
       
-      // Champs calculés
-      inventory_reference: data.inventory_reference || `INV-${data.inventory_count || inventoryId || 0}`,
-      product_name: data.product_name || data.product?.name || `Produit #${data.product || 0}`,
-      product_sku: data.product_sku || data.product?.sku || '',
-      variant_name: data.variant_name || data.variant?.name,
-      discrepancy_value: data.discrepancy_value || Math.abs(discrepancy),
-      discrepancy_percentage: data.discrepancy_percentage || discrepancyPercentage
+      inventory_reference: data.inventory_reference || '',
+      product_name: data.product_name || '',
+      product_sku: data.product_sku || '',
+      variant_name: data.variant_name,
+      unit_price: data.unit_price || 0,
+      discrepancy_value: data.discrepancy_value || Math.abs(discrepancy) * (data.unit_price || 1),
+      discrepancy_percentage: data.discrepancy_percentage || 0
     };
   }
   
   /**
-   * Normalise les statuts d'inventaire
+   * Obtient le libellé d'affichage pour un statut
    */
-  private normalizeStatus(status: any): InventoryStatus {
-    if (!status) return 'planned';
-    
-    const statusStr = String(status).toLowerCase().trim();
-    
-    const statusMap: Record<string, InventoryStatus> = {
-      'planifié': 'planned',
-      'planned': 'planned',
-      'en_cours': 'in_progress',
-      'in_progress': 'in_progress',
-      'en cours': 'in_progress',
-      'terminé': 'completed',
-      'completed': 'completed',
-      'annulé': 'cancelled',
-      'cancelled': 'cancelled'
+  private getStatusDisplay(status: string): string {
+    const displayMap: Record<string, string> = {
+      'planned': 'Planifié',
+      'in_progress': 'En cours',
+      'completed': 'Terminé',
+      'cancelled': 'Annulé'
     };
-    
-    return statusMap[statusStr] || 'planned';
+    return displayMap[status] || status;
   }
   
   /**
    * Calcule les statistiques à partir des inventaires
    */
   private calculateStats(inventories: InventoryCount[]): InventoryStats {
-    const stats: InventoryStats = {
+    const now = new Date();
+    const weekAgo = new Date(now.setDate(now.getDate() - 7));
+    
+    const recentInventories = inventories.filter(inv => 
+      inv.created_at && new Date(inv.created_at) >= weekAgo
+    ).length;
+    
+    return {
       total_inventories: inventories.length,
       in_progress_inventories: inventories.filter(i => i.status === 'in_progress').length,
       completed_inventories: inventories.filter(i => i.status === 'completed').length,
@@ -539,29 +548,11 @@ class InventoryService {
       cancelled_inventories: inventories.filter(i => i.status === 'cancelled').length,
       total_discrepancies: inventories.reduce((sum, i) => sum + (i.total_discrepancies || 0), 0),
       total_discrepancy_value: inventories.reduce((sum, i) => sum + (i.discrepancy_value || 0), 0),
-      average_discrepancy_rate: 0,
-      recent_inventories_count: 0
+      average_discrepancy_rate: inventories.length > 0 
+        ? (inventories.reduce((sum, i) => sum + (i.total_discrepancies || 0), 0) / inventories.length) 
+        : 0,
+      recent_inventories_count: recentInventories
     };
-    
-    // Calculer le taux moyen d'écart
-    if (stats.completed_inventories > 0) {
-      stats.average_discrepancy_rate = stats.total_discrepancies / stats.completed_inventories;
-    }
-    
-    // Compter les inventaires récents (7 derniers jours)
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    
-    stats.recent_inventories_count = inventories.filter(inv => {
-      if (!inv.created_at) return false;
-      try {
-        return new Date(inv.created_at) >= weekAgo;
-      } catch {
-        return false;
-      }
-    }).length;
-    
-    return stats;
   }
 }
 
@@ -578,29 +569,16 @@ export class InventoryUtils {
     inventory: InventoryCount, 
     items?: InventoryCountItem[]
   ): number {
-    // Si terminé ou annulé
     if (inventory.status === 'completed') return 100;
     if (inventory.status === 'cancelled') return 0;
     
-    // Si on a les items, calculer la progression
     if (items && items.length > 0) {
-      const totalExpected = items.reduce((sum, item) => sum + item.expected_quantity, 0);
-      const totalCounted = items.reduce((sum, item) => sum + item.counted_quantity, 0);
-      
-      if (totalExpected > 0) {
-        return Math.min(100, Math.round((totalCounted / totalExpected) * 100));
-      }
+      const countedItems = items.filter(item => item.counted_quantity !== null).length;
+      return Math.round((countedItems / items.length) * 100);
     }
     
-    // Progression par défaut selon le statut
-    switch (inventory.status) {
-      case 'in_progress':
-        return 50;
-      case 'planned':
-        return 0;
-      default:
-        return 0;
-    }
+    if (inventory.status === 'in_progress') return 50;
+    return 0;
   }
   
   /**
@@ -659,7 +637,7 @@ export class InventoryUtils {
     dateString: string | null | undefined, 
     includeTime: boolean = false
   ): string {
-    if (!dateString) return 'Non spécifié';
+    if (!dateString) return '-';
     
     try {
       const date = new Date(dateString);
@@ -668,23 +646,19 @@ export class InventoryUtils {
         return dateString;
       }
       
-      if (includeTime) {
-        return date.toLocaleDateString('fr-FR', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-      }
-      
-      return date.toLocaleDateString('fr-FR', {
+      const options: Intl.DateTimeFormatOptions = {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
-      });
-    } catch (error) {
-      console.warn('Erreur formatage date:', error);
+      };
+      
+      if (includeTime) {
+        options.hour = '2-digit';
+        options.minute = '2-digit';
+      }
+      
+      return date.toLocaleDateString('fr-FR', options);
+    } catch {
       return dateString;
     }
   }
@@ -704,5 +678,6 @@ export type {
   CreateInventoryPayload,
   UpdateInventoryPayload,
   InventoryStatus,
-  InventoryFilters
+  InventoryFilters,
+  Store
 };

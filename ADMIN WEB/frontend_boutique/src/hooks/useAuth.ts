@@ -25,6 +25,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fonction de déconnexion
+  const logout = async () => {
+    try {
+      setLoading(true);
+      await authService.logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setUser(null);
+      setError(null);
+      localStorage.removeItem("user");
+      localStorage.removeItem("authTokens");
+      localStorage.removeItem("access_token");
+      setLoading(false);
+      console.log("🚪 Déconnexion effectuée");
+      
+      // Redirection vers la page de login
+      window.location.href = '/login';
+    }
+  };
+
   useEffect(() => {
     const initAuth = async () => {
       const savedUser = localStorage.getItem("user");
@@ -35,20 +56,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (savedUser && savedTokens) {
         try {
           const userData: User = JSON.parse(savedUser);
-          setUser(userData);
-          console.log("✅ Utilisateur restauré:", userData.username);
           
           // Vérifier si le token est toujours valide
           try {
+            // Configurer le token pour la requête
+            const tokens = JSON.parse(savedTokens);
+            if (tokens.access) {
+              localStorage.setItem("access_token", tokens.access);
+            }
+            
+            // Vérifier que le token est valide
             await authService.getCurrentUser();
+            
+            // Si tout est OK, restaurer l'utilisateur
+            setUser(userData);
+            console.log("✅ Utilisateur restauré:", userData.username);
+            
           } catch (err) {
-            console.log("⚠️ Token expiré, déconnexion...");
-            logout();
+            console.log("⚠️ Token expiré, nettoyage...");
+            // PROBLÈME RÉSOLU : On ne fait que nettoyer, on n'appelle PAS logout()
+            localStorage.removeItem("user");
+            localStorage.removeItem("authTokens");
+            localStorage.removeItem("access_token");
+            setUser(null);
+            // Pas de redirection automatique, on reste sur la page
           }
         } catch (error) {
           console.error("❌ Erreur restauration auth:", error);
           localStorage.removeItem("user");
           localStorage.removeItem("authTokens");
+          localStorage.removeItem("access_token");
           setUser(null);
         }
       } else {
@@ -60,7 +97,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initAuth();
-  }, []);
+  }, []); // Plus de dépendance à logout
 
   const login = async (credentials: LoginData) => {
     try {
@@ -68,19 +105,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       console.log("🔐 Tentative de connexion avec:", credentials.username);
       
-      // Appel au service d'authentification
       const response = await authService.login(credentials);
       console.log("✅ Réponse login:", response);
       
-      // Stocker les données d'authentification
+      // Stocker les tokens correctement
       if (response.token) {
         localStorage.setItem("authTokens", JSON.stringify(response.token));
         if (response.token.access) {
           localStorage.setItem("access_token", response.token.access);
         }
+      } else if (response.access) {
+        // Format différent possible
+        localStorage.setItem("authTokens", JSON.stringify({ access: response.access }));
+        localStorage.setItem("access_token", response.access);
       }
       
-      // Utiliser l'utilisateur retourné par l'API ou créer un objet minimal
       const userData: User = response.user || {
         id: Date.now(),
         username: credentials.username,
@@ -96,7 +135,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log("✅ Authentification réussie pour:", userData.username);
       
     } catch (err: any) {
-      // Gestion des erreurs
       let errorMessage = "Une erreur est survenue lors de la connexion";
       
       if (err.response?.status === 401 || err.status === 401 || err.message?.includes('401') || err.message?.includes('Unauthorized')) {
@@ -110,7 +148,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error("❌ Erreur de connexion:", err);
       setError(errorMessage);
       
-      // Nettoyage en cas d'erreur
       setUser(null);
       localStorage.removeItem("user");
       localStorage.removeItem("authTokens");
@@ -131,7 +168,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await authService.register(userData);
       console.log("✅ Inscription réussie:", response);
       
-      // Optionnel: connecter automatiquement l'utilisateur après inscription
       if (response.user || response.tokens) {
         if (response.tokens) {
           localStorage.setItem("authTokens", JSON.stringify(response.tokens));
@@ -173,26 +209,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       throw new Error(errorMessage);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const logout = async () => {
-    try {
-      setLoading(true);
-      await authService.logout();
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      setUser(null);
-      setError(null);
-      localStorage.removeItem("user");
-      localStorage.removeItem("authTokens");
-      localStorage.removeItem("access_token");
-      setLoading(false);
-      console.log("🚪 Déconnexion effectuée");
-      
-      // Redirection vers la page de login
-      window.location.href = '/login';
     }
   };
 

@@ -1,4 +1,4 @@
-// src/pages/Employees.tsx - VERSION 100% SANS DONNÉES MOCKÉES
+// src/pages/Employees.tsx - VERSION CORRIGÉE
 import React, { useState, useEffect, useCallback } from 'react';
 import { employeesService, Employee, CreateEmployeeWithUserData } from '@services/EmployeesService';
 
@@ -21,17 +21,10 @@ interface EmployeeFormData {
   emergency_contact: string;
   store: number;
   role: number;
-  department?: number;
+  department?: number;  // ✅ Optionnel comme dans le JSON
 }
 
-interface ApiError {
-  response?: {
-    data?: any;
-    status?: number;
-  };
-  message?: string;
-}
-
+// Types pour les données de l'API
 interface Store {
   id: number;
   name: string;
@@ -62,6 +55,14 @@ interface CurrencyRate {
   currency: string;
   rate: number;
   updated_at: string;
+}
+
+// Types pour les réponses API paginées
+interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
 }
 
 // Icônes (inchangées)
@@ -145,8 +146,6 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     switch(status.toLowerCase()) {
       case 'actif':
         return 'bg-green-100 text-green-800';
-      case 'en congé':
-        return 'bg-yellow-100 text-yellow-800';
       case 'inactif':
         return 'bg-red-100 text-red-800';
       default:
@@ -181,31 +180,9 @@ const RoleBadge: React.FC<{ role: string }> = ({ role }) => {
       return 'bg-indigo-100 text-indigo-800';
     }
     if (roleLower.includes('caissier') || roleLower.includes('vendeur') || 
-        roleLower.includes('hôte') || roleLower.includes('agent d\'accueil')) {
+        roleLower.includes('hôte') || roleLower.includes('agent')) {
       return 'bg-green-100 text-green-800';
     }
-    if (roleLower.includes('magasinier') || roleLower.includes('cariste') || 
-        roleLower.includes('préparateur') || roleLower.includes('livreur')) {
-      return 'bg-amber-100 text-amber-800';
-    }
-    if (roleLower.includes('entretien') || roleLower.includes('maintenance') || 
-        roleLower.includes('technicien') || roleLower.includes('informaticien')) {
-      return 'bg-gray-100 text-gray-800';
-    }
-    if (roleLower.includes('comptable') || roleLower.includes('rh') || 
-        roleLower.includes('secrétaire') || roleLower.includes('administratif')) {
-      return 'bg-teal-100 text-teal-800';
-    }
-    if (roleLower.includes('marketing') || roleLower.includes('promoteur')) {
-      return 'bg-pink-100 text-pink-800';
-    }
-    if (roleLower.includes('sécurité') || roleLower.includes('agent de sécurité')) {
-      return 'bg-red-100 text-red-800';
-    }
-    if (roleLower.includes('stagiaire') || roleLower.includes('apprenti')) {
-      return 'bg-yellow-100 text-yellow-800';
-    }
-    
     return 'bg-gray-100 text-gray-800';
   };
 
@@ -343,6 +320,7 @@ const Employees: React.FC = () => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
+  // ✅ État du formulaire basé sur le JSON fourni
   const [userFormData, setUserFormData] = useState<UserFormData>({
     username: '',
     email: '',
@@ -357,13 +335,15 @@ const Employees: React.FC = () => {
   
   const [employeeFormData, setEmployeeFormData] = useState<EmployeeFormData>({
     user_id: 0,
-    hire_date: new Date().toISOString().split('T')[0],
+    hire_date: new Date().toISOString().split('T')[0],  // Date du jour
     salary: '',
     emergency_contact: '',
-    store: 0,  // ✅ Plus de valeur par défaut mockée
-    role: 0    // ✅ Plus de valeur par défaut mockée
+    store: 0,    // ✅ Valeur par défaut 0 (pas de boutique sélectionnée)
+    role: 0,     // ✅ Valeur par défaut 0 (pas de rôle sélectionné)
+    department: undefined  // ✅ Optionnel
   });
 
+  // ✅ État pour la mise à jour partielle de l'utilisateur (modification)
   const [userUpdateData, setUserUpdateData] = useState({
     first_name: '',
     last_name: '',
@@ -372,7 +352,7 @@ const Employees: React.FC = () => {
     address: ''
   });
 
-  // ✅ Fonction pour formater les montants en FCFA (depuis le backend)
+  // ✅ Fonction pour formater les montants en FCFA
   const formatCFA = (amount: string | number): string => {
     if (!amount && amount !== 0) return 'Non spécifié';
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -380,10 +360,10 @@ const Employees: React.FC = () => {
     return num.toLocaleString('fr-FR') + ' FCFA';
   };
 
-  // ✅ Fonction pour convertir en Euro (avec taux depuis le backend)
+  // ✅ Fonction pour convertir en Euro
   const convertToEuro = (amount: string | number): string => {
     if (!amount && amount !== 0) return '';
-    if (!currencyRate) return ''; // Pas de taux disponible
+    if (!currencyRate) return '';
     
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     if (isNaN(num)) return '';
@@ -395,7 +375,8 @@ const Employees: React.FC = () => {
     }) + ' €';
   };
 
-  const handleApiError = (error: ApiError, defaultMessage: string): string => {
+  // ✅ Gestion des erreurs API
+  const handleApiError = (error: any, defaultMessage: string): string => {
     if (error.response?.data) {
       const errorData = error.response.data;
       if (typeof errorData === 'object') {
@@ -408,6 +389,7 @@ const Employees: React.FC = () => {
     return error.message || defaultMessage;
   };
 
+  // ✅ Formatage de date pour input
   const formatDateForInput = (dateString: string): string => {
     try {
       const date = new Date(dateString);
@@ -417,11 +399,11 @@ const Employees: React.FC = () => {
     }
   };
 
-  // ✅ Fonctions API
+  // ✅ Fonctions de fetch
   const fetchStores = async (): Promise<Store[]> => {
     try {
       const response = await fetch('http://localhost:8000/api/stores/');
-      if (!response.ok) throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      if (!response.ok) throw new Error(`Erreur ${response.status}`);
       const data = await response.json();
       
       if (Array.isArray(data)) return data;
@@ -436,7 +418,7 @@ const Employees: React.FC = () => {
   const fetchRoles = async (): Promise<Role[]> => {
     try {
       const response = await fetch('http://localhost:8000/api/employee-roles/');
-      if (!response.ok) throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      if (!response.ok) throw new Error(`Erreur ${response.status}`);
       const data = await response.json();
       
       if (Array.isArray(data)) {
@@ -467,7 +449,7 @@ const Employees: React.FC = () => {
   const fetchDepartments = async (): Promise<Department[]> => {
     try {
       const response = await fetch('http://localhost:8000/api/departments/');
-      if (!response.ok) throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      if (!response.ok) throw new Error(`Erreur ${response.status}`);
       const data = await response.json();
       
       if (Array.isArray(data)) {
@@ -509,7 +491,7 @@ const Employees: React.FC = () => {
     }
   };
 
-  // ✅ Plus de dépendance circulaire
+  // ✅ Chargement des données
   const fetchEmployeesData = useCallback(async () => {
     try {
       setLoading(true);
@@ -536,32 +518,28 @@ const Employees: React.FC = () => {
 
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
-      const errorMessage = handleApiError(error as ApiError, 'Impossible de charger les données depuis l\'API.');
+      const errorMessage = handleApiError(error, 'Impossible de charger les données depuis l\'API.');
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, []); // ✅ Dépendances vides - plus de dépendance circulaire
+  }, []);
 
-  // Effets
   useEffect(() => {
     fetchEmployeesData();
   }, [fetchEmployeesData]);
 
-  // Filtrer les employés
+  // ✅ Filtrage des employés
   useEffect(() => {
     let filtered = employees;
 
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(employee =>
-        employee.full_name?.toLowerCase().includes(term) ||
-        employee.user?.full_name?.toLowerCase().includes(term) ||
         employee.user?.first_name?.toLowerCase().includes(term) ||
         employee.user?.last_name?.toLowerCase().includes(term) ||
         employee.role_name?.toLowerCase().includes(term) ||
-        employee.user?.email?.toLowerCase().includes(term) ||
-        employee.user?.username?.toLowerCase().includes(term)
+        employee.user?.email?.toLowerCase().includes(term)
       );
     }
 
@@ -579,9 +557,9 @@ const Employees: React.FC = () => {
     } else if (filtered.length === 0) {
       setSelectedEmployee(null);
     }
-  }, [searchTerm, employees, selectedStore]);
+  }, [searchTerm, employees, selectedStore, selectedEmployee]);
 
-  // Gestionnaires
+  // ✅ Gestionnaires
   const handleStoreFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedStore(e.target.value);
   };
@@ -607,14 +585,13 @@ const Employees: React.FC = () => {
   };
 
   const getEmployeeFullName = (employee: Employee) => {
-    return employee.full_name || `${employee.user?.first_name || ''} ${employee.user?.last_name || ''}`.trim() || 'Nom non défini';
+    return `${employee.user?.first_name || ''} ${employee.user?.last_name || ''}`.trim() || 'Nom non défini';
   };
 
   const getEmployeeStatus = (employee: Employee) => {
     return employee.user?.is_active ? 'Actif' : 'Inactif';
   };
 
-  // ✅ Départements depuis l'API
   const getDepartmentName = (employee: Employee): string => {
     if (employee.department_name) {
       return employee.department_name;
@@ -626,6 +603,7 @@ const Employees: React.FC = () => {
     return 'Non défini';
   };
 
+  // ✅ Création d'employé
   const handleCreateEmployee = () => {
     setFormMode('create');
     setEditingEmployee(null);
@@ -645,8 +623,9 @@ const Employees: React.FC = () => {
       hire_date: new Date().toISOString().split('T')[0],
       salary: '',
       emergency_contact: '',
-      store: 0,  // ✅ Pas de valeur par défaut
-      role: 0    // ✅ Pas de valeur par défaut
+      store: 0,
+      role: 0,
+      department: undefined
     });
     setPhotoPreview(null);
     setPhotoFile(null);
@@ -654,6 +633,7 @@ const Employees: React.FC = () => {
     setShowForm(true);
   };
 
+  // ✅ Modification d'employé
   const handleEditEmployee = (employee: Employee) => {
     setFormMode('edit');
     setEditingEmployee(employee);
@@ -682,6 +662,7 @@ const Employees: React.FC = () => {
     setShowForm(true);
   };
 
+  // ✅ Suppression d'employé
   const handleDeleteEmployee = async (employeeId: number) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cet employé ?')) {
       try {
@@ -690,12 +671,13 @@ const Employees: React.FC = () => {
         alert('Employé supprimé avec succès');
       } catch (error) {
         console.error('Erreur suppression:', error);
-        const errorMessage = handleApiError(error as ApiError, 'Erreur lors de la suppression de l\'employé');
+        const errorMessage = handleApiError(error, 'Erreur lors de la suppression');
         alert(errorMessage);
       }
     }
   };
 
+  // ✅ Gestionnaires de formulaire
   const handleUserFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setUserFormData(prev => ({ ...prev, [name]: value }));
@@ -710,7 +692,9 @@ const Employees: React.FC = () => {
     const { name, value } = e.target;
     setEmployeeFormData(prev => ({
       ...prev,
-      [name]: name === 'store' || name === 'role' || name === 'department' ? (value ? parseInt(value) : 0) : value
+      [name]: name === 'store' || name === 'role' || name === 'department' 
+        ? (value ? parseInt(value) : 0) 
+        : value
     }));
   };
 
@@ -731,6 +715,7 @@ const Employees: React.FC = () => {
     setPhotoFile(null);
   };
 
+  // ✅ Soumission du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -741,7 +726,7 @@ const Employees: React.FC = () => {
       if (formMode === 'create') {
         // Validations
         if (!userFormData.password) {
-          setFormError('Le mot de passe est obligatoire pour la création');
+          setFormError('Le mot de passe est obligatoire');
           setFormLoading(false);
           return;
         }
@@ -829,6 +814,7 @@ const Employees: React.FC = () => {
         setShowForm(false);
         
       } else {
+        // Mode modification
         if (!editingEmployee) return;
 
         const employeeUpdate: any = {};
@@ -900,7 +886,7 @@ const Employees: React.FC = () => {
       
     } catch (error: any) {
       console.error(`Erreur ${formMode} employé:`, error);
-      setFormError(handleApiError(error, `Erreur lors de ${formMode === 'create' ? 'la création' : 'la modification'} de l'employé`));
+      setFormError(handleApiError(error, `Erreur lors de ${formMode === 'create' ? 'la création' : 'la modification'}`));
     } finally {
       setFormLoading(false);
     }
@@ -969,9 +955,7 @@ const Employees: React.FC = () => {
             </select>
           </div>
           <span className="text-sm text-gray-500">
-            {selectedStore === 'all' 
-              ? `(${filteredEmployees.length} employés)` 
-              : `(${filteredEmployees.length} employés dans ${getStoreName(selectedStore)})`}
+            ({filteredEmployees.length} employés)
           </span>
         </div>
       </div>
@@ -1004,7 +988,7 @@ const Employees: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {filteredEmployees.map((employee) => (
                 <EmployeeCard
                   key={employee.id}
@@ -1051,7 +1035,7 @@ const Employees: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mb-6">
+                <div className="mb-6 overflow-x-auto">
                   <table className="w-full">
                     <tbody>
                       <tr className="border-b border-gray-200">
@@ -1073,17 +1057,12 @@ const Employees: React.FC = () => {
                       <tr className="border-b border-gray-200">
                         <td className="py-3 text-sm font-medium text-gray-500">Adresse</td>
                         <td className="py-3 text-gray-900">{selectedEmployee.user?.address || 'Non spécifiée'}</td>
-                        <td className="py-3 text-sm font-medium text-gray-500">Boutique affiliée</td>
+                        <td className="py-3 text-sm font-medium text-gray-500">Boutique</td>
                         <td className="py-3 text-gray-900">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-blue-600">
                               {getEmployeeStoreName(selectedEmployee)}
                             </span>
-                            {getStoreDetails(selectedEmployee.store) && (
-                              <span className="text-xs text-gray-500">
-                                ({getStoreDetails(selectedEmployee.store)})
-                              </span>
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -1100,7 +1079,7 @@ const Employees: React.FC = () => {
                             <span className="font-semibold">{formatCFA(selectedEmployee.salary)}</span>
                             {currencyRate && (
                               <span className="text-xs text-gray-500 mt-1">
-                                ≈ {convertToEuro(selectedEmployee.salary)} (1 € = {currencyRate.rate} FCFA)
+                                ≈ {convertToEuro(selectedEmployee.salary)}
                               </span>
                             )}
                           </div>
@@ -1245,7 +1224,7 @@ const Employees: React.FC = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Téléphone secondaire (optionnel)
+                        Téléphone secondaire
                       </label>
                       <input
                         type="tel"
@@ -1336,13 +1315,6 @@ const Employees: React.FC = () => {
                         placeholder="Ex: 250000"
                         className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                       />
-                      <div className="mt-1 text-xs text-gray-500">
-                        {employeeFormData.salary ? (
-                          <span>Minimum 50 000 FCFA</span>
-                        ) : (
-                          <span>Minimum 50 000 FCFA</span>
-                        )}
-                      </div>
                     </div>
 
                     <div>
@@ -1424,11 +1396,6 @@ const Employees: React.FC = () => {
                         <span className="text-xs text-gray-500">
                           {employeeFormData.emergency_contact?.length || 0}/15 caractères
                         </span>
-                        {employeeFormData.emergency_contact?.length > 15 && (
-                          <span className="text-xs text-red-600">
-                            Trop long (max 15)
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>

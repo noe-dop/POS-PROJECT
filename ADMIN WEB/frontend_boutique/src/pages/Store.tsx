@@ -3,40 +3,28 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { 
   Plus, Search, Filter, MapPin, Phone, Mail, 
   Edit, Trash2, Users, 
-  ArrowUpDown, Building,
+  Building,
   Upload, Image, X,
-  Clock, Settings, CheckCircle,
+  Settings, CheckCircle,
   Package2, RefreshCw,
   Store as StoreIcon,
-  Navigation,
   LocateFixed,
-  Map,
   Eye,
   MoreVertical,
   Download,
   Grid3x3,
   List,
   TrendingUp,
-  Shield,
   Copy,
-  Star,
   AlertCircle,
-  BarChart3,
-  ChevronDown,
-  ExternalLink,
-  Calendar,
-  Target,
   Globe,
-  Loader2,
-  ChevronRight,
-  ChevronLeft
+  Loader2
 } from 'lucide-react';
 import storeService, { 
   type Store as StoreType, 
   type StoreFormData, 
   type StoreType as StoreTypeOption,
-  type StoreNetwork,
-  type StoreStats 
+  type StoreNetwork
 } from '../services/storeService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast, ToastContainer } from 'react-toastify';
@@ -49,19 +37,8 @@ type SortOrder = 'asc' | 'desc';
 type StatusFilter = 'all' | 'active' | 'inactive';
 type ViewMode = 'grid' | 'list';
 
-// Configuration des jours de la semaine
-const DAYS_OF_WEEK = [
-  { key: 'monday', label: 'Lundi', short: 'Lun' },
-  { key: 'tuesday', label: 'Mardi', short: 'Mar' },
-  { key: 'wednesday', label: 'Mercredi', short: 'Mer' },
-  { key: 'thursday', label: 'Jeudi', short: 'Jeu' },
-  { key: 'friday', label: 'Vendredi', short: 'Ven' },
-  { key: 'saturday', label: 'Samedi', short: 'Sam' },
-  { key: 'sunday', label: 'Dimanche', short: 'Dim' }
-];
-
 // ============================================
-// COMPOSANTS DE FORMULAIRE STABLES
+// COMPOSANTS DE FORMULAIRE
 // ============================================
 
 // Composant Input STABLE
@@ -86,28 +63,41 @@ const StableInput = React.memo(({
   className?: string;
   disabled?: boolean;
 }) => {
-  const [localValue, setLocalValue] = useState(externalValue || '');
   const inputRef = useRef<HTMLInputElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout>();
   
   useEffect(() => {
-    if (document.activeElement !== inputRef.current) {
-      setLocalValue(externalValue || '');
+    if (inputRef.current && inputRef.current.defaultValue !== externalValue) {
+      inputRef.current.defaultValue = externalValue || '';
     }
   }, [externalValue]);
   
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    setLocalValue(newValue);
-    requestAnimationFrame(() => {
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
       onChange(name, newValue);
-    });
+    }, 500);
   }, [name, onChange]);
   
-  const handleBlur = useCallback(() => {
-    if (localValue !== externalValue) {
-      onChange(name, localValue);
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
     }
-  }, [name, localValue, externalValue, onChange]);
+    onChange(name, e.target.value);
+  }, [name, onChange]);
+  
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
   
   return (
     <div className={className}>
@@ -118,7 +108,7 @@ const StableInput = React.memo(({
         ref={inputRef}
         type={type}
         name={name}
-        value={localValue}
+        defaultValue={externalValue || ''}
         onChange={handleChange}
         onBlur={handleBlur}
         required={required}
@@ -148,22 +138,22 @@ const StableSelect = React.memo(({
   name: string;
   value: string | number;
   onChange: (name: string, value: string) => void;
-  options: Array<{id: number | string; name: string}>;
+  options: Array<{id: string | number; name: string}>;
   required?: boolean;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
 }) => {
-  const [localValue, setLocalValue] = useState(externalValue || '');
+  const selectRef = useRef<HTMLSelectElement>(null);
   
   useEffect(() => {
-    setLocalValue(externalValue || '');
-  }, [externalValue]);
+    if (selectRef.current && selectRef.current.value !== externalValue?.toString()) {
+      selectRef.current.value = externalValue?.toString() || '';
+    }
+  }, [externalValue, options]);
   
   const handleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-    onChange(name, newValue);
+    onChange(name, e.target.value);
   }, [name, onChange]);
   
   return (
@@ -172,16 +162,17 @@ const StableSelect = React.memo(({
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <select
+        ref={selectRef}
         name={name}
-        value={localValue}
+        defaultValue={externalValue?.toString() || ''}
         onChange={handleChange}
         required={required}
-        disabled={disabled}
+        disabled={disabled || options.length === 0}
         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
       >
         <option value="">{placeholder}</option>
         {options.map(option => (
-          <option key={option.id} value={option.id}>
+          <option key={option.id} value={option.id.toString()}>
             {option.name}
           </option>
         ))}
@@ -191,61 +182,6 @@ const StableSelect = React.memo(({
 });
 
 StableSelect.displayName = 'StableSelect';
-
-// Composant Textarea STABLE
-const StableTextarea = React.memo(({
-  label,
-  name,
-  value: externalValue,
-  onChange,
-  required = false,
-  placeholder = '',
-  className = '',
-  disabled = false,
-  rows = 3
-}: {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (name: string, value: string) => void;
-  required?: boolean;
-  placeholder?: string;
-  className?: string;
-  disabled?: boolean;
-  rows?: number;
-}) => {
-  const [localValue, setLocalValue] = useState(externalValue || '');
-  
-  useEffect(() => {
-    setLocalValue(externalValue || '');
-  }, [externalValue]);
-  
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-    onChange(name, newValue);
-  }, [name, onChange]);
-  
-  return (
-    <div className={className}>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      <textarea
-        name={name}
-        value={localValue}
-        onChange={handleChange}
-        required={required}
-        placeholder={placeholder}
-        disabled={disabled}
-        rows={rows}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed resize-none"
-      />
-    </div>
-  );
-});
-
-StableTextarea.displayName = 'StableTextarea';
 
 // Composant StoreCard
 const StoreCard = React.memo(({ 
@@ -272,7 +208,7 @@ const StoreCard = React.memo(({
     >
       <div className="absolute top-4 right-4">
         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${store.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-          {store.is_active ? '🟢 Actif' : '🔴 Inactif'}
+          {store.is_active ? 'Actif' : 'Inactif'}
         </span>
       </div>
 
@@ -287,7 +223,7 @@ const StoreCard = React.memo(({
                 className="w-14 h-14 rounded-xl object-cover"
               />
             ) : (
-              store.name.charAt(0)
+              store.name?.charAt(0) || 'S'
             )}
           </div>
           <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-white rounded-full border-2 border-blue-500 flex items-center justify-center">
@@ -316,16 +252,16 @@ const StoreCard = React.memo(({
       <div className="space-y-3 mb-4">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <MapPin size={16} className="text-gray-400 flex-shrink-0" />
-          <span className="truncate">{store.address_details?.city || 'Non localisé'}</span>
+          <span className="truncate">{store.city || 'Non localisé'}</span>
         </div>
         
         <div className="grid grid-cols-2 gap-3">
           <div className="text-center p-2 bg-gray-50 rounded-lg">
-            <div className="text-lg font-bold text-gray-900">{store.total_employees}</div>
+            <div className="text-lg font-bold text-gray-900">{store.total_employees || 0}</div>
             <div className="text-xs text-gray-500">Employés</div>
           </div>
           <div className="text-center p-2 bg-gray-50 rounded-lg">
-            <div className="text-lg font-bold text-gray-900">{store.total_products}</div>
+            <div className="text-lg font-bold text-gray-900">{store.total_products || 0}</div>
             <div className="text-xs text-gray-500">Produits</div>
           </div>
         </div>
@@ -439,14 +375,12 @@ const StatCard = React.memo(({
   title, 
   value, 
   icon: Icon,
-  description,
-  change
+  description
 }: { 
   title: string; 
   value: string | number; 
   icon: React.ElementType;
   description?: string;
-  change?: { value: number; label: string };
 }) => {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 transition-colors">
@@ -464,33 +398,40 @@ const StatCard = React.memo(({
         </div>
       </div>
       
-      <div className="space-y-2">
-        {description && (
-          <p className="text-sm text-gray-600">
-            {description}
-          </p>
-        )}
-        
-        {change && (
-          <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-            change.value > 0 
-              ? 'bg-green-50 text-green-700'
-              : change.value < 0
-              ? 'bg-red-50 text-red-700'
-              : 'bg-gray-50 text-gray-700'
-          }`}>
-            {change.value > 0 ? '↗' : change.value < 0 ? '↘' : '→'}
-            <span className="ml-1">
-              {Math.abs(change.value)}% {change.label}
-            </span>
-          </div>
-        )}
-      </div>
+      {description && (
+        <p className="text-sm text-gray-600">
+          {description}
+        </p>
+      )}
     </div>
   );
 });
 
 StatCard.displayName = 'StatCard';
+
+// Composant FormTab
+const FormTab = React.memo(({ id, label, icon: Icon, active, onClick }: { 
+  id: 'basic' | 'advanced'; 
+  label: string; 
+  icon: React.ElementType;
+  active: boolean;
+  onClick: (id: 'basic' | 'advanced') => void;
+}) => (
+  <button
+    type="button"
+    onClick={() => onClick(id)}
+    className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition-all ${
+      active
+        ? 'border-blue-600 text-blue-600'
+        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+    }`}
+  >
+    <Icon size={18} />
+    {label}
+  </button>
+));
+
+FormTab.displayName = 'FormTab';
 
 const StorePage = () => {
   // États principaux
@@ -507,51 +448,38 @@ const StorePage = () => {
   const [selectedStore, setSelectedStore] = useState<StoreType | null>(null);
   const [storeTypes, setStoreTypes] = useState<StoreTypeOption[]>([]);
   const [storeNetworks, setStoreNetworks] = useState<StoreNetwork[]>([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
   
-  // ✅ ÉTAT DU FORMULAIRE - ADAPTÉ POUR LE BACKEND DJANGO
+  // ÉTAT DU FORMULAIRE basé sur le JSON
   const [formValues, setFormValues] = useState<StoreFormData>({
     name: '',
+    phone: '',
+    email: 'user@example.com',
+    slogan: '',
+    store_type: 0,
+    network: 0,
+    is_active: true,
+    configuration: {},
+    opening_hours: {},
     address_line1: '',
     address_line2: '',
     city: '',
     state: '',
     postal_code: '',
-    country: 'France', // ✅ CHANGÉ - Le backend attend "France"
-    phone: '',
-    email: '',
-    store_type: undefined,
-    network: undefined,
-    slogan: '',
-    configuration: {
-      currency: 'EUR', // ✅ CHANGÉ - Le backend attend "EUR"
-      timezone: 'Europe/Paris', // ✅ CHANGÉ - Le backend attend "Europe/Paris"
-      receipt_header: '',
-      receipt_footer: '',
-      tax_rate: 20.0
-    },
-    opening_hours: {},
-    is_active: true
+    country: '',
+    latitude: '',
+    longitude: ''
   });
   
-  // ✅ GÉOLOCALISATION - Avec conversion string pour le backend
+  // Géolocalisation
   const [geoLocation, setGeoLocation] = useState({
-    latitude: undefined as string | undefined, // ✅ string pour Django
-    longitude: undefined as string | undefined, // ✅ string pour Django
-    accuracy: undefined as string | undefined,
-    geocoded_address: undefined as string | undefined
+    latitude: undefined as string | undefined,
+    longitude: undefined as string | undefined,
+    accuracy: undefined as string | undefined
   });
   
   const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
-  const [stats, setStats] = useState<StoreStats>({
-    total: 0,
-    active: 0,
-    inactive: 0,
-    totalEmployees: 0,
-    totalProducts: 0,
-    averageEmployees: 0,
-    monthlyGrowth: 0
-  });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [currentView, setCurrentView] = useState<ViewMode>('grid');
@@ -587,28 +515,42 @@ const StorePage = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  // Chargement des options (types et réseaux)
+  useEffect(() => {
+    const loadOptions = async () => {
+      if (storeTypes.length === 0 || storeNetworks.length === 0) {
+        setLoadingOptions(true);
+        try {
+          const [types, networks] = await Promise.all([
+            storeService.getStoreTypes(),
+            storeService.getStoreNetworks()
+          ]);
+          setStoreTypes(types || []);
+          setStoreNetworks(networks || []);
+        } catch (error) {
+          console.error('Erreur chargement options:', error);
+          toast.error('Erreur lors du chargement des options');
+        } finally {
+          setLoadingOptions(false);
+        }
+      }
+    };
+    loadOptions();
+  }, []);
+
   // Calcul des statistiques
   const calculatedStats = useMemo(() => {
-    const start = performance.now();
-    
     const total = stores.length;
     const active = stores.filter(store => store.is_active).length;
-    const inactive = total - active;
     const totalEmployees = stores.reduce((sum, store) => sum + (store.total_employees || 0), 0);
     const totalProducts = stores.reduce((sum, store) => sum + (store.total_products || 0), 0);
-    const averageEmployees = total > 0 ? Math.round(totalEmployees / total) : 0;
-    
-    const end = performance.now();
     
     return {
       total,
       active,
-      inactive,
       totalEmployees,
       totalProducts,
-      averageEmployees,
-      monthlyGrowth: 0,
-      calculationTime: end - start
+      calculationTime: 0
     };
   }, [stores]);
 
@@ -621,8 +563,8 @@ const StorePage = () => {
     if (debouncedSearchTerm) {
       const term = debouncedSearchTerm.toLowerCase();
       result = result.filter(store =>
-        store.name.toLowerCase().includes(term) ||
-        (store.address_details?.city?.toLowerCase().includes(term)) ||
+        store.name?.toLowerCase().includes(term) ||
+        store.city?.toLowerCase().includes(term) ||
         store.email?.toLowerCase().includes(term) ||
         store.phone?.toLowerCase().includes(term) ||
         store.slogan?.toLowerCase().includes(term)
@@ -646,8 +588,8 @@ const StorePage = () => {
       let bValue: any = b[sortBy as keyof StoreType];
 
       if (sortBy === 'created_at') {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
+        aValue = a.created_at ? new Date(a.created_at).getTime() : 0;
+        bValue = b.created_at ? new Date(b.created_at).getTime() : 0;
       }
 
       if (aValue == null) return sortOrder === 'asc' ? -1 : 1;
@@ -685,11 +627,11 @@ const StorePage = () => {
       
       if (cachedData && cacheTime && (Date.now() - parseInt(cacheTime) < 5 * 60 * 1000)) {
         const parsedData = JSON.parse(cachedData);
-        setStores(parsedData.stores);
-        setFilteredStores(parsedData.stores);
-        setStoreTypes(parsedData.types);
-        setStoreNetworks(parsedData.networks);
-        setCachedStores(parsedData.stores);
+        setStores(parsedData.stores || []);
+        setFilteredStores(parsedData.stores || []);
+        setStoreTypes(parsedData.types || []);
+        setStoreNetworks(parsedData.networks || []);
+        setCachedStores(parsedData.stores || []);
         toast.info('Données chargées depuis le cache');
       } else {
         const [storesData, typesData, networksData] = await Promise.all([
@@ -698,22 +640,22 @@ const StorePage = () => {
           storeService.getStoreNetworks()
         ]);
         
-        setStores(storesData.results);
-        setFilteredStores(storesData.results);
-        setStoreTypes(typesData);
-        setStoreNetworks(networksData);
-        setCachedStores(storesData.results);
+        setStores(storesData.results || []);
+        setFilteredStores(storesData.results || []);
+        setStoreTypes(typesData || []);
+        setStoreNetworks(networksData || []);
+        setCachedStores(storesData.results || []);
         
         const cacheData = {
-          stores: storesData.results,
-          types: typesData,
-          networks: networksData,
+          stores: storesData.results || [],
+          types: typesData || [],
+          networks: networksData || [],
           timestamp: Date.now()
         };
         localStorage.setItem('stores_cache', JSON.stringify(cacheData));
         localStorage.setItem('stores_cache_time', Date.now().toString());
         
-        toast.success(`${storesData.results.length} stores chargés avec succès !`);
+        toast.success(`${storesData.results?.length || 0} stores chargés avec succès !`);
       }
       
       const end = performance.now();
@@ -725,6 +667,9 @@ const StorePage = () => {
     } catch (error) {
       console.error('Erreur lors du chargement initial:', error);
       toast.error('Erreur lors du chargement des données');
+      
+      setStoreTypes([]);
+      setStoreNetworks([]);
       
       const cachedData = localStorage.getItem('stores_cache');
       if (cachedData) {
@@ -769,18 +714,39 @@ const StorePage = () => {
     return filteredStores.slice(0, displayCount);
   }, [filteredStores, displayCount]);
 
-  const handleFieldChange = useCallback((fieldName: string, value: any) => {
-    setFormValues(prev => ({
-      ...prev,
-      [fieldName]: value
-    }));
+  // Gestionnaire de changement de champ
+  const handleFieldChange = useCallback((fieldName: string, value: string) => {
+    setFormValues(prev => {
+      // Pour store_type et network, convertir en nombre
+      if (fieldName === 'store_type' || fieldName === 'network') {
+        const numValue = value ? parseInt(value, 10) : 0;
+        return {
+          ...prev,
+          [fieldName]: isNaN(numValue) ? 0 : numValue
+        };
+      }
+      
+      // Pour is_active (checkbox)
+      if (fieldName === 'is_active') {
+        return {
+          ...prev,
+          [fieldName]: value === 'true'
+        };
+      }
+      
+      // Pour les autres champs
+      return {
+        ...prev,
+        [fieldName]: value
+      };
+    });
   }, []);
 
   const handleConfigChange = useCallback((key: string, value: any) => {
     setFormValues(prev => ({
       ...prev,
       configuration: {
-        ...prev.configuration,
+        ...(prev.configuration || {}),
         [key]: value
       }
     }));
@@ -788,20 +754,38 @@ const StorePage = () => {
 
   useEffect(() => {
     if (selectedStore && isEditModalOpen) {
-      const preparedData = storeService.prepareStoreFormData(selectedStore);
-      setFormValues({
-        ...preparedData,
-        configuration: {
-          currency: preparedData.configuration?.currency || 'EUR',
-          timezone: preparedData.configuration?.timezone || 'Europe/Paris',
-          receipt_header: preparedData.configuration?.receipt_header || '',
-          receipt_footer: preparedData.configuration?.receipt_footer || '',
-          tax_rate: preparedData.configuration?.tax_rate || 20.0
-        }
-      });
+      const formData: StoreFormData = {
+        name: selectedStore.name || '',
+        phone: selectedStore.phone || '',
+        email: selectedStore.email || 'user@example.com',
+        slogan: selectedStore.slogan || '',
+        store_type: selectedStore.store_type ?? 0,
+        network: selectedStore.network ?? 0,
+        is_active: selectedStore.is_active ?? true,
+        configuration: selectedStore.configuration || {},
+        opening_hours: selectedStore.opening_hours || {},
+        address_line1: selectedStore.address_line1 || '',
+        address_line2: selectedStore.address_line2 || '',
+        city: selectedStore.city || '',
+        state: selectedStore.state || '',
+        postal_code: selectedStore.postal_code || '',
+        country: selectedStore.country || '',
+        latitude: selectedStore.latitude || '',
+        longitude: selectedStore.longitude || ''
+      };
+      
+      setFormValues(formData);
       
       if (selectedStore.logo) {
         setLogoPreview(selectedStore.logo);
+      }
+      
+      if (selectedStore.latitude || selectedStore.longitude) {
+        setGeoLocation({
+          latitude: selectedStore.latitude || undefined,
+          longitude: selectedStore.longitude || undefined,
+          accuracy: undefined
+        });
       }
     }
   }, [selectedStore, isEditModalOpen]);
@@ -809,32 +793,27 @@ const StorePage = () => {
   const resetForm = useCallback(() => {
     setFormValues({
       name: '',
+      phone: '',
+      email: 'user@example.com',
+      slogan: '',
+      store_type: 0,
+      network: 0,
+      is_active: true,
+      configuration: {},
+      opening_hours: {},
       address_line1: '',
       address_line2: '',
       city: '',
       state: '',
       postal_code: '',
-      country: 'France', // ✅ CHANGÉ
-      phone: '',
-      email: '',
-      store_type: undefined,
-      network: undefined,
-      slogan: '',
-      configuration: {
-        currency: 'EUR', // ✅ CHANGÉ
-        timezone: 'Europe/Paris', // ✅ CHANGÉ
-        receipt_header: '',
-        receipt_footer: '',
-        tax_rate: 20.0
-      },
-      opening_hours: {},
-      is_active: true
+      country: '',
+      latitude: '',
+      longitude: ''
     });
     setGeoLocation({
       latitude: undefined,
       longitude: undefined,
-      accuracy: undefined,
-      geocoded_address: undefined
+      accuracy: undefined
     });
     setLogoFile(null);
     setLogoPreview('');
@@ -855,7 +834,7 @@ const StorePage = () => {
     }
   }, []);
 
-  // ✅ GÉOLOCALISATION - Conversion en string pour Django
+  // GÉOLOCALISATION
   const getCurrentLocation = useCallback(() => {
     setIsGettingLocation(true);
     setLocationError('');
@@ -869,15 +848,18 @@ const StorePage = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        const accuracy = position.coords.accuracy;
         
-        // ✅ Convertir en string pour Django
         setGeoLocation({
           latitude: latitude.toString(),
           longitude: longitude.toString(),
-          accuracy: accuracy.toString(),
-          geocoded_address: geoLocation.geocoded_address
+          accuracy: position.coords.accuracy.toString()
         });
+        
+        setFormValues(prev => ({
+          ...prev,
+          latitude: latitude.toString(),
+          longitude: longitude.toString()
+        }));
         
         setIsGettingLocation(false);
         toast.success('Position géographique récupérée !');
@@ -900,41 +882,59 @@ const StorePage = () => {
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
-  }, [geoLocation.geocoded_address]);
+  }, []);
 
   const clearLocation = useCallback(() => {
     setGeoLocation({
       latitude: undefined,
       longitude: undefined,
-      accuracy: undefined,
-      geocoded_address: undefined
+      accuracy: undefined
     });
+    setFormValues(prev => ({
+      ...prev,
+      latitude: '',
+      longitude: ''
+    }));
     setLocationError('');
   }, []);
 
-  // Actions CRUD
+  // CRÉATION DE STORE
   const handleAddStore = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // ✅ CONVERSION DES COORDONNÉES EN STRING POUR DJANGO
-    const currentFormData = {
-      ...formValuesRef.current,
-      latitude: geoLocation.latitude, // ✅ Déjà en string
-      longitude: geoLocation.longitude, // ✅ Déjà en string
-      accuracy: geoLocation.accuracy,
-      geocoded_address: geoLocation.geocoded_address
-    };
+    const currentFormData = formValuesRef.current;
     
-    const errors = storeService.validateStoreForm(currentFormData);
-    if (errors.length > 0) {
-      errors.forEach(error => toast.error(error));
+    if (!currentFormData.name?.trim()) {
+      toast.error('Le nom du store est requis');
       return;
     }
 
     setFormLoading(true);
 
     try {
-      const newStore = await storeService.createStore(currentFormData);
+      const payload = {
+        name: currentFormData.name.trim(),
+        phone: currentFormData.phone?.trim() || '',
+        email: currentFormData.email?.trim() || 'user@example.com',
+        slogan: currentFormData.slogan?.trim() || '',
+        store_type: currentFormData.store_type ?? 0,
+        network: currentFormData.network ?? 0,
+        is_active: currentFormData.is_active ?? true,
+        configuration: currentFormData.configuration || {},
+        opening_hours: currentFormData.opening_hours || {},
+        address_line1: currentFormData.address_line1?.trim() || '',
+        address_line2: currentFormData.address_line2?.trim() || '',
+        city: currentFormData.city?.trim() || '',
+        state: currentFormData.state?.trim() || '',
+        postal_code: currentFormData.postal_code?.trim() || '',
+        country: currentFormData.country?.trim() || '',
+        latitude: currentFormData.latitude || geoLocation.latitude || '',
+        longitude: currentFormData.longitude || geoLocation.longitude || ''
+      };
+
+      console.log('📦 Payload envoyé au serveur:', payload);
+      
+      const newStore = await storeService.createStore(payload);
       
       if (logoFile && newStore.id) {
         try {
@@ -961,29 +961,45 @@ const StorePage = () => {
       toast.success('Store créé avec succès !');
       
     } catch (error: any) {
-      console.error('Erreur création:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la création');
+      console.error('❌ Erreur création:', error);
+      toast.error(error.message || 'Erreur lors de la création');
     } finally {
       setFormLoading(false);
     }
   }, [logoFile, cachedStores, storeTypes, storeNetworks, resetForm, geoLocation]);
 
+  // MODIFICATION DE STORE
   const handleEditStore = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStore) return;
 
     setFormLoading(true);
     try {
-      // ✅ CONVERSION DES COORDONNÉES EN STRING POUR DJANGO
-      const currentFormData = {
-        ...formValuesRef.current,
-        latitude: geoLocation.latitude,
-        longitude: geoLocation.longitude,
-        accuracy: geoLocation.accuracy,
-        geocoded_address: geoLocation.geocoded_address
+      const currentFormData = formValuesRef.current;
+      
+      const payload = {
+        name: currentFormData.name.trim(),
+        phone: currentFormData.phone?.trim() || '',
+        email: currentFormData.email?.trim() || 'user@example.com',
+        slogan: currentFormData.slogan?.trim() || '',
+        store_type: currentFormData.store_type ?? 0,
+        network: currentFormData.network ?? 0,
+        is_active: currentFormData.is_active ?? true,
+        configuration: currentFormData.configuration || {},
+        opening_hours: currentFormData.opening_hours || {},
+        address_line1: currentFormData.address_line1?.trim() || selectedStore.address_line1 || '',
+        address_line2: currentFormData.address_line2?.trim() || selectedStore.address_line2 || '',
+        city: currentFormData.city?.trim() || selectedStore.city || '',
+        state: currentFormData.state?.trim() || selectedStore.state || '',
+        postal_code: currentFormData.postal_code?.trim() || selectedStore.postal_code || '',
+        country: currentFormData.country?.trim() || selectedStore.country || '',
+        latitude: currentFormData.latitude || geoLocation.latitude || selectedStore.latitude || '',
+        longitude: currentFormData.longitude || geoLocation.longitude || selectedStore.longitude || ''
       };
       
-      const updatedStore = await storeService.updateStore(selectedStore.id, currentFormData);
+      console.log('📦 Payload mis à jour:', payload);
+      
+      const updatedStore = await storeService.updateStore(selectedStore.id, payload);
       
       if (logoFile) {
         try {
@@ -1014,8 +1030,8 @@ const StorePage = () => {
       toast.success('Store modifié avec succès !');
       
     } catch (error: any) {
-      console.error('Erreur modification:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la modification');
+      console.error('❌ Erreur modification:', error);
+      toast.error(error.message || 'Erreur lors de la modification');
     } finally {
       setFormLoading(false);
     }
@@ -1045,7 +1061,7 @@ const StorePage = () => {
       
     } catch (error: any) {
       console.error('Erreur suppression:', error);
-      toast.error(error.response?.data?.message || 'Erreur lors de la suppression');
+      toast.error(error.message || 'Erreur lors de la suppression');
     } finally {
       setFormLoading(false);
     }
@@ -1112,30 +1128,11 @@ const StorePage = () => {
     }
   }, []);
 
-  // Composant FormTab
-  const FormTab = React.memo(({ id, label, icon: Icon, active }: { 
-    id: 'basic' | 'advanced'; 
-    label: string; 
-    icon: React.ElementType;
-    active: boolean;
-  }) => (
-    <button
-      type="button"
-      onClick={() => setActiveFormTab(id)}
-      className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition-all ${
-        active
-          ? 'border-blue-600 text-blue-600'
-          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-      }`}
-    >
-      <Icon size={18} />
-      {label}
-    </button>
-  ));
+  const handleTabClick = useCallback((id: 'basic' | 'advanced') => {
+    setActiveFormTab(id);
+  }, []);
 
-  FormTab.displayName = 'FormTab';
-
-  // Formulaire avec composants STABLES - ADAPTÉ POUR DJANGO
+  // Formulaire compact
   const CompactForm = React.memo(() => (
     <div className="space-y-4">
       {/* Logo et informations de base */}
@@ -1182,7 +1179,7 @@ const StorePage = () => {
                   <input
                     type="checkbox"
                     checked={formValues.is_active ?? true}
-                    onChange={(e) => handleFieldChange('is_active', e.target.checked)}
+                    onChange={(e) => handleFieldChange('is_active', e.target.checked ? 'true' : 'false')}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="ml-2 text-sm text-gray-700">Store actif</span>
@@ -1215,19 +1212,27 @@ const StorePage = () => {
               <StableSelect
                 label="Type de store"
                 name="store_type"
-                value={formValues.store_type || ''}
+                value={formValues.store_type?.toString() || '0'}
                 onChange={handleFieldChange}
-                options={storeTypes}
+                options={storeTypes.map(type => ({ 
+                  id: type.id.toString(), 
+                  name: type.name 
+                }))}
                 placeholder="Sélectionner un type"
+                disabled={loadingOptions}
               />
 
               <StableSelect
                 label="Réseau"
                 name="network"
-                value={formValues.network || ''}
+                value={formValues.network?.toString() || '0'}
                 onChange={handleFieldChange}
-                options={storeNetworks}
+                options={storeNetworks.map(network => ({ 
+                  id: network.id.toString(), 
+                  name: network.name 
+                }))}
                 placeholder="Sélectionner un réseau"
+                disabled={loadingOptions}
               />
             </div>
           </div>
@@ -1244,17 +1249,15 @@ const StorePage = () => {
             value={formValues.phone || ''}
             onChange={handleFieldChange}
             type="tel"
-            required
             placeholder="0478123456"
           />
 
           <StableInput
             label="Email"
             name="email"
-            value={formValues.email || ''}
+            value={formValues.email || 'user@example.com'}
             onChange={handleFieldChange}
             type="email"
-            required
             placeholder="contact@store.com"
           />
         </div>
@@ -1269,7 +1272,6 @@ const StorePage = () => {
             name="address_line1"
             value={formValues.address_line1 || ''}
             onChange={handleFieldChange}
-            required
             placeholder="15 Rue de la République"
           />
 
@@ -1287,7 +1289,6 @@ const StorePage = () => {
               name="city"
               value={formValues.city || ''}
               onChange={handleFieldChange}
-              required
               placeholder="Lyon"
             />
 
@@ -1296,7 +1297,6 @@ const StorePage = () => {
               name="state"
               value={formValues.state || ''}
               onChange={handleFieldChange}
-              required
               placeholder="Auvergne-Rhône-Alpes"
             />
 
@@ -1305,16 +1305,14 @@ const StorePage = () => {
               name="postal_code"
               value={formValues.postal_code || ''}
               onChange={handleFieldChange}
-              required
               placeholder="69002"
             />
 
             <StableInput
               label="Pays"
               name="country"
-              value={formValues.country || 'France'} // ✅ CHANGÉ
+              value={formValues.country || ''}
               onChange={handleFieldChange}
-              required
               placeholder="France"
             />
           </div>
@@ -1350,29 +1348,18 @@ const StorePage = () => {
                 <div>
                   <p className="text-sm font-medium text-green-800">Position enregistrée</p>
                   <p className="text-xs text-green-600">
-                    {geoLocation.latitude}, {geoLocation.longitude}
+                    {parseFloat(geoLocation.latitude).toFixed(6)}, {parseFloat(geoLocation.longitude).toFixed(6)}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <a
-                  href={`https://www.google.com/maps?q=${geoLocation.latitude},${geoLocation.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded"
-                  title="Voir sur Google Maps"
-                >
-                  <ExternalLink size={14} />
-                </a>
-                <button
-                  type="button"
-                  onClick={clearLocation}
-                  className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
-                  title="Effacer"
-                >
-                  <X size={14} />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={clearLocation}
+                className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
+                title="Effacer"
+              >
+                <X size={14} />
+              </button>
             </div>
           </div>
         ) : (
@@ -1398,66 +1385,49 @@ const StorePage = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Devise par défaut
+                Configuration
               </label>
-              <select
-                value={formValues.configuration?.currency || 'EUR'} // ✅ CHANGÉ
-                onChange={(e) => handleConfigChange('currency', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              >
-                <option value="EUR">Euro (EUR)</option>
-                <option value="XOF">Franc CFA (XOF)</option>
-                <option value="USD">Dollar US (USD)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fuseau horaire
-              </label>
-              <select
-                value={formValues.configuration?.timezone || 'Europe/Paris'} // ✅ CHANGÉ
-                onChange={(e) => handleConfigChange('timezone', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              >
-                <option value="Europe/Paris">Europe/Paris</option>
-                <option value="Africa/Abidjan">Africa/Abidjan</option>
-                <option value="Africa/Accra">Africa/Accra</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Taux de TVA (%)
-              </label>
-              <StableInput
-                label=""
-                name="tax_rate"
-                value={formValues.configuration?.tax_rate?.toString() || '20.0'}
-                onChange={(_, val) => handleConfigChange('tax_rate', parseFloat(val) || 20.0)}
-                type="number"
-                step="0.1"
-                min="0"
-                max="100"
-                placeholder="20.0"
+              <textarea
+                value={JSON.stringify(formValues.configuration, null, 2)}
+                onChange={(e) => {
+                  try {
+                    const config = JSON.parse(e.target.value);
+                    setFormValues(prev => ({
+                      ...prev,
+                      configuration: config
+                    }));
+                  } catch (error) {
+                    // Ignorer les erreurs de parsing pendant la saisie
+                  }
+                }}
+                rows={5}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-mono"
+                placeholder="{}"
               />
             </div>
 
-            <StableInput
-              label="Entête du reçu"
-              name="receipt_header"
-              value={formValues.configuration?.receipt_header || ''}
-              onChange={(_, val) => handleConfigChange('receipt_header', val)}
-              placeholder="Merci de votre visite !"
-            />
-
-            <StableInput
-              label="Pied du reçu"
-              name="receipt_footer"
-              value={formValues.configuration?.receipt_footer || ''}
-              onChange={(_, val) => handleConfigChange('receipt_footer', val)}
-              placeholder="Boutik - Retours sous 30 jours"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Horaires d'ouverture
+              </label>
+              <textarea
+                value={JSON.stringify(formValues.opening_hours, null, 2)}
+                onChange={(e) => {
+                  try {
+                    const hours = JSON.parse(e.target.value);
+                    setFormValues(prev => ({
+                      ...prev,
+                      opening_hours: hours
+                    }));
+                  } catch (error) {
+                    // Ignorer les erreurs de parsing pendant la saisie
+                  }
+                }}
+                rows={5}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-mono"
+                placeholder="{}"
+              />
+            </div>
           </div>
         </div>
       )}
@@ -1469,13 +1439,15 @@ const StorePage = () => {
             id="basic" 
             label="Informations de base" 
             icon={Building} 
-            active={activeFormTab === 'basic'} 
+            active={activeFormTab === 'basic'}
+            onClick={handleTabClick}
           />
           <FormTab 
             id="advanced" 
             label="Configuration" 
             icon={Settings} 
-            active={activeFormTab === 'advanced'} 
+            active={activeFormTab === 'advanced'}
+            onClick={handleTabClick}
           />
         </div>
         
@@ -1541,9 +1513,10 @@ const StorePage = () => {
             )}
             <button
               onClick={() => exportStores('excel')}
-              className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm"
+              disabled={isExporting}
+              className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm disabled:opacity-50"
             >
-              <Download size={16} />
+              {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
               <span className="hidden sm:inline">Exporter</span>
             </button>
             
@@ -1570,7 +1543,6 @@ const StorePage = () => {
             value={calculatedStats.total}
             icon={StoreIcon}
             description={`${calculatedStats.active} actifs`}
-            change={{ value: 12, label: 'ce mois' }}
           />
           <StatCard 
             title="Employés" 
@@ -1582,13 +1554,13 @@ const StorePage = () => {
             title="Produits" 
             value={calculatedStats.totalProducts}
             icon={Package2}
-            description="En stock"
+            description="Total produits"
           />
           <StatCard 
             title="Activité" 
             value={`${calculatedStats.total > 0 ? Math.round((calculatedStats.active / calculatedStats.total) * 100) : 0}%`}
             icon={TrendingUp}
-            change={{ value: 5, label: 'vs dernier mois' }}
+            description="Taux d'activation"
           />
         </div>
 
@@ -1601,9 +1573,6 @@ const StorePage = () => {
                 </span>
                 <span className="text-blue-600">
                   ⏱️ Filtrage: {performanceMetrics.filterTime.toFixed(1)}ms
-                </span>
-                <span className="text-blue-600">
-                  📊 Stats: {calculatedStats.calculationTime?.toFixed(1) || '0'}ms
                 </span>
               </div>
               <button
@@ -1784,11 +1753,6 @@ const StorePage = () => {
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 size={32} className="text-blue-600 animate-spin mb-3" />
             <p className="text-gray-600">Chargement des stores...</p>
-            {performanceMetrics.loadTime > 0 && (
-              <p className="text-sm text-gray-500 mt-2">
-                {performanceMetrics.loadTime.toFixed(0)}ms
-              </p>
-            )}
           </div>
         ) : filteredStores.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
@@ -1895,12 +1859,12 @@ const StorePage = () => {
                                     className="w-10 h-10 rounded-lg object-cover"
                                   />
                                 ) : (
-                                  store.name.charAt(0)
+                                  store.name?.charAt(0) || 'S'
                                 )}
                               </div>
                               <div>
                                 <p className="font-medium text-gray-900 text-sm">{store.name}</p>
-                                <p className="text-xs text-gray-600">{store.address_details?.city || 'Non localisé'}</p>
+                                <p className="text-xs text-gray-600">{store.city || 'Non localisé'}</p>
                               </div>
                             </div>
                           </td>
@@ -1923,7 +1887,7 @@ const StorePage = () => {
                                   : 'bg-red-100 text-red-800 hover:bg-red-200'
                               }`}
                             >
-                              {store.is_active ? '🟢 Actif' : '🔴 Inactif'}
+                              {store.is_active ? 'Actif' : 'Inactif'}
                             </button>
                           </td>
                           <td className="px-4 py-3">
@@ -1993,7 +1957,14 @@ const StorePage = () => {
               </div>
 
               <form onSubmit={isEditModalOpen ? handleEditStore : handleAddStore} className="p-4">
-                <CompactForm />
+                {loadingOptions ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="animate-spin inline text-blue-600" size={32} />
+                    <p className="text-gray-600 mt-2">Chargement des options...</p>
+                  </div>
+                ) : (
+                  <CompactForm />
+                )}
               </form>
             </motion.div>
           </motion.div>
@@ -2031,12 +2002,12 @@ const StorePage = () => {
                         className="w-10 h-10 rounded-lg object-cover"
                       />
                     ) : (
-                      selectedStore.name.charAt(0)
+                      selectedStore.name?.charAt(0) || 'S'
                     )}
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">{selectedStore.name}</p>
-                    <p className="text-sm text-gray-600">{selectedStore.address_details?.city}</p>
+                    <p className="text-sm text-gray-600">{selectedStore.city || 'Non localisé'}</p>
                   </div>
                 </div>
                 
@@ -2094,7 +2065,7 @@ const StorePage = () => {
                           className="w-12 h-12 rounded-xl object-cover"
                         />
                       ) : (
-                        selectedStore.name.charAt(0)
+                        selectedStore.name?.charAt(0) || 'S'
                       )}
                     </div>
                     <div>
@@ -2124,10 +2095,12 @@ const StorePage = () => {
                         <Globe size={14} />
                         {selectedStore.network_name || 'Aucun réseau'}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar size={14} />
-                        Créé le {new Date(selectedStore.created_at).toLocaleDateString('fr-FR')}
-                      </div>
+                      {selectedStore.created_at && (
+                        <div className="flex items-center gap-2">
+                          <Calendar size={14} />
+                          Créé le {new Date(selectedStore.created_at).toLocaleDateString('fr-FR')}
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -2154,11 +2127,12 @@ const StorePage = () => {
                     <div className="flex items-start gap-2 text-sm text-gray-600">
                       <MapPin size={14} className="mt-0.5 flex-shrink-0" />
                       <div>
-                        {selectedStore.address_details?.city && (
-                          <p>{selectedStore.address_details.city}</p>
-                        )}
-                        <p className="text-gray-500 text-xs">
-                          {storeService.getFullAddress(selectedStore)}
+                        {selectedStore.address_line1 && <p>{selectedStore.address_line1}</p>}
+                        {selectedStore.address_line2 && <p>{selectedStore.address_line2}</p>}
+                        <p>
+                          {[selectedStore.postal_code, selectedStore.city, selectedStore.country]
+                            .filter(Boolean)
+                            .join(' ')}
                         </p>
                       </div>
                     </div>
@@ -2168,11 +2142,11 @@ const StorePage = () => {
                     <h4 className="text-sm font-semibold text-gray-900 mb-2">Statistiques</h4>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="text-center p-3 bg-blue-50 rounded-lg">
-                        <div className="text-lg font-bold text-blue-700">{selectedStore.total_employees}</div>
+                        <div className="text-lg font-bold text-blue-700">{selectedStore.total_employees || 0}</div>
                         <div className="text-xs text-blue-600">Employés</div>
                       </div>
                       <div className="text-center p-3 bg-green-50 rounded-lg">
-                        <div className="text-lg font-bold text-green-700">{selectedStore.total_products}</div>
+                        <div className="text-lg font-bold text-green-700">{selectedStore.total_products || 0}</div>
                         <div className="text-xs text-green-600">Produits</div>
                       </div>
                     </div>
@@ -2190,12 +2164,6 @@ const StorePage = () => {
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
                   >
                     Modifier
-                  </button>
-                  <button
-                    onClick={() => window.open(`/stores/${selectedStore.id}`, '_blank')}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
-                  >
-                    Détails
                   </button>
                 </div>
               </div>

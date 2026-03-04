@@ -1,4 +1,4 @@
-// src/pages/TypesProduits.tsx - VERSION CORRIGÉE AVEC SLUG
+// src/pages/TypesProduits.tsx
 import React, { useState, useEffect } from 'react';
 import { 
   Search, 
@@ -14,32 +14,49 @@ import {
   ChevronDown,
   ChevronUp,
   Tag,
-  ListOrdered,
   Info,
-  AlertCircle
+  AlertCircle,
+  Globe,
+  Hash,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useProductCategories } from '../hooks/useProductCategories';
 import { generateSubCategory, generateSlug } from '../services/productCategoryService';
 
+interface Category {
+  id?: number;
+  name: string;
+  sub_category: string;
+  slug: string;
+  description: string;
+  sort_order: number;
+  is_active: boolean;
+  parent: number | null;
+  products_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 const TypesProduits: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<number[]>([]);
   const [createAsSubcategory, setCreateAsSubcategory] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState<string | null>(null);
   
-  // ✅ État du formulaire - AJOUT DE slug
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Category>({
     name: '',
+    sub_category: '',
     description: '',
     is_active: true,
     sort_order: 0,
-    slug: '', // ⭐ OBLIGATOIRE POUR DJANGO
+    slug: '',
+    parent: null
   });
 
-  // Utilisation du hook
   const {
     categories,
     isLoadingCategories,
@@ -55,16 +72,23 @@ const TypesProduits: React.FC = () => {
     search: searchTerm,
   });
 
-  // ✅ METTRE À JOUR LE SLUG AUTOMATIQUEMENT
+  const generateSlugFromName = (name: string): string => {
+    return generateSlug(name);
+  };
+
   useEffect(() => {
     if (formData.name && !selectedCategory) {
-      const slug = generateSlug(formData.name);
-      setFormData(prev => ({ ...prev, slug }));
+      const slug = generateSlugFromName(formData.name);
+      const subCategoryValue = generateSubCategory(formData.name);
+      
+      setFormData(prev => ({ 
+        ...prev, 
+        slug,
+        sub_category: subCategoryValue 
+      }));
     }
   }, [formData.name, selectedCategory]);
 
-  // ==================== FONCTIONS ====================
-  
   const toggleCategoryExpansion = (categoryId: number) => {
     setExpandedCategories(prev => {
       if (prev.includes(categoryId)) {
@@ -77,11 +101,11 @@ const TypesProduits: React.FC = () => {
 
   const expandAllCategories = () => {
     const categoriesWithSubcategories = categories
-      .filter(category => {
-        const directSubcats = categories.filter(cat => cat.parent === category.id);
+      .filter((category: Category) => {
+        const directSubcats = categories.filter((cat: Category) => cat.parent === category.id);
         return directSubcats.length > 0;
       })
-      .map(category => category.id);
+      .map((category: Category) => category.id!);
     
     setExpandedCategories(categoriesWithSubcategories);
   };
@@ -90,7 +114,6 @@ const TypesProduits: React.FC = () => {
     setExpandedCategories([]);
   };
 
-  // ==================== VALIDATION ====================
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     
@@ -102,7 +125,10 @@ const TypesProduits: React.FC = () => {
       newErrors.name = 'Le nom ne doit pas dépasser 150 caractères';
     }
     
-    // ✅ VALIDATION DU SLUG
+    if (!formData.sub_category.trim()) {
+      newErrors.sub_category = 'Le code technique est obligatoire';
+    }
+    
     if (!formData.slug.trim()) {
       newErrors.slug = 'Le slug est obligatoire';
     } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
@@ -111,27 +137,28 @@ const TypesProduits: React.FC = () => {
       newErrors.slug = 'Le slug ne doit pas dépasser 100 caractères';
     }
     
-    if (formData.description.length > 500) {
+    if (formData.description && formData.description.length > 500) {
       newErrors.description = 'La description ne doit pas dépasser 500 caractères';
     }
     
-    if (formData.sort_order < 0 || formData.sort_order > 999) {
-      newErrors.sort_order = 'L\'ordre doit être compris entre 0 et 999';
+    if (formData.sort_order < 0) {
+      newErrors.sort_order = 'L\'ordre doit être positif';
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ==================== GESTION CATÉGORIES ====================
   const handleCreateSubcategory = (parentId: number, parentName: string) => {
     setCreateAsSubcategory(parentId);
     setFormData({
       name: '',
+      sub_category: '',
       description: '',
       is_active: true,
       sort_order: getSubcategories(parentId).length + 1,
       slug: '',
+      parent: parentId
     });
     setShowForm(true);
     setSelectedCategory(null);
@@ -144,61 +171,42 @@ const TypesProduits: React.FC = () => {
 
     setApiError(null);
 
-    // ✅ GÉNÉRER LES DEUX CHAMPS OBLIGATOIRES
-    const subCategoryValue = generateSubCategory(formData.name);
-    const slugValue = formData.slug.trim() || generateSlug(formData.name);
+    const subCategoryValue = formData.sub_category || generateSubCategory(formData.name);
+    const slugValue = formData.slug || generateSlugFromName(formData.name);
 
-    console.log(`📝 Sub_category généré: "${subCategoryValue}"`);
-    console.log(`📝 Slug généré: "${slugValue}"`);
-
-    // ✅ PRÉPARER LES DONNÉES AVEC sub_category ET slug
-    const categoryData: any = {
+    const categoryData: Category = {
       name: formData.name.trim(),
-      sub_category: subCategoryValue, // ⭐ OBLIGATOIRE
-      slug: slugValue,               // ⭐ OBLIGATOIRE
+      sub_category: subCategoryValue,
+      slug: slugValue,
+      description: formData.description?.trim() || '',
       is_active: formData.is_active,
-      sort_order: formData.sort_order || 0
+      sort_order: formData.sort_order || 0,
+      parent: createAsSubcategory !== null ? createAsSubcategory : null
     };
-
-    // Ajouter description si fournie
-    if (formData.description?.trim()) {
-      categoryData.description = formData.description.trim();
-    }
-
-    // ✅ GESTION DU PARENT
-    if (createAsSubcategory !== null) {
-      categoryData.parent = createAsSubcategory;
-    }
-    // ❌ NE PAS envoyer parent pour catégorie racine
-
-    console.log('📤 DONNÉES POUR API:', categoryData);
 
     try {
       await createCategory(categoryData);
       
-      console.log('✅ CRÉATION RÉUSSIE');
-      
-      // Réinitialiser le formulaire
       setFormData({
         name: '',
+        sub_category: '',
         description: '',
         is_active: true,
         sort_order: categories.length + 1,
         slug: '',
+        parent: null
       });
       setShowForm(false);
       setCreateAsSubcategory(null);
       setErrors({});
       setApiError(null);
       
-      // Étendre la catégorie parente
       if (createAsSubcategory) {
         if (!expandedCategories.includes(createAsSubcategory)) {
           setExpandedCategories(prev => [...prev, createAsSubcategory]);
         }
       }
       
-      // Rafraîchir les données
       setTimeout(() => refetch(), 100);
       
     } catch (error: any) {
@@ -228,54 +236,44 @@ const TypesProduits: React.FC = () => {
 
     setApiError(null);
 
-    const updateData: any = {
+    const updateData: Partial<Category> = {
       name: formData.name.trim(),
-      is_active: formData.is_active
+      sub_category: formData.sub_category,
+      slug: formData.slug,
+      description: formData.description?.trim() || '',
+      is_active: formData.is_active,
+      sort_order: formData.sort_order
     };
 
-    // ✅ Si le nom change, régénérer sub_category et slug
-    if (formData.name.trim() !== selectedCategory.name) {
-      updateData.sub_category = generateSubCategory(formData.name);
-      updateData.slug = generateSlug(formData.name);
+    if (formData.parent !== selectedCategory.parent) {
+      updateData.parent = formData.parent;
     }
 
-    // ✅ Si le slug est modifié manuellement
-    if (formData.slug.trim() !== selectedCategory.slug) {
-      updateData.slug = formData.slug.trim();
-    }
+    const hasChanges = Object.keys(updateData).some(key => 
+      updateData[key as keyof Category] !== selectedCategory[key as keyof Category]
+    );
 
-    if (formData.description !== undefined) {
-      updateData.description = formData.description.trim();
-    }
-
-    if (formData.sort_order !== undefined) {
-      updateData.sort_order = formData.sort_order;
-    }
-
-    // Ne rien envoyer si aucun changement
-    if (Object.keys(updateData).length <= 2) {
+    if (!hasChanges) {
       alert('Aucune modification détectée');
       return;
     }
 
-    console.log('📤 MISE À JOUR:', updateData);
-
     try {
       await updateCategory({
-        id: selectedCategory.id,
+        id: selectedCategory.id!,
         data: updateData
       });
-      
-      console.log('✅ MISE À JOUR RÉUSSIE');
       
       setSelectedCategory(null);
       setShowForm(false);
       setFormData({
         name: '',
+        sub_category: '',
         description: '',
         is_active: true,
         sort_order: 0,
         slug: '',
+        parent: null
       });
       setCreateAsSubcategory(null);
       setErrors({});
@@ -301,7 +299,8 @@ const TypesProduits: React.FC = () => {
 
   const handleDeleteCategory = async (id: number, name: string) => {
     const hasSubcategories = getSubcategories(id).length > 0;
-    const hasProducts = categories.find(c => c.id === id)?.products_count || 0;
+    const category = categories.find((c: Category) => c.id === id);
+    const hasProducts = category?.products_count || 0;
     
     let message = `Supprimer la catégorie "${name}" ?`;
     if (hasSubcategories) {
@@ -330,13 +329,15 @@ const TypesProduits: React.FC = () => {
     }
   };
 
-  const loadCategoryIntoForm = (category: any) => {
+  const loadCategoryIntoForm = (category: Category) => {
     setFormData({
       name: category.name,
+      sub_category: category.sub_category,
       description: category.description || '',
       is_active: category.is_active,
       sort_order: category.sort_order || 0,
-      slug: category.slug || generateSlug(category.name), // ✅ AJOUTER SLUG
+      slug: category.slug,
+      parent: category.parent
     });
     setSelectedCategory(category);
     setShowForm(true);
@@ -350,21 +351,21 @@ const TypesProduits: React.FC = () => {
     setSelectedCategory(null);
     setFormData({
       name: '',
+      sub_category: '',
       description: '',
       is_active: true,
       sort_order: categories.length + 1,
       slug: '',
+      parent: null
     });
     setCreateAsSubcategory(null);
     setErrors({});
     setApiError(null);
   };
 
-  // ✅ FORMULAIRE AVEC CHAMP SLUG
   const renderForm = () => {
     return (
       <div className="p-6 space-y-6">
-        {/* Champ Nom */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="block text-sm font-semibold text-gray-700">
@@ -399,7 +400,12 @@ const TypesProduits: React.FC = () => {
           )}
         </div>
 
-        {/* ⭐ CHAMP SLUG - OBLIGATOIRE */}
+        <input
+          type="hidden"
+          name="sub_category"
+          value={formData.sub_category}
+        />
+
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="block text-sm font-semibold text-gray-700">
@@ -411,7 +417,7 @@ const TypesProduits: React.FC = () => {
           </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-gray-400">/</span>
+              <Globe className="h-5 w-5 text-gray-400" />
             </div>
             <input
               type="text"
@@ -425,7 +431,7 @@ const TypesProduits: React.FC = () => {
                 setFormData({ ...formData, slug: value });
                 if (errors.slug) setErrors({ ...errors, slug: '' });
               }}
-              className={`w-full pl-8 pr-4 py-3 border ${errors.slug ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'} rounded-xl focus:ring-2 outline-none transition-colors bg-gradient-to-r from-gray-50 to-white font-mono`}
+              className={`w-full pl-10 pr-4 py-3 border ${errors.slug ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'} rounded-xl focus:ring-2 outline-none transition-colors bg-gradient-to-r from-gray-50 to-white font-mono`}
               placeholder="vetements-electronique"
               maxLength={100}
             />
@@ -441,7 +447,6 @@ const TypesProduits: React.FC = () => {
           )}
         </div>
 
-        {/* Champ Description */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="block text-sm font-semibold text-gray-700">
@@ -470,75 +475,95 @@ const TypesProduits: React.FC = () => {
           )}
         </div>
 
-        {/* Champs Ordre et Statut */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">
-              Ordre d'affichage
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <ListOrdered className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="number"
-                min="0"
-                max="999"
-                value={formData.sort_order}
-                onChange={(e) => {
-                  const value = Math.max(0, Math.min(999, Number(e.target.value) || 0));
-                  setFormData({ ...formData, sort_order: value });
-                  if (errors.sort_order) setErrors({ ...errors, sort_order: '' });
-                }}
-                className={`w-full pl-10 pr-4 py-3 border ${errors.sort_order ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'} rounded-xl focus:ring-2 outline-none transition-colors bg-gradient-to-r from-gray-50 to-white`}
-              />
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            Ordre d'affichage
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Hash className="h-5 w-5 text-gray-400" />
             </div>
-            {errors.sort_order && (
-              <p className="text-sm text-red-600 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.sort_order}
-              </p>
-            )}
+            <input
+              type="number"
+              min="0"
+              max="2147483647"
+              value={formData.sort_order}
+              onChange={(e) => {
+                const value = Math.max(0, Number(e.target.value) || 0);
+                setFormData({ ...formData, sort_order: value });
+                if (errors.sort_order) setErrors({ ...errors, sort_order: '' });
+              }}
+              className={`w-full pl-10 pr-4 py-3 border ${errors.sort_order ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'} rounded-xl focus:ring-2 outline-none transition-colors bg-gradient-to-r from-gray-50 to-white`}
+            />
           </div>
+          {errors.sort_order && (
+            <p className="text-sm text-red-600 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4" />
+              {errors.sort_order}
+            </p>
+          )}
+        </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-700">
-              Statut
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, is_active: true })}
-                className={`px-4 py-3 border rounded-xl transition-all ${
-                  formData.is_active
-                    ? 'border-green-500 bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 shadow-sm'
-                    : 'border-gray-300 hover:bg-gray-50 text-gray-600'
-                }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <Check className="w-4 h-4" />
-                  <span className="font-medium">Actif</span>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, is_active: false })}
-                className={`px-4 py-3 border rounded-xl transition-all ${
-                  !formData.is_active
-                    ? 'border-gray-500 bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 shadow-sm'
-                    : 'border-gray-300 hover:bg-gray-50 text-gray-600'
-                }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <X className="w-4 h-4" />
-                  <span className="font-medium">Inactif</span>
-                </div>
-              </button>
-            </div>
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            Statut
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, is_active: true })}
+              className={`px-4 py-3 border rounded-xl transition-all flex items-center justify-center gap-2 ${
+                formData.is_active
+                  ? 'border-green-500 bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 shadow-sm'
+                  : 'border-gray-300 hover:bg-gray-50 text-gray-600'
+              }`}
+            >
+              <Eye className="w-4 h-4" />
+              <span className="font-medium">Actif</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, is_active: false })}
+              className={`px-4 py-3 border rounded-xl transition-all flex items-center justify-center gap-2 ${
+                !formData.is_active
+                  ? 'border-gray-500 bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 shadow-sm'
+                  : 'border-gray-300 hover:bg-gray-50 text-gray-600'
+              }`}
+            >
+              <EyeOff className="w-4 h-4" />
+              <span className="font-medium">Inactif</span>
+            </button>
           </div>
         </div>
 
-        {/* Boutons d'action */}
+        {!selectedCategory && (
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700">
+              Catégorie parente
+            </label>
+            <select
+              value={formData.parent || ''}
+              onChange={(e) => {
+                const value = e.target.value ? parseInt(e.target.value) : null;
+                setFormData({ ...formData, parent: value });
+              }}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors bg-gradient-to-r from-gray-50 to-white"
+            >
+              <option value="">Aucune (catégorie racine)</option>
+              {categories
+                .filter((c: Category) => !c.parent)
+                .map((cat: Category) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+            </select>
+            <p className="text-xs text-gray-500">
+              Laissez vide pour créer une catégorie racine
+            </p>
+          </div>
+        )}
+
         <div className="pt-4 space-y-3">
           <button
             onClick={selectedCategory ? handleUpdateCategory : handleCreateCategory}
@@ -584,27 +609,33 @@ const TypesProduits: React.FC = () => {
     );
   };
 
-  // ✅ DÉTAILS AVEC AFFICHAGE DU SLUG
-  const renderCategoryDetails = (category: any) => {
+  const renderCategoryDetails = (category: Category) => {
+    const parentCategory = category.parent ? categories.find((c: Category) => c.id === category.parent) : null;
+    
     return (
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b border-gray-200">
           <div className="flex items-center gap-4">
             <div className={`p-3 rounded-xl ${
-              getSubcategories(category.id).length > 0 
+              getSubcategories(category.id!).length > 0 
                 ? 'bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600' 
                 : 'bg-gradient-to-br from-gray-100 to-gray-50 text-gray-600'
             }`}>
-              {getSubcategories(category.id).length > 0 ? 
+              {getSubcategories(category.id!).length > 0 ? 
                 <Folder className="w-6 h-6" /> : 
                 <Tag className="w-6 h-6" />
               }
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">{category.name}</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Slug: <span className="font-mono text-blue-600">{category.slug}</span>
-              </p>
+              <div className="flex items-center gap-4 mt-1">
+                <p className="text-sm text-gray-600">
+                  Slug: <span className="font-mono text-blue-600">{category.slug}</span>
+                </p>
+                <p className="text-sm text-gray-600">
+                  Code: <span className="font-mono text-green-600">{category.sub_category}</span>
+                </p>
+              </div>
               {category.description && (
                 <p className="text-sm text-gray-500 mt-2">{category.description}</p>
               )}
@@ -621,7 +652,7 @@ const TypesProduits: React.FC = () => {
                 <div className="text-sm text-gray-600">Produits</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{getSubcategories(category.id).length}</div>
+                <div className="text-2xl font-bold text-green-600">{getSubcategories(category.id!).length}</div>
                 <div className="text-sm text-gray-600">Sous-catégories</div>
               </div>
             </div>
@@ -639,7 +670,7 @@ const TypesProduits: React.FC = () => {
               </button>
               
               <button
-                onClick={() => handleCreateSubcategory(category.id, category.name)}
+                onClick={() => handleCreateSubcategory(category.id!, category.name)}
                 className="col-span-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white border border-green-600 rounded-xl transition-all shadow-sm hover:shadow-md"
               >
                 <FolderPlus className="w-4 h-4" />
@@ -648,7 +679,7 @@ const TypesProduits: React.FC = () => {
             </div>
             
             <button
-              onClick={() => handleDeleteCategory(category.id, category.name)}
+              onClick={() => handleDeleteCategory(category.id!, category.name)}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white border border-red-600 rounded-xl transition-all shadow-sm hover:shadow-md"
               disabled={isDeleting}
             >
@@ -661,6 +692,10 @@ const TypesProduits: React.FC = () => {
             <h3 className="font-semibold text-gray-700 mb-4">Informations</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <span className="text-gray-600">Code technique</span>
+                <span className="font-mono text-green-600">{category.sub_category}</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                 <span className="text-gray-600">Slug</span>
                 <span className="font-mono text-blue-600">{category.slug}</span>
               </div>
@@ -671,20 +706,14 @@ const TypesProduits: React.FC = () => {
                 </span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <span className="text-gray-600">Type</span>
+                <span className="text-gray-600">Catégorie parente</span>
                 <span className="font-medium text-blue-600">
-                  {category.parent ? 'Sous-catégorie' : 'Catégorie principale'}
+                  {parentCategory ? parentCategory.name : 'Aucune (racine)'}
                 </span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <span className="text-gray-600">Ordre</span>
+                <span className="text-gray-600">Ordre d'affichage</span>
                 <span className="font-medium">{category.sort_order || 0}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <span className="text-gray-600">Date création</span>
-                <span className="font-medium">
-                  {category.created_at ? new Date(category.created_at).toLocaleDateString('fr-FR') : 'N/A'}
-                </span>
               </div>
             </div>
           </div>
@@ -693,11 +722,10 @@ const TypesProduits: React.FC = () => {
     );
   };
 
-  // Fonction pour afficher récursivement les catégories
   const renderCategoryTree = (parentId: number | null = null, level = 0) => {
     const filteredCategories = categories
-      .filter(cat => cat.parent === parentId)
-      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      .filter((cat: Category) => cat.parent === parentId)
+      .sort((a: Category, b: Category) => (a.sort_order || 0) - (b.sort_order || 0));
 
     if (filteredCategories.length === 0 && parentId === null) {
       return (
@@ -726,9 +754,9 @@ const TypesProduits: React.FC = () => {
 
     return (
       <div className="space-y-2">
-        {filteredCategories.map(category => {
-          const hasSubcategories = getSubcategories(category.id).length > 0;
-          const isExpanded = expandedCategories.includes(category.id);
+        {filteredCategories.map((category: Category) => {
+          const hasSubcategories = getSubcategories(category.id!).length > 0;
+          const isExpanded = expandedCategories.includes(category.id!);
           const isActive = category.is_active;
           
           return (
@@ -766,7 +794,7 @@ const TypesProduits: React.FC = () => {
                           {category.parent && (
                             <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full">Sous-catégorie</span>
                           )}
-                          {category.products_count > 0 && (
+                          {category.products_count && category.products_count > 0 && (
                             <span className="text-xs px-2 py-1 bg-green-100 text-green-600 rounded-full">
                               {category.products_count} produit{category.products_count > 1 ? 's' : ''}
                             </span>
@@ -784,7 +812,7 @@ const TypesProduits: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleCategoryExpansion(category.id);
+                          toggleCategoryExpansion(category.id!);
                         }}
                         className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       >
@@ -796,7 +824,7 @@ const TypesProduits: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleCreateSubcategory(category.id, category.name);
+                          handleCreateSubcategory(category.id!, category.name);
                         }}
                         className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
                       >
@@ -816,7 +844,7 @@ const TypesProduits: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteCategory(category.id, category.name);
+                          handleDeleteCategory(category.id!, category.name);
                         }}
                         className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                         disabled={isDeleting}
@@ -856,7 +884,6 @@ const TypesProduits: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
-      {/* En-tête */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
@@ -884,7 +911,6 @@ const TypesProduits: React.FC = () => {
         </div>
       </div>
 
-      {/* Message d'erreur API */}
       {apiError && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -899,7 +925,6 @@ const TypesProduits: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Section gauche - Liste des catégories */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
             <div className="p-6 border-b border-gray-200">
@@ -937,7 +962,6 @@ const TypesProduits: React.FC = () => {
           </div>
         </div>
 
-        {/* Section droite - Formulaire AVEC SLUG */}
         <div className="lg:col-span-1">
           {showForm ? (
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
@@ -982,7 +1006,7 @@ const TypesProduits: React.FC = () => {
                       <div>
                         <p className="text-sm font-medium text-blue-700">Création de sous-catégorie</p>
                         <p className="text-xs text-blue-600">
-                          Parent: <strong>{categories.find(c => c.id === createAsSubcategory)?.name}</strong>
+                          Parent: <strong>{categories.find((c: Category) => c.id === createAsSubcategory)?.name}</strong>
                         </p>
                       </div>
                     </div>

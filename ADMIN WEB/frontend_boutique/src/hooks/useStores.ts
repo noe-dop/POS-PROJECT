@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/services/api';
 
-// Types basés sur votre modèle Django et vos logs API
-export interface Store {
+// ============================================
+// TYPES DOUBLES (API + Frontend)
+// ============================================
+
+// ✅ Ce que l'API renvoie réellement (avec address_details)
+export interface ApiStore {
   id: number;
   name: string;
   slug: string;
@@ -18,7 +22,7 @@ export interface Store {
     name: string;
   };
   address?: number;
-  address_details?: {
+  address_details?: {  // ⚠️ L'API renvoie ça !
     id: number;
     address_line1: string;
     address_line2: string | null;
@@ -27,7 +31,48 @@ export interface Store {
     postal_code: string;
     country: string;
     full_address: string;
+    latitude?: string | null;  // ⚠️ La géoloc est dans address_details
+    longitude?: string | null;
   };
+  phone: string | null;
+  email: string | null;
+  opening_hours: Record<string, any>;
+  is_active: boolean;
+  logo: string | null;
+  banner: string | null;
+  slogan: string;
+  configuration: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  total_employees?: number;
+  total_products?: number;
+}
+
+// ✅ Ce que le frontend utilise (structure plate pour StoreCreate)
+export interface Store {
+  id: number;
+  name: string;
+  slug: string;
+  store_type?: number;
+  store_type_details?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  network?: number;
+  network_details?: {
+    id: number;
+    name: string;
+  };
+  // ✅ Champs plats pour le frontend
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
+  country: string | null;
+  latitude: string | null;
+  longitude: string | null;
   phone: string | null;
   email: string | null;
   opening_hours: Record<string, any>;
@@ -79,6 +124,8 @@ export interface StoreOption {
   type?: string;
   address?: string;
   phone?: string | null;
+  city?: string | null;
+  country?: string | null;
 }
 
 export interface WarehouseOption {
@@ -117,6 +164,8 @@ interface UseStoresReturn {
   // Utilitaires
   getStoreById: (id: number) => Store | undefined;
   getStoreDisplayName: (store: Store) => string;
+  getFullAddress: (store: Store) => string;
+  getCoordinates: (store: Store) => string | null;
   getWarehousesByStoreId: (storeId: number) => Warehouse[];
   
   // Statistiques
@@ -147,7 +196,7 @@ export const useStores = (): UseStoresReturn => {
   
   const [error, setError] = useState<string | null>(null);
 
-  // ==================== RÉCUPÉRATION DES DONNÉES RÉELLES ====================
+  // ==================== RÉCUPÉRATION DES DONNÉES ====================
 
   // Récupérer les types de magasins
   const fetchStoreTypes = async (): Promise<void> => {
@@ -185,7 +234,7 @@ export const useStores = (): UseStoresReturn => {
     }
   };
 
-  // Récupérer tous les magasins - CORRECTION ICI
+  // ✅ Récupérer tous les magasins - PRÉSERVE LES LOGS API
   const fetchStores = async (): Promise<void> => {
     try {
       setLoading(prev => ({ ...prev, stores: true }));
@@ -193,53 +242,67 @@ export const useStores = (): UseStoresReturn => {
       
       console.log('🏪 Chargement des magasins depuis API...');
       
-      // Utilisez getPaginated pour gérer la structure Django REST Framework
-      const response = await api.getPaginated<Store>('/stores/', {
-        page_size: 100, // Augmenté pour avoir plus de données
+      // 🔥 L'API renvoie bien /api/stores/?page_size=200 (comme dans les logs)
+      const response = await api.getPaginated<ApiStore>('/stores/', {
+        page_size: 200,  // ⚠️ Gardé à 200 comme dans les logs
         ordering: 'name'
       });
       
       console.log(`✅ ${response.results?.length || 0} magasins chargés depuis API`);
-      setStores(response.results || []);
+      
+      // Transformer les données API (imbriquées) en données frontend (plates)
+      const transformedStores: Store[] = (response.results || []).map((apiStore: ApiStore) => {
+        const address = apiStore.address_details || {};
+        
+        return {
+          id: apiStore.id,
+          name: apiStore.name,
+          slug: apiStore.slug,
+          store_type: apiStore.store_type,
+          store_type_details: apiStore.store_type_details,
+          network: apiStore.network,
+          network_details: apiStore.network_details,
+          // ✅ Extraire les champs de address_details
+          address_line1: address.address_line1 || null,
+          address_line2: address.address_line2 || null,
+          city: address.city || null,
+          state: address.state || null,
+          postal_code: address.postal_code || null,
+          country: address.country || null,
+          latitude: address.latitude || null,
+          longitude: address.longitude || null,
+          phone: apiStore.phone || null,
+          email: apiStore.email || null,
+          opening_hours: apiStore.opening_hours || {},
+          is_active: apiStore.is_active !== false,
+          logo: apiStore.logo || null,
+          banner: apiStore.banner || null,
+          slogan: apiStore.slogan || '',
+          configuration: apiStore.configuration || {
+            currency: 'EUR',
+            timezone: 'Europe/Paris',
+            tax_rate: 20.0
+          },
+          created_at: apiStore.created_at,
+          updated_at: apiStore.updated_at,
+          total_employees: apiStore.total_employees || 0,
+          total_products: apiStore.total_products || 0
+        };
+      });
+      
+      console.log(`✅ ${transformedStores.length} magasins transformés pour le frontend`);
+      setStores(transformedStores);
       
     } catch (err: any) {
       console.error('❌ Erreur API stores:', err);
       
-      // Alternative: essayer get normal si getPaginated échoue
-      try {
-        console.log('🔄 Tentative alternative avec api.get...');
-        const alternativeResponse = await api.get<any>('/stores/', {
-          page_size: 100,
-          ordering: 'name'
-        });
-        
-        // Gérer différentes structures de réponse
-        let storesData: Store[] = [];
-        
-        if (Array.isArray(alternativeResponse)) {
-          storesData = alternativeResponse;
-        } else if (alternativeResponse && typeof alternativeResponse === 'object') {
-          if (Array.isArray(alternativeResponse.results)) {
-            storesData = alternativeResponse.results;
-          } else if (Array.isArray(alternativeResponse.data)) {
-            storesData = alternativeResponse.data;
-          }
-        }
-        
-        console.log(`✅ ${storesData.length} magasins chargés (alternative)`);
-        setStores(storesData);
-        
-      } catch (altErr: any) {
-        console.error('❌ Erreur alternative:', altErr);
-        
-        const errorMessage = altErr.response?.data?.detail || 
-                            altErr.response?.data?.message || 
-                            altErr.message || 
-                            'Impossible de charger les magasins';
-        
-        setError(`Erreur magasins: ${errorMessage}`);
-        setStores([]);
-      }
+      const errorMessage = err.response?.data?.detail || 
+                          err.response?.data?.message || 
+                          err.message || 
+                          'Impossible de charger les magasins';
+      
+      setError(`Erreur magasins: ${errorMessage}`);
+      setStores([]);
       
     } finally {
       setLoading(prev => ({ ...prev, stores: false }));
@@ -255,38 +318,17 @@ export const useStores = (): UseStoresReturn => {
       let warehousesData: any[] = [];
       
       try {
-        // Essayer d'abord avec getPaginated
         const paginatedResponse = await api.getPaginated<any>('/warehouses/', {
           page_size: 50,
           ordering: 'name'
         });
         warehousesData = paginatedResponse.results || [];
-        console.log(`✅ ${warehousesData.length} entrepôts chargés depuis /warehouses/ (paginated)`);
+        console.log(`✅ ${warehousesData.length} entrepôts chargés`);
       } catch (warehouseErr) {
-        console.log('⚠️ Endpoint /warehouses/ non disponible avec pagination, tentative directe...');
-        
-        try {
-          // Essayer un get direct
-          const directResponse = await api.get<any[]>('/warehouses/', {
-            page_size: 50,
-            ordering: 'name'
-          });
-          
-          // Gérer la structure de réponse
-          if (Array.isArray(directResponse)) {
-            warehousesData = directResponse;
-          } else if (directResponse && typeof directResponse === 'object' && Array.isArray(directResponse.results)) {
-            warehousesData = directResponse.results;
-          }
-          
-          console.log(`✅ ${warehousesData.length} entrepôts chargés depuis /warehouses/ (direct)`);
-        } catch (directErr) {
-          console.log('⚠️ Endpoint /warehouses/ non disponible');
-          warehousesData = [];
-        }
+        console.log('⚠️ Endpoint /warehouses/ non disponible');
+        warehousesData = [];
       }
       
-      // Formatter les données
       const formattedWarehouses: Warehouse[] = warehousesData.map((wh, index) => ({
         id: wh.id || index + 1,
         name: wh.name || `Entrepôt ${wh.id || index + 1}`,
@@ -329,7 +371,28 @@ export const useStores = (): UseStoresReturn => {
 
   // ==================== FONCTIONS UTILITAIRES ====================
 
-  // Formatter les stores pour les options de sélection
+  // ✅ Obtenir l'adresse complète formatée
+  const getFullAddress = (store: Store): string => {
+    const parts = [
+      store.address_line1,
+      store.address_line2,
+      [store.postal_code, store.city].filter(Boolean).join(' '),
+      store.state,
+      store.country
+    ].filter(Boolean);
+    
+    return parts.length > 0 ? parts.join(', ') : 'Adresse non définie';
+  };
+
+  // ✅ Obtenir les coordonnées formatées
+  const getCoordinates = (store: Store): string | null => {
+    if (store.latitude && store.longitude) {
+      return `${store.latitude}, ${store.longitude}`;
+    }
+    return null;
+  };
+
+  // ✅ Formatter les stores pour les options de sélection
   const getStoreOptions = (): StoreOption[] => {
     return stores
       .filter(store => store.is_active)
@@ -337,8 +400,10 @@ export const useStores = (): UseStoresReturn => {
         id: store.id,
         name: store.name,
         type: store.store_type_details?.name,
-        address: store.address_details?.full_address,
-        phone: store.phone
+        address: getFullAddress(store),
+        phone: store.phone,
+        city: store.city,
+        country: store.country
       }));
   };
 
@@ -404,7 +469,6 @@ export const useStores = (): UseStoresReturn => {
     storeTypes,
     storeNetworks,
     warehouses: warehouses.filter(warehouse => warehouse.is_active),
-    allWarehouses: warehouses,
     
     // Données formatées pour les selects
     storeOptions: getStoreOptions(),
@@ -425,6 +489,8 @@ export const useStores = (): UseStoresReturn => {
     // Utilitaires
     getStoreById,
     getStoreDisplayName,
+    getFullAddress,
+    getCoordinates,
     getWarehousesByStoreId,
     
     // Statistiques

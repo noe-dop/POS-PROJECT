@@ -1,43 +1,35 @@
-// src/pages/Inventory.tsx - VERSION CORRIGÉE
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+// src/pages/Inventory.tsx - VERSION AVEC BOUTON SUPPRIMER
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Eye, CheckCircle, AlertTriangle, 
   Play, Plus, Search, RefreshCw,
-  Package, FileText, Loader2, Store,
-  AlertCircle, Calendar, Trash2,
-  BarChart3, Filter, History, Clock,
-  User, Download, ChevronDown, ChevronUp,
-  Info, TrendingUp, TrendingDown
+  Package, Loader2,
+  AlertCircle, Trash2,
+  Filter, History, Clock,
+  ChevronDown, ChevronUp,
+  TrendingUp, Edit,
+  RotateCcw, X, Save, XSquare, Ban,
+  Info, Download, ChevronLeft, ChevronRight,
+  Menu
 } from 'lucide-react';
+import { useInventory } from '../hooks/useInventory';
 import { 
-  inventoryService, 
   InventoryUtils,
   type InventoryCount,
-  type InventoryStats,
   type InventoryCountItem,
-  type CreateInventoryPayload 
+  type CreateInventoryPayload,
+  type UpdateInventoryPayload,
+  type InventoryStatus,
+  type Store
 } from '../services/inventoryService';
 
-// Types alignés avec le modèle Django
-interface LocalInventoryCount extends InventoryCount {
-  progress: number;
-  store_name: string;
-  total_items_counted?: number;
-  total_discrepancies?: number;
-  discrepancy_value?: number;
-  items?: InventoryCountItem[];
-}
+// =============================================================================
+// TYPES
+// =============================================================================
 
-interface Store {
-  id: number;
-  name: string;
-  address?: string;
-}
-
-// Interface pour l'historique
 interface HistoryRecord {
   id: number;
-  action: 'created' | 'started' | 'completed' | 'cancelled' | 'updated' | 'item_added' | 'item_updated';
+  action: 'created' | 'started' | 'completed' | 'cancelled' | 'updated';
   action_label: string;
   inventory_reference: string;
   store_name: string;
@@ -48,1207 +40,1174 @@ interface HistoryRecord {
   color: 'green' | 'blue' | 'red' | 'yellow' | 'purple';
 }
 
-const InventoryPage: React.FC = () => {
-  // États principaux
-  const [inventories, setInventories] = useState<LocalInventoryCount[]>([]);
-  const [stats, setStats] = useState<InventoryStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingStats, setLoadingStats] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+interface EditingInventory {
+  id: number;
+  reference: string;
+  notes: string;
+  status: InventoryStatus;
+}
+
+interface PaginationState {
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+// =============================================================================
+// COMPOSANTS UI
+// =============================================================================
+
+const StatusBadge: React.FC<{ status: InventoryStatus }> = ({ status }) => {
+  const config = {
+    planned: { label: 'Planifié', bgColor: 'bg-yellow-50', textColor: 'text-yellow-700', borderColor: 'border-yellow-200' },
+    in_progress: { label: 'En cours', bgColor: 'bg-blue-50', textColor: 'text-blue-700', borderColor: 'border-blue-200' },
+    completed: { label: 'Terminé', bgColor: 'bg-green-50', textColor: 'text-green-700', borderColor: 'border-green-200' },
+    cancelled: { label: 'Annulé', bgColor: 'bg-red-50', textColor: 'text-red-700', borderColor: 'border-red-200' }
+  }[status] || config.planned;
   
-  // États pour les filtres
-  const [filters, setFilters] = useState({
-    search: '',
-    status: 'all' as 'all' | InventoryCount['status'],
-    store: 'all'
-  });
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs font-medium border ${config.bgColor} ${config.textColor} ${config.borderColor}`}>
+      {config.label}
+    </span>
+  );
+};
 
-  // Liste des magasins
-  const [stores, setStores] = useState<Store[]>([
-    { id: 1, name: 'Magasin Principal' },
-    { id: 2, name: 'Succursale Est' },
-    { id: 3, name: 'Succursale Ouest' }
-  ]);
-  const [loadingStores, setLoadingStores] = useState(false);
-
-  // État pour le nouveau inventaire
-  const [newInventory, setNewInventory] = useState({
-    reference: '',
-    store: 0,
-    count_date: new Date().toISOString().slice(0, 16),
-    status: 'planned' as 'planned' | 'in_progress' | 'completed' | 'cancelled',
-    notes: ''
-  });
-
-  // États pour les actions en cours
-  const [actionLoading, setActionLoading] = useState({
-    deletingId: null as number | null,
-    startingId: null as number | null,
-    completingId: null as number | null,
-    creating: false,
-    counting: null as number | null
-  });
-
-  // Message de succès
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  // État pour l'historique
-  const [history, setHistory] = useState<HistoryRecord[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [showHistory, setShowHistory] = useState(true);
-
-  // Ref pour éviter les boucles infinies
-  const hasLoaded = useRef(false);
-
-  // ============================================
-  // FONCTIONS DE CHARGEMENT
-  // ============================================
-
-  // Charger les magasins depuis l'API
-  const loadStores = useCallback(async (): Promise<Store[]> => {
-    try {
-      setLoadingStores(true);
-      const storesData = await inventoryService.getStores();
-      
-      const formattedStores: Store[] = storesData.map((store: any) => ({
-        id: store.id || 0,
-        name: store.name || 'Magasin inconnu',
-        address: store.address || store.address_details?.full_address
-      }));
-      
-      setStores(formattedStores);
-      return formattedStores;
-    } catch (err) {
-      console.error('Erreur chargement magasins:', err);
-      const defaultStores: Store[] = [
-        { id: 1, name: 'Magasin Principal' },
-        { id: 2, name: 'Succursale Est' },
-        { id: 3, name: 'Succursale Ouest' }
-      ];
-      setStores(defaultStores);
-      return defaultStores;
-    } finally {
-      setLoadingStores(false);
+const ProgressBar: React.FC<{ 
+  inventory: InventoryCount;
+  items?: InventoryCountItem[];
+}> = ({ inventory, items = [] }) => {
+  const progress = useMemo(() => {
+    if (inventory.status === 'completed') return 100;
+    if (inventory.status === 'cancelled') return 0;
+    if (items.length > 0) {
+      const counted = items.filter(i => i.counted_quantity !== null).length;
+      return Math.round((counted / items.length) * 100);
     }
-  }, []);
+    return inventory.status === 'in_progress' ? 50 : 0;
+  }, [inventory, items]);
 
-  // Charger les inventaires
-  const loadInventories = useCallback(async (): Promise<LocalInventoryCount[]> => {
-    try {
-      const inventoriesData = await inventoryService.getInventories();
-      
-      const inventoriesWithDetails = inventoriesData.map((inv) => ({
-        ...inv,
-        progress: InventoryUtils.getProgressPercentage(inv),
-        store_name: inv.store_name || 'Non spécifié',
-        total_items_counted: inv.total_items_counted || 0,
-        total_discrepancies: inv.total_discrepancies || 0,
-        discrepancy_value: inv.discrepancy_value || 0,
-        items: []
-      }));
-
-      setInventories(inventoriesWithDetails);
-      setError(null);
-      return inventoriesWithDetails;
-    } catch (err: any) {
-      console.error('Erreur chargement inventaires:', err);
-      const errorMsg = err.response?.status === 404 
-        ? 'API non trouvée. Vérifiez l\'URL.'
-        : err.message || 'Impossible de charger les inventaires';
-      
-      setError(errorMsg);
-      setInventories([]);
-      return [];
-    }
-  }, []);
-
-  // Charger les statistiques
-  const loadStats = useCallback(async (inventoriesData: LocalInventoryCount[]) => {
-    try {
-      setLoadingStats(true);
-      
-      try {
-        const statsData = await inventoryService.getInventoryStats();
-        setStats(statsData);
-      } catch {
-        const localStats: InventoryStats = {
-          total_inventories: inventoriesData.length,
-          in_progress_inventories: inventoriesData.filter(inv => inv.status === 'in_progress').length,
-          completed_inventories: inventoriesData.filter(inv => inv.status === 'completed').length,
-          planned_inventories: inventoriesData.filter(inv => inv.status === 'planned').length,
-          cancelled_inventories: inventoriesData.filter(inv => inv.status === 'cancelled').length,
-          total_discrepancies: inventoriesData.reduce((sum, inv) => sum + (inv.total_discrepancies || 0), 0),
-          total_discrepancy_value: inventoriesData.reduce((sum, inv) => sum + (inv.discrepancy_value || 0), 0),
-          average_discrepancy_rate: 0,
-          recent_inventories_count: 0
-        };
-        setStats(localStats);
-      }
-    } catch (err) {
-      console.error('Erreur stats:', err);
-    } finally {
-      setLoadingStats(false);
-    }
-  }, []);
-
-  // Charger l'historique (simulé depuis les inventaires)
-  const loadHistory = useCallback(async (inventoriesData: LocalInventoryCount[]) => {
-    try {
-      setLoadingHistory(true);
-      
-      // Générer un historique à partir des données d'inventaire
-      const historyRecords: HistoryRecord[] = [];
-      
-      inventoriesData.forEach(inv => {
-        // Date de création
-        historyRecords.push({
-          id: inv.id * 100 + 1,
-          action: 'created',
-          action_label: 'Création',
-          inventory_reference: inv.reference,
-          store_name: inv.store_name,
-          user_name: inv.created_by ? `Utilisateur #${inv.created_by}` : 'Système',
-          details: `Inventaire créé avec statut: ${inv.status}`,
-          timestamp: inv.created_at,
-          icon: <Plus className="h-3 w-3" />,
-          color: 'green'
-        });
-        
-        // Si démarré
-        if (inv.started_at) {
-          historyRecords.push({
-            id: inv.id * 100 + 2,
-            action: 'started',
-            action_label: 'Démarrage',
-            inventory_reference: inv.reference,
-            store_name: inv.store_name,
-            user_name: 'Opérateur',
-            details: 'Comptage démarré',
-            timestamp: inv.started_at,
-            icon: <Play className="h-3 w-3" />,
-            color: 'blue'
-          });
-        }
-        
-        // Si terminé
-        if (inv.completed_at) {
-          historyRecords.push({
-            id: inv.id * 100 + 3,
-            action: 'completed',
-            action_label: 'Terminaison',
-            inventory_reference: inv.reference,
-            store_name: inv.store_name,
-            user_name: 'Superviseur',
-            details: inv.total_discrepancies 
-              ? `${inv.total_discrepancies} écart(s) détecté(s)`
-              : 'Aucun écart détecté',
-            timestamp: inv.completed_at,
-            icon: <CheckCircle className="h-3 w-3" />,
-            color: inv.total_discrepancies ? 'red' : 'green'
-          });
-        }
-        
-        // Si annulé
-        if (inv.status === 'cancelled') {
-          historyRecords.push({
-            id: inv.id * 100 + 4,
-            action: 'cancelled',
-            action_label: 'Annulation',
-            inventory_reference: inv.reference,
-            store_name: inv.store_name,
-            user_name: 'Administrateur',
-            details: 'Inventaire annulé',
-            timestamp: inv.updated_at,
-            icon: <AlertCircle className="h-3 w-3" />,
-            color: 'yellow'
-          });
-        }
-      });
-      
-      // Trier par date (plus récent en premier)
-      historyRecords.sort((a, b) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
-      
-      // Limiter à 20 entrées
-      setHistory(historyRecords.slice(0, 20));
-      
-    } catch (err) {
-      console.error('Erreur chargement historique:', err);
-      setHistory([]);
-    } finally {
-      setLoadingHistory(false);
-    }
-  }, []);
-
-  // Charger toutes les données
-  const loadAllData = useCallback(async () => {
-    if (hasLoaded.current) {
-      setLoading(false);
-      return;
-    }
-    
-    setLoading(true);
-    setError(null);
-    setSuccessMessage(null);
-
-    const timeoutId = setTimeout(() => {
-      if (hasLoaded.current === false) {
-        setError('Le chargement prend trop de temps.');
-        setLoading(false);
-        hasLoaded.current = true;
-      }
-    }, 10000);
-
-    try {
-      const [loadedInventories] = await Promise.all([
-        loadInventories().catch(() => []),
-        loadStores().catch(() => stores)
-      ]);
-      
-      await Promise.all([
-        loadStats(loadedInventories),
-        loadHistory(loadedInventories)
-      ]);
-      
-      hasLoaded.current = true;
-      
-    } catch (err: any) {
-      console.error('Erreur générale:', err);
-      setError('Erreur de chargement: ' + (err.message || 'Erreur inconnue'));
-    } finally {
-      clearTimeout(timeoutId);
-      setLoading(false);
-    }
-  }, [loadStores, loadInventories, loadStats, loadHistory, stores]);
-
-  // ============================================
-  // USE EFFECTS
-  // ============================================
-
-  useEffect(() => {
-    loadAllData();
-    
-    return () => {
-      // Nettoyage
-    };
-  }, [loadAllData]);
-
-  // ============================================
-  // FONCTIONS D'ACTION
-  // ============================================
-
-  const handleRefresh = useCallback(async () => {
-    hasLoaded.current = false;
-    
-    setLoading(true);
-    setError(null);
-    setSuccessMessage(null);
-    
-    try {
-      await loadAllData();
-      setSuccessMessage('Données rafraîchies avec succès');
-      
-      setTimeout(() => {
-        setSuccessMessage(null);
-      }, 3000);
-      
-    } catch (err: any) {
-      setError('Erreur lors du rafraîchissement');
-    }
-  }, [loadAllData]);
-
-  const handleCreateInventory = async () => {
-    if (!newInventory.reference.trim()) {
-      alert('La référence est obligatoire');
-      return;
-    }
-
-    if (newInventory.store === 0) {
-      alert('Veuillez sélectionner un magasin');
-      return;
-    }
-
-    setActionLoading(prev => ({ ...prev, creating: true }));
-
-    try {
-      const payload: CreateInventoryPayload = {
-        reference: newInventory.reference.trim(),
-        store: newInventory.store,
-        status: newInventory.status,
-        notes: newInventory.notes || '',
-        count_date: new Date(newInventory.count_date).toISOString()
-      };
-      
-      const created = await inventoryService.createInventory(payload);
-
-      const newInv: LocalInventoryCount = {
-        ...created,
-        progress: InventoryUtils.getProgressPercentage(created),
-        store_name: created.store_name || 'Non spécifié',
-        total_items_counted: created.total_items_counted || 0,
-        total_discrepancies: created.total_discrepancies || 0,
-        discrepancy_value: created.discrepancy_value || 0,
-        items: []
-      };
-      
-      setInventories(prev => [newInv, ...prev]);
-      
-      // Ajouter à l'historique
-      const historyRecord: HistoryRecord = {
-        id: Date.now(),
-        action: 'created',
-        action_label: 'Création',
-        inventory_reference: newInv.reference,
-        store_name: newInv.store_name,
-        user_name: 'Vous',
-        details: `Nouvel inventaire créé (${newInv.status})`,
-        timestamp: new Date().toISOString(),
-        icon: <Plus className="h-3 w-3" />,
-        color: 'green'
-      };
-      
-      setHistory(prev => [historyRecord, ...prev.slice(0, 19)]);
-      
-      setNewInventory({
-        reference: '',
-        store: 0,
-        count_date: new Date().toISOString().slice(0, 16),
-        status: 'planned',
-        notes: ''
-      });
-
-      setSuccessMessage('Inventaire créé avec succès !');
-      
-    } catch (error: any) {
-      console.error('Erreur création:', error);
-      alert(`Erreur: ${error.message || 'Erreur lors de la création'}`);
-    } finally {
-      setActionLoading(prev => ({ ...prev, creating: false }));
-    }
-  };
-
-  const handleStartCounting = async (inventoryId: number) => {
-    const inventory = inventories.find(inv => inv.id === inventoryId);
-    if (!inventory) return;
-    
-    setActionLoading(prev => ({ ...prev, counting: inventoryId }));
-    
-    try {
-      await inventoryService.startInventory(inventoryId);
-      
-      setInventories(prev => prev.map(inv => 
-        inv.id === inventoryId 
-          ? { ...inv, status: 'in_progress', progress: 50 }
-          : inv
-      ));
-      
-      // Ajouter à l'historique
-      const historyRecord: HistoryRecord = {
-        id: Date.now(),
-        action: 'started',
-        action_label: 'Démarrage',
-        inventory_reference: inventory.reference,
-        store_name: inventory.store_name,
-        user_name: 'Vous',
-        details: 'Comptage démarré',
-        timestamp: new Date().toISOString(),
-        icon: <Play className="h-3 w-3" />,
-        color: 'blue'
-      };
-      
-      setHistory(prev => [historyRecord, ...prev.slice(0, 19)]);
-      
-      setSuccessMessage('Comptage démarré avec succès');
-      
-    } catch (error: any) {
-      console.error('Erreur démarrage comptage:', error);
-      alert(`Erreur: ${error.message}`);
-    } finally {
-      setActionLoading(prev => ({ ...prev, counting: null }));
-    }
-  };
-
-  const handleCompleteInventory = async (inventoryId: number) => {
-    const inventory = inventories.find(inv => inv.id === inventoryId);
-    if (!inventory) return;
-    
-    if (!window.confirm(`Terminer l'inventaire "${inventory.reference}" ?`)) {
-      return;
-    }
-
-    setActionLoading(prev => ({ ...prev, completingId: inventoryId }));
-    
-    try {
-      await inventoryService.completeInventory(inventoryId);
-      
-      // Simuler des écarts pour l'exemple
-      const hasDiscrepancies = Math.random() > 0.5;
-      const discrepancyCount = hasDiscrepancies ? Math.floor(Math.random() * 5) + 1 : 0;
-      
-      setInventories(prev => prev.map(inv => 
-        inv.id === inventoryId 
-          ? { 
-              ...inv, 
-              status: 'completed', 
-              progress: 100,
-              total_discrepancies: discrepancyCount,
-              discrepancy_value: discrepancyCount * 10
-            }
-          : inv
-      ));
-      
-      // Ajouter à l'historique
-      const historyRecord: HistoryRecord = {
-        id: Date.now(),
-        action: 'completed',
-        action_label: 'Terminaison',
-        inventory_reference: inventory.reference,
-        store_name: inventory.store_name,
-        user_name: 'Vous',
-        details: discrepancyCount 
-          ? `${discrepancyCount} écart(s) détecté(s)`
-          : 'Aucun écart détecté',
-        timestamp: new Date().toISOString(),
-        icon: <CheckCircle className="h-3 w-3" />,
-        color: discrepancyCount ? 'red' : 'green'
-      };
-      
-      setHistory(prev => [historyRecord, ...prev.slice(0, 19)]);
-      
-      setSuccessMessage('Inventaire terminé avec succès !');
-    } catch (error: any) {
-      console.error('Erreur validation:', error);
-      alert(`Erreur: ${error.message}`);
-    } finally {
-      setActionLoading(prev => ({ ...prev, completingId: null }));
-    }
-  };
-
-  const handleDeleteInventory = async (inventoryId: number) => {
-    const inventory = inventories.find(inv => inv.id === inventoryId);
-    if (!inventory) return;
-    
-    if (!window.confirm(`Supprimer l'inventaire "${inventory.reference}" ?`)) {
-      return;
-    }
-
-    setActionLoading(prev => ({ ...prev, deletingId: inventoryId }));
-    
-    try {
-      await inventoryService.deleteInventory(inventoryId);
-      
-      setInventories(prev => prev.filter(inv => inv.id !== inventoryId));
-      
-      // Ajouter à l'historique
-      const historyRecord: HistoryRecord = {
-        id: Date.now(),
-        action: 'cancelled',
-        action_label: 'Suppression',
-        inventory_reference: inventory.reference,
-        store_name: inventory.store_name,
-        user_name: 'Vous',
-        details: 'Inventaire supprimé',
-        timestamp: new Date().toISOString(),
-        icon: <Trash2 className="h-3 w-3" />,
-        color: 'yellow'
-      };
-      
-      setHistory(prev => [historyRecord, ...prev.slice(0, 19)]);
-      
-      setSuccessMessage('Inventaire supprimé avec succès');
-    } catch (error: any) {
-      console.error('Erreur suppression:', error);
-      alert(`Erreur: ${error.message}`);
-    } finally {
-      setActionLoading(prev => ({ ...prev, deletingId: null }));
-    }
-  };
-
-  // ============================================
-  // COMPOSANTS UI
-  // ============================================
-
-  const StatusBadge: React.FC<{ status: InventoryCount['status'] }> = ({ status }) => {
-    const config = InventoryUtils.getStatusConfig(status);
-    
-    return (
-      <div className="flex items-center gap-2" title={config.label}>
-        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border ${config.bgColor} ${config.textColor} ${config.borderColor}`}>
-          {config.label}
-        </span>
+  const itemsCounted = items.filter(i => i.counted_quantity !== null).length;
+  const discrepancies = items.filter(i => i.discrepancy !== 0).length;
+  
+  return (
+    <div className="w-24 sm:w-32 lg:w-40">
+      <div className="flex justify-between text-xs text-gray-500 mb-1">
+        <span>{progress}%</span>
+        <span className="hidden sm:inline">{itemsCounted}/{items.length}</span>
+        <span className="sm:hidden">{itemsCounted}</span>
       </div>
-    );
+      <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+        <div 
+          className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${
+            progress === 100 ? 'bg-green-500' : 
+            progress >= 50 ? 'bg-blue-500' : 
+            progress > 0 ? 'bg-yellow-500' : 
+            'bg-gray-300'
+          }`}
+          style={{ width: `${progress}%` }}
+        ></div>
+      </div>
+      {discrepancies > 0 && (
+        <div className="text-xs text-red-600 mt-1">
+          ⚠️ {discrepancies}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const StatCard: React.FC<{
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  description?: string;
+  color?: 'blue' | 'green' | 'red' | 'yellow' | 'purple';
+}> = ({ title, value, icon, description, color = 'blue' }) => {
+  const colorClasses = {
+    blue: 'bg-blue-50 border-blue-200 text-blue-700',
+    green: 'bg-green-50 border-green-200 text-green-700',
+    red: 'bg-red-50 border-red-200 text-red-700',
+    yellow: 'bg-yellow-50 border-yellow-200 text-yellow-700',
+    purple: 'bg-purple-50 border-purple-200 text-purple-700'
   };
 
-  const ProgressBar: React.FC<{ 
-    progress: number;
-    itemsCount?: number;
-    discrepancies?: number;
-  }> = ({ progress, itemsCount = 0, discrepancies = 0 }) => {
-    return (
-      <div className="w-40">
-        <div className="flex justify-between text-xs text-gray-500 mb-1">
-          <span>{progress}%</span>
-          <span>{itemsCount} articles</span>
+  return (
+    <div className={`border rounded-lg p-3 sm:p-4 ${colorClasses[color]} hover:shadow-sm transition-shadow`}>
+      <div className="flex justify-between items-start mb-2">
+        <div>
+          <p className="text-xs sm:text-sm font-medium opacity-75">{title}</p>
+          <p className="text-xl sm:text-2xl font-bold mt-1">{value}</p>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className={`h-2 rounded-full transition-all duration-300 ${
-              progress === 100 ? 'bg-green-500' : 
-              progress >= 50 ? 'bg-blue-500' : 
-              progress > 0 ? 'bg-yellow-500' : 
-              'bg-gray-300'
-            }`}
-            style={{ width: `${progress}%` }}
-          ></div>
+        <div className="p-1.5 sm:p-2 rounded-lg bg-white">
+          {icon}
         </div>
-        {discrepancies > 0 && (
-          <div className="text-xs text-red-600 mt-1">
-            ⚠️ {discrepancies} écart(s)
+      </div>
+      {description && (
+        <p className="text-xs opacity-75 mt-2">{description}</p>
+      )}
+    </div>
+  );
+};
+
+const SuccessMessage: React.FC<{ message: string; onClose: () => void }> = ({ message, onClose }) => (
+  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg animate-fadeIn">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+        <p className="text-green-700 text-sm">{message}</p>
+      </div>
+      <button onClick={onClose} className="text-green-500 hover:text-green-700">
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  </div>
+);
+
+const ErrorMessage: React.FC<{ message: string; onClose: () => void }> = ({ message, onClose }) => (
+  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg animate-fadeIn">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+        <p className="text-red-700 text-sm">{message}</p>
+      </div>
+      <button onClick={onClose} className="text-red-500 hover:text-red-700">
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  </div>
+);
+
+const WarningMessage: React.FC<{ message: string }> = ({ message }) => (
+  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+    <div className="flex items-center gap-2">
+      <Info className="h-5 w-5 text-yellow-500 flex-shrink-0" />
+      <p className="text-yellow-700 text-sm">{message}</p>
+    </div>
+  </div>
+);
+
+const HistoryRow: React.FC<{ record: HistoryRecord }> = ({ record }) => {
+  const colorClasses = {
+    green: 'bg-green-50 text-green-700 border-green-200',
+    blue: 'bg-blue-50 text-blue-700 border-blue-200',
+    red: 'bg-red-50 text-red-700 border-red-200',
+    yellow: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    purple: 'bg-purple-50 text-purple-700 border-purple-200'
+  };
+
+  return (
+    <tr className="hover:bg-gray-50 transition-colors">
+      <td className="py-2 sm:py-3 px-2 sm:px-4">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className={`p-1 sm:p-2 rounded-lg ${colorClasses[record.color]}`}>
+            {record.icon}
           </div>
+          <span className={`text-xs font-medium ${colorClasses[record.color].split(' ')[1]}`}>
+            {record.action_label}
+          </span>
+        </div>
+      </td>
+      <td className="py-2 sm:py-3 px-2 sm:px-4">
+        <div className="text-xs sm:text-sm font-medium">{record.inventory_reference}</div>
+        <div className="text-xs text-gray-500 hidden sm:block">{record.store_name}</div>
+      </td>
+      <td className="py-2 sm:py-3 px-2 sm:px-4 hidden md:table-cell text-xs sm:text-sm">{record.user_name}</td>
+      <td className="py-2 sm:py-3 px-2 sm:px-4 hidden lg:table-cell text-xs sm:text-sm max-w-xs truncate">{record.details}</td>
+      <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm">
+        {new Date(record.timestamp).toLocaleDateString('fr-FR')}
+      </td>
+    </tr>
+  );
+};
+
+// Version mobile de la ligne d'inventaire AVEC SUPPRIMER
+const MobileInventoryCard: React.FC<{
+  inventory: InventoryCount;
+  items: InventoryCountItem[];
+  onViewDetails: (id: number) => void;
+  onStart: (id: number) => void;
+  onComplete: (id: number) => void;
+  onDelete: (id: number) => void;
+  actionLoading: any;
+}> = ({ inventory, items, onViewDetails, onStart, onComplete, onDelete, actionLoading }) => {
+  return (
+    <div className="bg-white p-4 rounded-lg border border-gray-200 mb-3">
+      <div className="flex justify-between items-start mb-2">
+        <div>
+          <div className="font-semibold">{inventory.reference}</div>
+          <div className="text-sm text-gray-500">{inventory.store_name}</div>
+        </div>
+        <StatusBadge status={inventory.status} />
+      </div>
+      
+      <div className="text-sm text-gray-600 mb-3">
+        Date: {new Date(inventory.count_date).toLocaleDateString('fr-FR')}
+      </div>
+      
+      <ProgressBar inventory={inventory} items={items} />
+      
+      <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+        <button 
+          className="flex-1 py-2 text-blue-600 bg-blue-50 rounded-lg text-sm flex items-center justify-center gap-1"
+          onClick={() => onViewDetails(inventory.id)}
+        >
+          <Eye className="h-4 w-4" />
+          <span>Détails</span>
+        </button>
+        
+        {inventory.status === 'planned' && (
+          <button 
+            className="flex-1 py-2 text-green-600 bg-green-50 rounded-lg text-sm flex items-center justify-center gap-1"
+            onClick={() => onStart(inventory.id)}
+            disabled={actionLoading.startingId === inventory.id}
+          >
+            {actionLoading.startingId === inventory.id ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            <span>Démarrer</span>
+          </button>
         )}
-      </div>
-    );
-  };
-
-  const StatCard: React.FC<{
-    title: string;
-    value: string | number;
-    icon: React.ReactNode;
-    description?: string;
-    color?: 'blue' | 'green' | 'red' | 'yellow' | 'purple';
-  }> = ({ title, value, icon, description, color = 'blue' }) => {
-    const colorClasses = {
-      blue: 'bg-blue-50 border-blue-200 text-blue-700',
-      green: 'bg-green-50 border-green-200 text-green-700',
-      red: 'bg-red-50 border-red-200 text-red-700',
-      yellow: 'bg-yellow-50 border-yellow-200 text-yellow-700',
-      purple: 'bg-purple-50 border-purple-200 text-purple-700'
-    };
-
-    return (
-      <div className={`border rounded-lg p-4 ${colorClasses[color]} hover:shadow-sm transition-shadow`}>
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <p className="text-sm font-medium opacity-75">{title}</p>
-            <p className="text-2xl font-bold mt-1">{value}</p>
-          </div>
-          <div className="p-2 rounded-lg bg-white">
-            {icon}
-          </div>
-        </div>
-        {description && (
-          <p className="text-xs opacity-75 mt-2">{description}</p>
+        
+        {inventory.status === 'in_progress' && (
+          <button 
+            className="flex-1 py-2 text-green-600 bg-green-50 rounded-lg text-sm flex items-center justify-center gap-1"
+            onClick={() => onComplete(inventory.id)}
+            disabled={actionLoading.completingId === inventory.id}
+          >
+            {actionLoading.completingId === inventory.id ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle className="h-4 w-4" />
+            )}
+            <span>Terminer</span>
+          </button>
         )}
-      </div>
-    );
-  };
 
-  // Composant pour une ligne d'historique
-  const HistoryRow: React.FC<{ record: HistoryRecord }> = ({ record }) => {
-    const colorClasses = {
-      green: 'bg-green-50 text-green-700 border-green-200',
-      blue: 'bg-blue-50 text-blue-700 border-blue-200',
-      red: 'bg-red-50 text-red-700 border-red-200',
-      yellow: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-      purple: 'bg-purple-50 text-purple-700 border-purple-200'
-    };
-
-    const iconClasses = {
-      green: 'text-green-600',
-      blue: 'text-blue-600',
-      red: 'text-red-600',
-      yellow: 'text-yellow-600',
-      purple: 'text-purple-600'
-    };
-
-    return (
-      <tr className="hover:bg-gray-50 transition-colors">
-        <td className="py-3 px-4">
-          <div className="flex items-center gap-2">
-            <div className={`p-2 rounded-lg ${colorClasses[record.color]}`}>
-              <div className={`${iconClasses[record.color]}`}>
-                {record.icon}
-              </div>
-            </div>
-            <div>
-              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${colorClasses[record.color]}`}>
-                {record.action_label}
-              </span>
-            </div>
-          </div>
-        </td>
-        <td className="py-3 px-4">
-          <div className="font-mono text-sm font-medium text-gray-900">
-            {record.inventory_reference}
-          </div>
-          <div className="text-xs text-gray-500">{record.store_name}</div>
-        </td>
-        <td className="py-3 px-4">
-          <div className="text-sm text-gray-900">{record.user_name}</div>
-        </td>
-        <td className="py-3 px-4">
-          <div className="text-sm text-gray-900 max-w-xs truncate">{record.details}</div>
-        </td>
-        <td className="py-3 px-4">
-          <div className="text-sm text-gray-900 flex items-center gap-1">
-            <Clock className="h-3 w-3 text-gray-400" />
-            {InventoryUtils.formatDate(record.timestamp, true)}
-          </div>
-        </td>
-      </tr>
-    );
-  };
-
-  const LoadingState = () => (
-    <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
-      <div className="text-center max-w-md">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Chargement</h3>
-        <p className="text-gray-600">Récupération des données...</p>
+        {/* Bouton Supprimer pour mobile */}
+        <button 
+          className="p-2 text-red-600 bg-red-50 rounded-lg"
+          onClick={() => onDelete(inventory.id)}
+          disabled={actionLoading.deletingId === inventory.id}
+        >
+          {actionLoading.deletingId === inventory.id ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+        </button>
       </div>
     </div>
   );
+};
 
-  // Filtrer les inventaires
-  const filteredInventories = inventories.filter(inv => {
-    if (filters.search && 
-        !inv.reference.toLowerCase().includes(filters.search.toLowerCase()) &&
-        !inv.store_name.toLowerCase().includes(filters.search.toLowerCase())) {
-      return false;
-    }
-    
-    if (filters.status !== 'all' && inv.status !== filters.status) {
-      return false;
-    }
-    
-    if (filters.store !== 'all' && inv.store.toString() !== filters.store) {
-      return false;
-    }
-    
-    return true;
-  });
+const InventoryTableRow: React.FC<{
+  inventory: InventoryCount;
+  items: InventoryCountItem[];
+  isEditing: boolean;
+  editingData: EditingInventory | null;
+  onEdit: (inventory: InventoryCount) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  onViewDetails: (id: number) => void;
+  onStart: (id: number) => void;
+  onComplete: (id: number) => void;
+  onCancelInventory: (id: number) => void;
+  onDelete: (id: number) => void;
+  onVerifyItem: (inventoryId: number, itemId: number) => void;
+  actionLoading: any;
+  setEditingData: (data: any) => void;
+  selectedInventory: number | null;
+}> = ({
+  inventory,
+  items,
+  isEditing,
+  editingData,
+  onEdit,
+  onSave,
+  onCancel,
+  onViewDetails,
+  onStart,
+  onComplete,
+  onCancelInventory,
+  onDelete,
+  onVerifyItem,
+  actionLoading,
+  setEditingData,
+  selectedInventory
+}) => {
+  return (
+    <React.Fragment>
+      <tr className="hover:bg-gray-50 transition-colors">
+        <td className="px-4 sm:px-6 py-3 sm:py-4 font-mono text-xs sm:text-sm font-medium text-gray-900">{inventory.id}</td>
+        <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-900">
+          {isEditing ? (
+            <input
+              type="text"
+              value={editingData?.reference || ''}
+              onChange={(e) => setEditingData({ ...editingData, reference: e.target.value })}
+              className="w-full px-2 py-1 border border-blue-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
+              autoFocus
+            />
+          ) : (
+            inventory.reference
+          )}
+        </td>
+        <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-500 hidden md:table-cell">{inventory.store_name}</td>
+        <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-500 hidden lg:table-cell">
+          {new Date(inventory.count_date).toLocaleDateString('fr-FR')}
+        </td>
+        <td className="px-4 sm:px-6 py-3 sm:py-4">
+          {isEditing ? (
+            <select
+              value={editingData?.status || 'planned'}
+              onChange={(e) => setEditingData({ ...editingData, status: e.target.value as InventoryStatus })}
+              className="px-2 py-1 border border-blue-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="planned">Planifié</option>
+              <option value="in_progress">En cours</option>
+              <option value="completed">Terminé</option>
+              <option value="cancelled">Annulé</option>
+            </select>
+          ) : (
+            <StatusBadge status={inventory.status} />
+          )}
+        </td>
+        <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-500 max-w-xs truncate hidden xl:table-cell">
+          {isEditing ? (
+            <textarea
+              value={editingData?.notes || ''}
+              onChange={(e) => setEditingData({ ...editingData, notes: e.target.value })}
+              className="w-full px-2 py-1 border border-blue-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
+              rows={2}
+            />
+          ) : (
+            inventory.notes || '-'
+          )}
+        </td>
+        <td className="px-4 sm:px-6 py-3 sm:py-4">
+          <ProgressBar inventory={inventory} items={items} />
+        </td>
+        <td className="px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button 
+              className="p-1 sm:p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Voir les détails"
+              onClick={() => onViewDetails(inventory.id)}
+            >
+              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+            </button>
 
-  // ============================================
-  // RENDU PRINCIPAL
-  // ============================================
+            {isEditing ? (
+              <>
+                <button 
+                  className="p-1 sm:p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  title="Sauvegarder"
+                  onClick={onSave}
+                  disabled={actionLoading.updatingId === inventory.id}
+                >
+                  {actionLoading.updatingId === inventory.id ? (
+                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-3 w-3 sm:h-4 sm:w-4" />
+                  )}
+                </button>
+                <button 
+                  className="p-1 sm:p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Annuler"
+                  onClick={onCancel}
+                >
+                  <XSquare className="h-3 w-3 sm:h-4 sm:w-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  className="p-1 sm:p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                  title="Modifier"
+                  onClick={() => onEdit(inventory)}
+                  disabled={actionLoading.updatingId !== null}
+                >
+                  <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                </button>
 
-  if (loading && inventories.length === 0 && !error) {
-    return <LoadingState />;
-  }
+                {inventory.status === 'planned' && (
+                  <button 
+                    className="p-1 sm:p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                    title="Démarrer"
+                    onClick={() => onStart(inventory.id)}
+                    disabled={actionLoading.startingId === inventory.id}
+                  >
+                    {actionLoading.startingId === inventory.id ? (
+                      <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                    ) : (
+                      <Play className="h-3 w-3 sm:h-4 sm:w-4" />
+                    )}
+                  </button>
+                )}
+
+                {inventory.status === 'in_progress' && (
+                  <button 
+                    className="p-1 sm:p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                    title="Terminer"
+                    onClick={() => onComplete(inventory.id)}
+                    disabled={actionLoading.completingId === inventory.id}
+                  >
+                    {actionLoading.completingId === inventory.id ? (
+                      <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+                    )}
+                  </button>
+                )}
+
+                {/* Bouton Supprimer pour desktop */}
+                <button 
+                  className="p-1 sm:p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Supprimer"
+                  onClick={() => onDelete(inventory.id)}
+                  disabled={actionLoading.deletingId === inventory.id}
+                >
+                  {actionLoading.deletingId === inventory.id ? (
+                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                  )}
+                </button>
+              </>
+            )}
+          </div>
+        </td>
+      </tr>
+      
+      {/* Détails de l'inventaire */}
+      {selectedInventory === inventory.id && (
+        <tr>
+          <td colSpan={8} className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50">
+            <div className="border-t border-gray-200 pt-3 sm:pt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                Articles
+                {actionLoading.loadingItems === inventory.id && (
+                  <Loader2 className="h-3 w-3 animate-spin ml-2" />
+                )}
+              </h4>
+              
+              {items.length > 0 ? (
+                <div className="space-y-2 sm:space-y-0">
+                  {/* Version mobile des articles */}
+                  <div className="block sm:hidden">
+                    {items.map((item) => (
+                      <div key={item.id} className="bg-white p-3 rounded-lg border border-gray-200 mb-2">
+                        <div className="flex justify-between mb-2">
+                          <div className="font-medium text-sm">{item.product_name}</div>
+                          <button 
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                            onClick={() => onVerifyItem(inventory.id, item.id)}
+                            disabled={actionLoading.counting === item.id || item.counted_quantity !== null}
+                          >
+                            {actionLoading.counting === item.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <CheckCircle className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-sm">
+                          <div>Att: {item.expected_quantity}</div>
+                          <div>Compté: {item.counted_quantity ?? '-'}</div>
+                          <div className={item.discrepancy > 0 ? 'text-green-600' : item.discrepancy < 0 ? 'text-red-600' : ''}>
+                            Écart: {item.discrepancy}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Version desktop des articles */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs text-gray-500 border-b border-gray-200">
+                          <th className="py-2 text-left">Produit</th>
+                          <th className="py-2 text-left">SKU</th>
+                          <th className="py-2 text-left">Qté attendue</th>
+                          <th className="py-2 text-left">Qté comptée</th>
+                          <th className="py-2 text-left">Écart</th>
+                          <th className="py-2 text-left">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((item) => (
+                          <tr key={item.id} className="border-b border-gray-100">
+                            <td className="py-2">
+                              <div className="font-medium">{item.product_name}</div>
+                              {item.variant_name && (
+                                <div className="text-xs text-gray-500">{item.variant_name}</div>
+                              )}
+                            </td>
+                            <td className="py-2 text-xs text-gray-500">{item.product_sku || '-'}</td>
+                            <td className="py-2">{item.expected_quantity}</td>
+                            <td className="py-2">
+                              {item.counted_quantity !== null ? item.counted_quantity : '-'}
+                            </td>
+                            <td className="py-2">
+                              <span className={
+                                item.discrepancy > 0 ? 'text-green-600' :
+                                item.discrepancy < 0 ? 'text-red-600' : ''
+                              }>
+                                {item.discrepancy > 0 ? `+${item.discrepancy}` : item.discrepancy}
+                              </span>
+                            </td>
+                            <td className="py-2">
+                              <button 
+                                className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                onClick={() => onVerifyItem(inventory.id, item.id)}
+                                disabled={actionLoading.counting === item.id || item.counted_quantity !== null}
+                              >
+                                {actionLoading.counting === item.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="h-3 w-3" />
+                                )}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 py-4 text-center">Aucun article</p>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+    </React.Fragment>
+  );
+};
+
+const LoadingState: React.FC = () => (
+  <div className="min-h-screen bg-gray-50 p-4 sm:p-6 flex items-center justify-center">
+    <div className="text-center max-w-md w-full">
+      <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-blue-600 mx-auto mb-4" />
+      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Chargement</h3>
+      <p className="text-sm sm:text-base text-gray-600">Récupération des données...</p>
+    </div>
+  </div>
+);
+
+const EmptyState: React.FC<{ onRefresh: () => void }> = ({ onRefresh }) => (
+  <div className="min-h-screen bg-gray-50">
+    <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Inventaire</h1>
+    </div>
+    <div className="p-4 sm:p-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-6 sm:p-12 text-center">
+        <Package className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mx-auto mb-4" />
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Aucun inventaire</h2>
+        <p className="text-sm sm:text-base text-gray-500 mb-6">Créez votre premier inventaire</p>
+        <button
+          onClick={onRefresh}
+          className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg text-sm sm:text-base"
+        >
+          <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" />
+          Rafraîchir
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const Filters: React.FC<{
+  filters: { status: string; store: number | 'all'; search: string };
+  stores: Store[];
+  onFilterChange: (filters: any) => void;
+  onReset: () => void;
+  onRefresh: () => void;
+  loading: boolean;
+}> = ({ filters, stores, onFilterChange, onReset, onRefresh, loading }) => {
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      {/* En-tête */}
-      <div className="mb-6 md:mb-8">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Gestion des Inventaires</h1>
-            <p className="text-gray-600">
-              {inventories.length} inventaire(s) chargé(s)
-            </p>
-            
-            {error && (
-              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-red-500" />
-                  <p className="text-red-700 text-sm">{error}</p>
-                </div>
-              </div>
-            )}
-            
-            {successMessage && (
-              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <p className="text-green-700 text-sm">{successMessage}</p>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <button
-            onClick={handleRefresh}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
+    <div className="mb-4 sm:mb-6 bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-medium text-gray-700 flex items-center gap-1">
+          <Filter className="h-4 w-4" />
+          <span className="hidden sm:inline">Filtres</span>
+        </h3>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setShowMobileFilters(!showMobileFilters)}
+            className="sm:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? 'Chargement...' : 'Rafraîchir'}
+            <Menu className="h-4 w-4" />
           </button>
-        </div>
-
-        {/* Statistiques - 3 cartes seulement */}
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Tableau de bord</h2>
-          
-          {loadingStats ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="border border-gray-200 rounded-lg p-6 bg-white">
-                  <div className="animate-pulse bg-gray-200 h-8 w-16 mb-2 rounded"></div>
-                  <div className="animate-pulse bg-gray-200 h-4 w-24 rounded"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <StatCard
-                title="Total Inventaires"
-                value={stats?.total_inventories || 0}
-                icon={<FileText className="h-5 w-5" />}
-                color="blue"
-              />
-              
-              <StatCard
-                title="En Cours"
-                value={stats?.in_progress_inventories || 0}
-                icon={<RefreshCw className="h-5 w-5" />}
-                color="yellow"
-              />
-              
-              <StatCard
-                title="Terminés"
-                value={stats?.completed_inventories || 0}
-                icon={<CheckCircle className="h-5 w-5" />}
-                color="green"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Filtres */}
-        <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4">
-          <div className="flex flex-col md:flex-row md:items-center gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  placeholder="Rechercher..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                  value={filters.search}
-                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                />
-              </div>
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              <select
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value as any })}
-              >
-                <option value="all">Tous statuts</option>
-                <option value="planned">Planifié</option>
-                <option value="in_progress">En cours</option>
-                <option value="completed">Terminé</option>
-                <option value="cancelled">Annulé</option>
-              </select>
-
-              <select
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                value={filters.store}
-                onChange={(e) => setFilters({ ...filters, store: e.target.value })}
-                disabled={loadingStores}
-              >
-                <option value="all">Tous magasins</option>
-                {stores.map(store => (
-                  <option key={store.id} value={store.id.toString()}>
-                    {store.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <button 
+            onClick={onReset}
+            className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50"
+          >
+            Réinitialiser
+          </button>
         </div>
       </div>
 
-      {/* Contenu principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Liste des inventaires */}
-        <div className="lg:col-span-2">
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-gray-800">
-                  Inventaires ({filteredInventories.length})
-                </h2>
-              </div>
-            </div>
+      {/* Version desktop */}
+      <div className="hidden sm:grid sm:grid-cols-4 gap-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <input
+            type="text"
+            placeholder="Rechercher..."
+            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm"
+            value={filters.search}
+            onChange={(e) => onFilterChange({ search: e.target.value })}
+          />
+        </div>
+        <select
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          value={filters.status}
+          onChange={(e) => onFilterChange({ status: e.target.value })}
+        >
+          <option value="all">Tous statuts</option>
+          <option value="planned">Planifié</option>
+          <option value="in_progress">En cours</option>
+          <option value="completed">Terminé</option>
+        </select>
+        <select
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          value={filters.store}
+          onChange={(e) => onFilterChange({ store: e.target.value === 'all' ? 'all' : parseInt(e.target.value) })}
+        >
+          <option value="all">Tous magasins</option>
+          {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <button 
+          onClick={onRefresh}
+          disabled={loading}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm flex items-center justify-center gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          Rafraîchir
+        </button>
+      </div>
 
-            {filteredInventories.length === 0 ? (
-              <div className="p-12 text-center">
-                <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun inventaire trouvé</h3>
-                <p className="text-gray-500 mb-6">
-                  {inventories.length === 0 
-                    ? "Créez votre premier inventaire pour commencer" 
-                    : "Aucun inventaire ne correspond à vos filtres"}
-                </p>
-              </div>
-            ) : (
+      {/* Version mobile */}
+      {showMobileFilters && (
+        <div className="sm:hidden space-y-3 mt-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <input
+              type="text"
+              placeholder="Rechercher..."
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm"
+              value={filters.search}
+              onChange={(e) => onFilterChange({ search: e.target.value })}
+            />
+          </div>
+          <select
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            value={filters.status}
+            onChange={(e) => onFilterChange({ status: e.target.value })}
+          >
+            <option value="all">Tous statuts</option>
+            <option value="planned">Planifié</option>
+            <option value="in_progress">En cours</option>
+            <option value="completed">Terminé</option>
+          </select>
+          <select
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            value={filters.store}
+            onChange={(e) => onFilterChange({ store: e.target.value === 'all' ? 'all' : parseInt(e.target.value) })}
+          >
+            <option value="all">Tous magasins</option>
+            {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <button 
+            onClick={onRefresh}
+            disabled={loading}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg text-sm flex items-center justify-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Rafraîchir
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const InventoryForm: React.FC<{
+  stores: Store[];
+  onSubmit: (data: CreateInventoryPayload) => void;
+  loading: boolean;
+}> = ({ stores, onSubmit, loading }) => {
+  const [formData, setFormData] = useState({
+    reference: '',
+    store: 0,
+    count_date: new Date().toISOString().slice(0, 16),
+    status: 'planned' as InventoryStatus,
+    notes: ''
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.reference.trim() || formData.store === 0) return;
+    onSubmit(formData);
+    setFormData({
+      reference: '',
+      store: 0,
+      count_date: new Date().toISOString().slice(0, 16),
+      status: 'planned',
+      notes: ''
+    });
+  };
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+      <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-4">Nouvel Inventaire</h3>
+      
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div>
+            <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 block">Référence *</label>
+            <input
+              type="text"
+              placeholder="INV-2024-001"
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+              value={formData.reference}
+              onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+              required
+            />
+          </div>
+          <div>
+            <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 block">Magasin *</label>
+            <select
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+              value={formData.store}
+              onChange={(e) => setFormData({ ...formData, store: parseInt(e.target.value) })}
+              required
+            >
+              <option value={0}>Sélectionner</option>
+              {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 block">Date début *</label>
+            <input
+              type="datetime-local"
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+              value={formData.count_date}
+              onChange={(e) => setFormData({ ...formData, count_date: e.target.value })}
+              required
+            />
+          </div>
+          <div>
+            <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 block">Statut</label>
+            <select
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as InventoryStatus })}
+            >
+              <option value="planned">Planifié</option>
+              <option value="in_progress">En cours</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 block">Notes</label>
+          <textarea
+            placeholder="Notes..."
+            className="w-full px-3 py-2 border rounded-lg text-sm"
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            rows={2}
+          />
+        </div>
+        
+        <button 
+          type="submit"
+          disabled={loading || !formData.reference.trim() || formData.store === 0}
+          className="mt-4 w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg text-sm flex items-center justify-center gap-2"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          {loading ? 'Création...' : 'Créer'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+const Pagination: React.FC<{
+  pagination: PaginationState;
+  onPageChange: (page: number) => void;
+}> = ({ pagination, onPageChange }) => {
+  const totalPages = Math.ceil(pagination.total / pagination.pageSize);
+  
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
+      <p className="text-sm text-gray-500 order-2 sm:order-1">
+        Page {pagination.page} / {totalPages}
+      </p>
+      <div className="flex gap-2 order-1 sm:order-2">
+        <button
+          onClick={() => onPageChange(pagination.page - 1)}
+          disabled={pagination.page === 1}
+          className="p-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => onPageChange(pagination.page + 1)}
+          disabled={pagination.page >= totalPages}
+          className="p-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// COMPOSANT PRINCIPAL
+// =============================================================================
+
+const InventoryPage: React.FC = () => {
+  const {
+    inventories,
+    stats,
+    stores,
+    loading,
+    error,
+    filters,
+    setFilters,
+    resetFilters,
+    refresh,
+    createInventory,
+    updateInventory,
+    startCounting,
+    completeInventory,
+    cancelInventory,
+    deleteInventory,
+    loadInventoryItems,
+    updateInventoryItem,
+    actionLoading,
+    successMessage,
+    errorMessage,
+    setSuccessMessage,
+    setErrorMessage,
+    getInventoryById,
+    getInventoryItems
+  } = useInventory();
+
+  const [editingInventory, setEditingInventory] = useState<EditingInventory | null>(null);
+  const [history, setHistory] = useState<HistoryRecord[]>([]);
+  const [showHistory, setShowHistory] = useState(true);
+  const [selectedInventory, setSelectedInventory] = useState<number | null>(null);
+  const [pagination, setPagination] = useState<PaginationState>({
+    page: 1,
+    pageSize: 10,
+    total: 0
+  });
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Détection mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    setPagination(prev => ({ ...prev, total: inventories.length }));
+  }, [inventories]);
+
+  // Génération historique
+  useEffect(() => {
+    const records: HistoryRecord[] = [];
+    inventories.slice(0, 20).forEach(inv => {
+      records.push({
+        id: inv.id * 100 + 1,
+        action: 'created',
+        action_label: 'Création',
+        inventory_reference: inv.reference,
+        store_name: inv.store_name || 'Magasin inconnu',
+        user_name: inv.created_by ? `#${inv.created_by}` : 'Système',
+        details: `Statut: ${inv.status}`,
+        timestamp: inv.created_at,
+        icon: <Plus className="h-3 w-3" />,
+        color: 'green'
+      });
+      if (inv.started_at) {
+        records.push({
+          id: inv.id * 100 + 2,
+          action: 'started',
+          action_label: 'Démarrage',
+          inventory_reference: inv.reference,
+          store_name: inv.store_name || 'Magasin inconnu',
+          user_name: 'Opérateur',
+          details: 'Comptage démarré',
+          timestamp: inv.started_at,
+          icon: <Play className="h-3 w-3" />,
+          color: 'blue'
+        });
+      }
+      if (inv.completed_at) {
+        const items = getInventoryItems(inv.id);
+        const disc = items.filter(i => i.discrepancy !== 0).length;
+        records.push({
+          id: inv.id * 100 + 3,
+          action: 'completed',
+          action_label: 'Terminaison',
+          inventory_reference: inv.reference,
+          store_name: inv.store_name || 'Magasin inconnu',
+          user_name: 'Superviseur',
+          details: disc ? `${disc} écart(s)` : 'Aucun écart',
+          timestamp: inv.completed_at,
+          icon: <CheckCircle className="h-3 w-3" />,
+          color: disc ? 'red' : 'green'
+        });
+      }
+    });
+    records.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    setHistory(records);
+  }, [inventories, getInventoryItems]);
+
+  const handleCreateInventory = useCallback(async (data: CreateInventoryPayload) => {
+    try { await createInventory(data); } catch (error: any) { setErrorMessage(error.message); }
+  }, [createInventory]);
+
+  const handleEditInventory = useCallback((inv: InventoryCount) => {
+    setEditingInventory({ id: inv.id, reference: inv.reference, notes: inv.notes || '', status: inv.status });
+  }, []);
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editingInventory) return;
+    try {
+      await updateInventory(editingInventory.id, {
+        reference: editingInventory.reference,
+        notes: editingInventory.notes,
+        status: editingInventory.status
+      });
+      setEditingInventory(null);
+    } catch (error: any) { setErrorMessage(error.message); }
+  }, [editingInventory, updateInventory]);
+
+  const handleViewDetails = useCallback(async (id: number) => {
+    if (selectedInventory === id) {
+      setSelectedInventory(null);
+    } else {
+      setSelectedInventory(id);
+      await loadInventoryItems(id);
+    }
+  }, [selectedInventory, loadInventoryItems]);
+
+  const handleVerifyItem = useCallback(async (invId: number, itemId: number) => {
+    const item = getInventoryItems(invId).find(i => i.id === itemId);
+    if (item) {
+      try {
+        await updateInventoryItem(itemId, item.expected_quantity);
+        setSuccessMessage('Article vérifié');
+      } catch (error: any) { setErrorMessage(error.message); }
+    }
+  }, [getInventoryItems, updateInventoryItem]);
+
+  const handleDelete = useCallback(async (id: number) => {
+    if (window.confirm('Supprimer cet inventaire ?')) {
+      try {
+        await deleteInventory(id);
+        setSuccessMessage('Inventaire supprimé');
+      } catch (error: any) {
+        setErrorMessage(error.message);
+      }
+    }
+  }, [deleteInventory]);
+
+  const paginatedInventories = useMemo(() => {
+    const start = (pagination.page - 1) * pagination.pageSize;
+    return inventories.slice(start, start + pagination.pageSize);
+  }, [inventories, pagination.page, pagination.pageSize]);
+
+  if (loading && inventories.length === 0 && !error) return <LoadingState />;
+  if (!loading && inventories.length === 0 && !error) return <EmptyState onRefresh={refresh} />;
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Inventaire</h1>
+          <button 
+            onClick={() => alert('Export à implémenter')}
+            className="p-2 sm:px-4 sm:py-2 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Exporter</span>
+          </button>
+        </div>
+      </header>
+
+      <main className="flex-1 p-3 sm:p-6">
+        {successMessage && <SuccessMessage message={successMessage} onClose={() => setSuccessMessage(null)} />}
+        {errorMessage && <ErrorMessage message={errorMessage} onClose={() => setErrorMessage(null)} />}
+        {error && <ErrorMessage message={error} onClose={() => setError(null)} />}
+
+        {stats && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-6">
+            <StatCard title="EN COURS" value={stats.in_progress_inventories} icon={<Package className="h-4 w-4 sm:h-6 sm:w-6" />} />
+            <StatCard title="TERMINÉS" value={stats.completed_inventories} icon={<CheckCircle className="h-4 w-4 sm:h-6 sm:w-6" />} color="green" />
+            <StatCard title="ÉCARTS" value={stats.total_discrepancies} icon={<AlertTriangle className="h-4 w-4 sm:h-6 sm:w-6" />} color="red" />
+            <StatCard title="RÉCENTS" value={stats.recent_inventories_count} icon={<TrendingUp className="h-4 w-4 sm:h-6 sm:w-6" />} color="purple" />
+          </div>
+        )}
+
+        <Filters
+          filters={filters}
+          stores={stores}
+          onFilterChange={setFilters}
+          onReset={resetFilters}
+          onRefresh={refresh}
+          loading={loading}
+        />
+
+        <div className="mb-4 sm:mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-700">Inventaires ({inventories.length})</h3>
+            <select
+              value={pagination.pageSize}
+              onChange={(e) => setPagination({ page: 1, pageSize: parseInt(e.target.value), total: inventories.length })}
+              className="text-sm border rounded-lg px-2 py-1"
+            >
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+          </div>
+
+          {/* Version mobile : cartes avec bouton supprimer */}
+          {isMobile ? (
+            <div className="space-y-3">
+              {paginatedInventories.map(inv => (
+                <MobileInventoryCard
+                  key={inv.id}
+                  inventory={inv}
+                  items={getInventoryItems(inv.id)}
+                  onViewDetails={handleViewDetails}
+                  onStart={startCounting}
+                  onComplete={completeInventory}
+                  onDelete={handleDelete}
+                  actionLoading={actionLoading}
+                />
+              ))}
+            </div>
+          ) : (
+            /* Version desktop : tableau avec bouton supprimer */
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Référence</th>
-                      <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Magasin</th>
-                      <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                      <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progression</th>
-                      <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500">ID</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500">Réf</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 hidden md:table-cell">Magasin</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 hidden lg:table-cell">Date</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500">Statut</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 hidden xl:table-cell">Notes</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500">Progression</th>
+                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {filteredInventories.map((inventory) => (
-                      <tr key={inventory.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-4 px-6">
-                          <div>
-                            <div className="font-mono text-sm font-semibold text-gray-900">{inventory.reference}</div>
-                            {inventory.notes && (
-                              <div className="text-xs text-gray-500 mt-1 truncate max-w-xs">{inventory.notes}</div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-2">
-                            <Store className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-900">{inventory.store_name}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="text-sm text-gray-900">
-                            {InventoryUtils.formatDate(inventory.count_date)}
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <StatusBadge status={inventory.status} />
-                        </td>
-                        <td className="py-4 px-6">
-                          <ProgressBar 
-                            progress={inventory.progress}
-                            itemsCount={inventory.total_items_counted}
-                            discrepancies={inventory.total_discrepancies}
-                          />
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => window.location.href = `/inventory/${inventory.id}`}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Voir les détails"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-
-                            {inventory.status === 'planned' && (
-                              <button
-                                onClick={() => handleStartCounting(inventory.id)}
-                                disabled={actionLoading.counting === inventory.id}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
-                                title="Démarrer le comptage"
-                              >
-                                {actionLoading.counting === inventory.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Play className="h-4 w-4" />
-                                )}
-                              </button>
-                            )}
-
-                            {inventory.status === 'in_progress' && (
-                              <button
-                                onClick={() => handleCompleteInventory(inventory.id)}
-                                disabled={actionLoading.completingId === inventory.id}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
-                                title="Terminer l'inventaire"
-                              >
-                                {actionLoading.completingId === inventory.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <CheckCircle className="h-4 w-4" />
-                                )}
-                              </button>
-                            )}
-
-                            <button
-                              onClick={() => handleDeleteInventory(inventory.id)}
-                              disabled={actionLoading.deletingId === inventory.id}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                              title="Supprimer"
-                            >
-                              {actionLoading.deletingId === inventory.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                  <tbody className="divide-y">
+                    {paginatedInventories.map(inv => (
+                      <InventoryTableRow
+                        key={inv.id}
+                        inventory={inv}
+                        items={getInventoryItems(inv.id)}
+                        isEditing={editingInventory?.id === inv.id}
+                        editingData={editingInventory}
+                        onEdit={handleEditInventory}
+                        onSave={handleSaveEdit}
+                        onCancel={() => setEditingInventory(null)}
+                        onViewDetails={handleViewDetails}
+                        onStart={startCounting}
+                        onComplete={completeInventory}
+                        onCancelInventory={cancelInventory}
+                        onDelete={handleDelete}
+                        onVerifyItem={handleVerifyItem}
+                        actionLoading={actionLoading}
+                        setEditingData={setEditingInventory}
+                        selectedInventory={selectedInventory}
+                      />
                     ))}
                   </tbody>
                 </table>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          <Pagination pagination={pagination} onPageChange={(page) => setPagination({ ...pagination, page })} />
         </div>
 
-        {/* Formulaire de création */}
-        <div className="space-y-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-6">Nouvel Inventaire</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Référence *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: INV-2024-001"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                  value={newInventory.reference}
-                  onChange={(e) => setNewInventory({ ...newInventory, reference: e.target.value })}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Magasin *
-                </label>
-                <select 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors bg-white"
-                  value={newInventory.store}
-                  onChange={(e) => setNewInventory({ ...newInventory, store: parseInt(e.target.value) })}
-                  disabled={loadingStores}
-                >
-                  <option value={0}>Sélectionner un magasin</option>
-                  {stores.map(store => (
-                    <option key={store.id} value={store.id}>
-                      {store.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date de début *
-                </label>
-                <input
-                  type="datetime-local"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                  value={newInventory.count_date}
-                  onChange={(e) => setNewInventory({ ...newInventory, count_date: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Statut initial
-                </label>
-                <select 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors bg-white"
-                  value={newInventory.status}
-                  onChange={(e) => setNewInventory({ ...newInventory, status: e.target.value as any })}
-                >
-                  <option value="planned">Planifié</option>
-                  <option value="in_progress">En cours</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes (optionnel)
-                </label>
-                <textarea
-                  placeholder="Description..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                  value={newInventory.notes}
-                  onChange={(e) => setNewInventory({ ...newInventory, notes: e.target.value })}
-                  rows={3}
-                />
-              </div>
-              
-              <button 
-                onClick={handleCreateInventory}
-                disabled={actionLoading.creating || !newInventory.reference.trim() || newInventory.store === 0}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {actionLoading.creating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Création...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4" />
-                    Créer l'inventaire
-                  </>
-                )}
-              </button>
-            </div>
+        {/* Historique (caché sur mobile par défaut) */}
+        <div className="hidden sm:block mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+              <History className="h-4 w-4" /> Historique
+            </h3>
+            <button onClick={() => setShowHistory(!showHistory)} className="p-1 hover:bg-gray-100 rounded-lg">
+              {showHistory ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
           </div>
-        </div>
-      </div>
-
-      {/* ============================================
-      TABLEAU D'HISTORIQUE EN BAS
-      ============================================ */}
-      <div className="mt-8">
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          {/* En-tête de l'historique */}
-          <div className="p-4 md:p-6 border-b border-gray-200 bg-gray-50">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowHistory(!showHistory)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  {showHistory ? (
-                    <ChevronDown className="h-5 w-5 text-gray-500" />
-                  ) : (
-                    <ChevronUp className="h-5 w-5 text-gray-500" />
-                  )}
-                </button>
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    <History className="h-5 w-5" />
-                    Historique des Activités
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {history.length} activité(s) récente(s)
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setHistory([])}
-                  className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
-                  title="Effacer l'historique"
-                >
-                  Effacer
-                </button>
-                <button
-                  onClick={() => loadHistory(inventories)}
-                  disabled={loadingHistory}
-                  className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors disabled:opacity-50"
-                  title="Actualiser l'historique"
-                >
-                  {loadingHistory ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    'Actualiser'
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Contenu de l'historique */}
           {showHistory && (
-            <>
-              {loadingHistory ? (
-                <div className="p-8 text-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-                  <p className="text-gray-600">Chargement de l'historique...</p>
-                </div>
-              ) : history.length === 0 ? (
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              {history.length === 0 ? (
                 <div className="p-8 text-center">
                   <History className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun historique</h3>
-                  <p className="text-gray-500">
-                    Les activités apparaîtront ici lorsque vous effectuerez des actions.
-                  </p>
+                  <p className="text-gray-500">Aucun historique</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Action
-                        </th>
-                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Inventaire
-                        </th>
-                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Utilisateur
-                        </th>
-                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Détails
-                        </th>
-                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date & Heure
-                        </th>
+                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500">Action</th>
+                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500">Inventaire</th>
+                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 hidden md:table-cell">Utilisateur</th>
+                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 hidden lg:table-cell">Détails</th>
+                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500">Date</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {history.map((record) => (
-                        <HistoryRow key={record.id} record={record} />
-                      ))}
+                    <tbody className="divide-y">
+                      {history.slice(0, 5).map(r => <HistoryRow key={r.id} record={r} />)}
                     </tbody>
                   </table>
                 </div>
               )}
-              
-              {/* Résumé de l'historique */}
-              {history.length > 0 && (
-                <div className="p-4 border-t border-gray-200 bg-gray-50">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-1">
-                        <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                        <span className="text-xs text-gray-600">
-                          Créations: {history.filter(h => h.action === 'created').length}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                        <span className="text-xs text-gray-600">
-                          Démarrages: {history.filter(h => h.action === 'started').length}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="h-2 w-2 rounded-full bg-red-500"></div>
-                        <span className="text-xs text-gray-600">
-                          Terminaisons: {history.filter(h => h.action === 'completed').length}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="text-xs text-gray-500">
-                      Dernière activité: {history.length > 0 && InventoryUtils.formatDate(history[0].timestamp, true)}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
+            </div>
           )}
         </div>
-      </div>
 
-      {/* Pied de page */}
-      <div className="mt-6 pt-6 border-t border-gray-200">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
-          <div>
-            <p>© {new Date().getFullYear()} Système de Gestion d'Inventaire</p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              <div className="h-2 w-2 rounded-full bg-green-500"></div>
-              En ligne
-            </span>
-            <span>
-              {inventories.length} inventaire(s) • {history.length} activité(s)
-            </span>
-          </div>
-        </div>
-      </div>
+        <InventoryForm stores={stores} onSubmit={handleCreateInventory} loading={actionLoading.creating} />
+
+        <footer className="mt-6 pt-6 border-t border-gray-200">
+          <p className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
+            © {new Date().getFullYear()} Inventaire & Appro
+          </p>
+        </footer>
+      </main>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+      `}</style>
     </div>
   );
 };

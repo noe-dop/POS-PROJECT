@@ -27,69 +27,50 @@ export interface InventoryCount extends BaseAudit {
   status: InventoryStatus;
   count_date: string;
   planned_date?: string;
-  started_at?: string;
-  completed_at?: string;
-  notes: string;
+  started_at?: string | null;  // <-- CORRIGÉ: permet null
+  completed_at?: string | null; // <-- CORRIGÉ: permet null
+  notes?: string;  // <-- AJOUTÉ (optionnel)
   total_items_counted: number;
   total_discrepancies: number;
-  discrepancy_value: number;
+  discrepancy_value: number;    // <-- CORRIGÉ: number (pas string)
   
   // Pour compatibilité avec le composant
   name?: string;
   items_count?: number;
   progress?: number;
   items?: InventoryCountItem[];
+  status_display?: string;
 }
 
 export interface InventoryCountItem extends BaseAudit {
   id: number;
   inventory_count: number;
   product: number;
-  variant?: number;
+  variant?: number | null;      // <-- CORRIGÉ: permet null
   expected_quantity: number;
-  counted_quantity: number;
+  counted_quantity: number | null; // <-- CORRIGÉ: permet null (pas encore compté)
   discrepancy: number;
+  notes?: string | null;        // <-- CORRIGÉ: permet null
   
   // Champs calculés/dérivés
   inventory_reference?: string;
   product_name?: string;
   product_sku?: string;
-  variant_name?: string;
+  variant_name?: string | null; // <-- CORRIGÉ: permet null
+  unit_price?: number;
   discrepancy_value?: number;
   discrepancy_percentage?: number;
-}
-
-export interface InventoryStats {
-  total_inventories: number;
-  in_progress_inventories: number;
-  completed_inventories: number;
-  planned_inventories: number;
-  cancelled_inventories: number;
-  total_discrepancies: number;
-  total_discrepancy_value: number;
-  average_discrepancy_rate: number;
-  recent_inventories_count: number;
-}
-
-export interface InventorySummary {
-  inventory: InventoryCount;
-  items: InventoryCountItem[];
-  stats: {
-    total_items: number;
-    items_with_discrepancy: number;
-    discrepancy_rate: number;
-    total_discrepancy_value: number;
-    average_discrepancy: number;
-    highest_discrepancy_item?: InventoryCountItem;
-  };
 }
 
 export interface CreateInventoryPayload {
   reference: string;
   store: number;
   status?: InventoryStatus;
-  count_date?: string;
-  notes?: string;
+  count_date?: string;          // <-- L'API l'attend
+  notes?: string;               // <-- Pour compatibilité (sera mis dans metadata)
+  // Champs optionnels pour l'API
+  is_active?: boolean;
+  metadata?: Record<string, any>;
 }
 
 export interface UpdateInventoryPayload {
@@ -97,276 +78,181 @@ export interface UpdateInventoryPayload {
   store?: number;
   status?: InventoryStatus;
   count_date?: string;
-  notes?: string;
-  started_at?: string;
-  completed_at?: string;
+  notes?: string;               // <-- Pour compatibilité
+  started_at?: string | null;   // <-- CORRIGÉ: permet null
+  completed_at?: string | null; // <-- CORRIGÉ: permet null
+  total_items_counted?: number;
+  total_discrepancies?: number;
+  discrepancy_value?: number;
+  is_active?: boolean;
+  metadata?: Record<string, any>;
 }
 
-export interface CreateInventoryItemPayload {
-  product: number;
-  variant?: number;
-  expected_quantity: number;
-  counted_quantity: number;
-  notes?: string;
-}
-
-export interface UpdateInventoryItemPayload {
-  expected_quantity?: number;
-  counted_quantity?: number;
-  notes?: string;
-  discrepancy?: number;
-}
+// =============================================================================
+// FILTRES ET PARAMÈTRES DE RECHERCHE
+// =============================================================================
 
 export interface InventoryFilters {
   search?: string;
   status?: InventoryStatus | 'all';
-  store?: string | number | 'all';
-  date_from?: string;
-  date_to?: string;
+  store?: number | 'all';
+  is_active?: boolean | 'all';  // <-- AJOUTÉ
+  start_date?: string;
+  end_date?: string;
   page?: number;
   page_size?: number;
   ordering?: string;
 }
 
-// =============================================================================
-// TYPES POUR LES PRODUITS ET STOCKS (utilisés dans l'inventaire)
-// =============================================================================
-
-export interface Product {
-  id: number;
-  sku: string;
-  name: string;
-  category_name: string;
-  brand_name?: string;
-  cost_price: number;
-  base_price: number;
-  quantity: number;
-  photo?: string;
-}
-
-export interface Stock {
-  id: number;
-  product_id: number;
-  store_id: number;
-  quantity_on_hand: number;
-  quantity_reserved: number;
-  quantity_available: number;
-  min_stock_threshold: number;
-  ideal_stock_level: number;
-  is_low_stock: boolean;
+export interface InventoryItemFilters {
+  search?: string;
+  has_discrepancy?: boolean;
+  counted?: boolean;
+  product?: number;
+  category?: number;
+  page?: number;
+  page_size?: number;
 }
 
 // =============================================================================
-// TYPES POUR LES MAGASINS
+// STATISTIQUES ET RAPPORTS
 // =============================================================================
 
-export interface Store {
-  id: number;
-  name: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  is_active: boolean;
-}
-
-// =============================================================================
-// TYPES POUR LES RÉPONSES PAGINÉES
-// =============================================================================
-
-export interface PaginatedResponse<T> {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: T[];
-}
-
-// =============================================================================
-// TYPES UTILITAIRES
-// =============================================================================
-
-export interface ApiResponse<T> {
-  data: T;
-  status: number;
-  statusText: string;
-}
-
-// =============================================================================
-// ÉVÈNEMENTS ET NOTIFICATIONS
-// =============================================================================
-
-export interface InventoryEvent {
-  id: number;
-  inventory_id: number;
-  event_type: 'created' | 'started' | 'completed' | 'item_added' | 'item_updated' | 'cancelled';
-  user_id: number;
-  user_name: string;
-  details: Record<string, any>;
-  timestamp: string;
-}
-
-export interface InventoryAlert {
-  id: number;
-  inventory_id: number;
-  product_name: string;
-  expected_quantity: number;
-  counted_quantity: number;
-  discrepancy: number;
-  impact: 'low' | 'medium' | 'high';
-  status: 'pending' | 'resolved';
-  resolved_by?: string;
-  resolved_at?: string;
-}
-
-// =============================================================================
-// RAPPORTS ET ANALYTIQUES
-// =============================================================================
-
-export interface InventoryReport {
-  period: string;
+export interface InventoryStats {
   total_inventories: number;
+  inventories_by_status: Record<InventoryStatus, number>;
   total_items_counted: number;
   total_discrepancies: number;
   total_discrepancy_value: number;
-  discrepancy_rate: number;
-  most_discrepant_product?: {
-    product_id: number;
-    product_name: string;
-    total_discrepancy: number;
+  average_accuracy: number;
+  recent_activity: {
+    last_7_days: number;
+    last_30_days: number;
   };
 }
 
-export interface DiscrepancyAnalysis {
-  inventory_id: number;
-  inventory_reference: string;
+export interface InventorySummary {
+  id: number;
+  reference: string;
   store_name: string;
+  status: InventoryStatus;
+  count_date: string;
+  progress: number;              // Pourcentage de progression
+  items_counted: number;
   total_items: number;
-  items_with_discrepancy: number;
-  total_discrepancy_value: number;
-  top_discrepancies: Array<{
-    product_name: string;
-    expected: number;
-    counted: number;
-    discrepancy: number;
-  }>;
+  discrepancies_count: number;
+  discrepancy_value: number;
 }
 
 // =============================================================================
 // TYPES POUR L'IMPORT/EXPORT
 // =============================================================================
 
-export interface InventoryImportItem {
-  product_sku: string;
-  expected_quantity: number;
-  counted_quantity: number;
-  notes?: string;
+export interface InventoryExportOptions {
+  format: 'csv' | 'excel' | 'pdf';
+  include_items: boolean;
+  include_discrepancies: boolean;
+  date_range?: {
+    start: string;
+    end: string;
+  };
+  stores?: number[];
 }
 
-export interface InventoryExportFormat {
-  id: number;
-  reference: string;
-  store_name: string;
-  count_date: string;
-  status: string;
-  total_items: number;
-  total_discrepancies: number;
-  discrepancy_value: number;
-  items: Array<{
-    product_sku: string;
-    product_name: string;
-    expected_quantity: number;
-    counted_quantity: number;
-    discrepancy: number;
-    notes?: string;
+export interface InventoryImportResult {
+  success: boolean;
+  created_count: number;
+  updated_count: number;
+  errors: Array<{
+    row: number;
+    message: string;
   }>;
 }
 
 // =============================================================================
-// GARDIENS DE TYPE
+// TYPES POUR L'HISTORIQUE
 // =============================================================================
 
-export const isInventoryCount = (obj: any): obj is InventoryCount => {
-  return obj && typeof obj === 'object' && 'reference' in obj && 'store' in obj && 'status' in obj;
-};
-
-export const isInventoryCountItem = (obj: any): obj is InventoryCountItem => {
-  return obj && typeof obj === 'object' && 'product' in obj && 'expected_quantity' in obj && 'counted_quantity' in obj;
-};
-
-export const isInventoryStats = (obj: any): obj is InventoryStats => {
-  return obj && typeof obj === 'object' && 'total_inventories' in obj && 'completed_inventories' in obj;
-};
-
-// =============================================================================
-// CONSTANTES
-// =============================================================================
-
-export const INVENTORY_STATUSES = {
-  PLANNED: 'planned' as InventoryStatus,
-  IN_PROGRESS: 'in_progress' as InventoryStatus,
-  COMPLETED: 'completed' as InventoryStatus,
-  CANCELLED: 'cancelled' as InventoryStatus,
-} as const;
-
-export const INVENTORY_STATUS_OPTIONS = [
-  { value: 'all', label: 'Tous les statuts' },
-  { value: 'planned', label: 'Planifié' },
-  { value: 'in_progress', label: 'En cours' },
-  { value: 'completed', label: 'Terminé' },
-  { value: 'cancelled', label: 'Annulé' },
-];
-
-export const DISCREPANCY_IMPACT_LEVELS = {
-  LOW: { threshold: 5, label: 'Faible', color: 'bg-blue-100 text-blue-800' },
-  MEDIUM: { threshold: 10, label: 'Moyen', color: 'bg-yellow-100 text-yellow-800' },
-  HIGH: { threshold: Infinity, label: 'Élevé', color: 'bg-red-100 text-red-800' },
-} as const;
-
-// =============================================================================
-// TYPES POUR LES REQUÊTES ET RÉPONSES API
-// =============================================================================
-
-export interface ApiRequestConfig {
-  params?: Record<string, any>;
-  headers?: Record<string, string>;
-  timeout?: number;
-}
-
-export interface ErrorResponse {
-  detail?: string;
-  message?: string;
-  code?: string;
-  errors?: Record<string, string[]>;
-}
-
-// =============================================================================
-// TYPES POUR LES COMPOSANTS UI
-// =============================================================================
-
-export interface InventoryTableRow {
+export interface InventoryHistoryEntry {
   id: number;
-  reference: string;
+  inventory_id: number;
+  inventory_reference: string;
+  action: 'created' | 'started' | 'completed' | 'cancelled' | 'updated' | 'item_counted';
+  action_label: string;
+  user_id?: number;
+  user_name?: string;
+  store_name?: string;
+  details?: string;
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+
+// =============================================================================
+// TYPES POUR LE STORE (MAGASIN)
+// =============================================================================
+
+export interface Store {
+  id: number;
+  name: string;
+  code?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  is_active: boolean;
+  metadata?: Record<string, any>;
+}
+
+// =============================================================================
+// TYPES POUR LES ACTIONS EN VRAC (BULK OPERATIONS)
+// =============================================================================
+
+export interface BulkInventoryAction {
+  action: 'delete' | 'start' | 'complete' | 'cancel' | 'archive';
+  inventory_ids: number[];
+  confirm: boolean;
+  reason?: string;
+}
+
+export interface BulkActionResult {
+  success: boolean;
+  processed_count: number;
+  success_count: number;
+  error_count: number;
+  errors: Array<{
+    id: number;
+    message: string;
+  }>;
+}
+
+// =============================================================================
+// TYPES POUR LES NOTIFICATIONS
+// =============================================================================
+
+export interface InventoryNotification {
+  id: number;
+  type: 'discrepancy' | 'pending' | 'completed' | 'started';
+  inventory_id: number;
+  inventory_reference: string;
   store_name: string;
-  count_date: string;
-  status: InventoryStatus;
-  progress: number;
-  total_items: number;
-  total_discrepancies: number;
-  discrepancy_value: number;
-  actions?: string[];
+  message: string;
+  severity: 'info' | 'warning' | 'error' | 'success';
+  read: boolean;
+  created_at: string;
+  action_url?: string;
 }
 
-export interface InventoryFilterState {
-  search: string;
-  status: InventoryStatus | 'all';
-  store: string | 'all';
-  date_from?: string;
-  date_to?: string;
-}
+// =============================================================================
+// TYPES POUR LE DASHBOARD
+// =============================================================================
 
-export interface InventoryFormData {
-  reference: string;
-  store: number;
-  count_date: string;
-  status: InventoryStatus;
-  notes?: string;
+export interface InventoryDashboardData {
+  stats: InventoryStats;
+  recent_inventories: InventorySummary[];
+  pending_actions: number;
+  notifications: InventoryNotification[];
+  alerts: {
+    high_discrepancies: number;
+    uncompleted_inventories: number;
+    items_to_count: number;
+  };
 }

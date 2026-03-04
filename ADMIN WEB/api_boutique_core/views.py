@@ -144,15 +144,17 @@ class LogoutView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         
     
-
 class UserProfileView(APIView):
     """
-    Récupérer le profil de l'utilisateur connecté
+    Récupérer et mettre à jour le profil de l'utilisateur connecté
     GET /api/auth/profile/
+    PATCH /api/auth/profile/
+    PUT /api/auth/profile/
     """
     permission_classes = [IsAuthenticated]
     
     def get(self, request, *args, **kwargs):
+        """Récupérer le profil"""
         user = request.user
         
         response_data = {
@@ -164,8 +166,8 @@ class UserProfileView(APIView):
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "full_name": user.get_full_name(),
-                "phone": user.phone,
-                "address": user.address,
+                "phone": getattr(user, 'phone', ''),
+                "address": getattr(user, 'address', ''),
                 "is_staff": user.is_staff,
                 "is_superuser": user.is_superuser,
                 "date_joined": user.date_joined,
@@ -177,52 +179,148 @@ class UserProfileView(APIView):
         if hasattr(user, 'owner'):
             owner = user.owner
             response_data["user"]["role"] = "owner"
-            response_data["user"]["owner_profile"] = {
+            response_data["owner_profile"] = {
                 "id": owner.id,
-                "photo": owner.photo if owner.photo else None,
+                "photo": owner.photo.url if owner.photo else None,
                 "created_at": owner.created_at
             }
             
         elif hasattr(user, 'employee'):
             employee = user.employee
             response_data["user"]["role"] = "employee"
-            response_data["user"]["employee_profile"] = {
+            response_data["employee_profile"] = {
                 "id": employee.id,
                 "store_id": employee.store_id,
-                "store_name": employee.store.name,
+                "store_name": employee.store.name if employee.store else None,
                 "role_id": employee.role_id,
-                "role_name": employee.role.name,
+                "role_name": employee.role.name if employee.role else None,
                 "department": employee.department.name if employee.department else None,
                 "hire_date": employee.hire_date,
                 "salary": employee.salary,
                 "is_active": employee.is_active,
-                "photo": employee.photo if employee.photo else None
+                "photo": employee.photo.url if employee.photo else None
             }
             
         elif hasattr(user, 'shareholder'):
             shareholder = user.shareholder
             response_data["user"]["role"] = "shareholder"
-            response_data["user"]["shareholder_profile"] = {
+            response_data["shareholder_profile"] = {
                 "id": shareholder.id,
                 "investment_amount": shareholder.investment_amount,
-                "photo": shareholder.photo if shareholder.photo else None
+                "photo": shareholder.photo.url if shareholder.photo else None
             }
             
         elif hasattr(user, 'customer'):
             customer = user.customer
             response_data["user"]["role"] = "customer"
-            response_data["user"]["customer_profile"] = {
+            response_data["customer_profile"] = {
                 "id": customer.id,
                 "birth_date": customer.birth_date,
                 "loyalty_points": customer.loyalty_points,
-                "total_spent": customer.total_spent,
+                "total_spent": str(customer.total_spent) if customer.total_spent else "0",
                 "first_purchase": customer.first_purchase,
                 "last_purchase": customer.last_purchase
             }
         
         return Response(response_data, status=status.HTTP_200_OK)
     
+    def patch(self, request, *args, **kwargs):
+        """Mettre à jour partiellement le profil"""
+        user = request.user
+        
+        # Mettre à jour les champs de l'utilisateur
+        if 'first_name' in request.data:
+            user.first_name = request.data['first_name']
+        if 'last_name' in request.data:
+            user.last_name = request.data['last_name']
+        if 'email' in request.data:
+            user.email = request.data['email']
+        if 'phone' in request.data:
+            user.phone = request.data['phone']
+        if 'address' in request.data:
+            user.address = request.data['address']
+        
+        user.save()
+        
+        # Gérer la photo selon le profil
+        if 'photo' in request.FILES:
+            photo = request.FILES['photo']
+            
+            if hasattr(user, 'owner'):
+                user.owner.photo = photo
+                user.owner.save()
+            elif hasattr(user, 'employee'):
+                user.employee.photo = photo
+                user.employee.save()
+            elif hasattr(user, 'customer'):
+                user.customer.photo = photo
+                user.customer.save()
+            elif hasattr(user, 'shareholder'):
+                user.shareholder.photo = photo
+                user.shareholder.save()
+        
+        # Retourner le profil mis à jour
+        return self.get(request)
+    
+    def put(self, request, *args, **kwargs):
+        """Mettre à jour complètement le profil (alias pour PATCH)"""
+        return self.patch(request, *args, **kwargs)
 
+        # api_boutique_core/views.py
+
+# Ajoutez cette nouvelle classe APRÈS UserProfileView
+class ChangePasswordView(APIView):
+    """
+    Changer le mot de passe de l'utilisateur connecté
+    POST /api/auth/change-password/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+        
+        # Vérifications
+        if not current_password or not new_password:
+            return Response({
+                'success': False,
+                'error': 'Les mots de passe sont requis'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Vérifier l'ancien mot de passe
+        if not user.check_password(current_password):
+            return Response({
+                'success': False,
+                'error': 'Mot de passe actuel incorrect'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Vérifier la longueur du nouveau mot de passe
+        if len(new_password) < 6:
+            return Response({
+                'success': False,
+                'error': 'Le nouveau mot de passe doit contenir au moins 6 caractères'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Vérifier que le nouveau mot de passe est différent
+        if user.check_password(new_password):
+            return Response({
+                'success': False,
+                'error': 'Le nouveau mot de passe doit être différent de l\'ancien'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Changer le mot de passe
+        user.set_password(new_password)
+        user.save()
+        
+        # 🚫 OPTION SUPPRIMÉE - La méthode blacklist() n'existe pas
+        # from rest_framework_simplejwt.tokens import RefreshToken
+        # RefreshToken.for_user(user).blacklist()  ← À SUPPRIMER
+        
+        return Response({
+            'success': True,
+            'message': 'Mot de passe modifié avec succès'
+        }, status=status.HTTP_200_OK)
 # =============================================================================
 # VUES D'AUTHENTIFICATION
 # =============================================================================
@@ -2941,3 +3039,5 @@ class CustomerAnalyticsView(APIView):
                 {'error': f'Erreur serveur: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+        
