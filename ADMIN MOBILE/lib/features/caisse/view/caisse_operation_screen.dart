@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
 import 'package:nsp_pos_mobile/features/caisse/viewmodel/caisse_session.dart';
-import 'package:nsp_pos_mobile/features/dashboard/widgets/side_menu.dart';
+import 'package:nsp_pos_mobile/app/side_menu.dart';
 import '../services/caisse_service.dart';
 
 class CaisseOperationScreen extends StatefulWidget {

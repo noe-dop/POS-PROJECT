@@ -70,5 +70,10 @@
     <!-- Pour le WebView (si vous utilisez des tiles) -->
     <key>io.flutter.embedded_views_preview</key>
     <true/>
+	<!-- Acces pour Gestion des images -->
+	<key>NSCameraUsageDescription</key>
+	<string>Nous avons besoin de la caméra pour prendre des photos</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Nous avons besoin d'accéder à votre galerie pour choisir des images</string>
 </dict>
 </plist>

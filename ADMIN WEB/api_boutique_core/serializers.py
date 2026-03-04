@@ -8,6 +8,7 @@ from django.utils.encoding import force_bytes
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.text import slugify  # Generation de slug
+from django.core.files.storage import default_storage # Gestion des images
 
 # =============================================================================
 # SERIALIZERS DE BASE
@@ -795,26 +796,6 @@ class ReorderRuleSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class StoreProductVariantSerializer(BaseAuditSerializer):
-    store_product_name = serializers.SerializerMethodField()
-    variant_name = serializers.CharField(source="variant.name", read_only=True)
-    effective_cost = serializers.SerializerMethodField()
-    effective_price = serializers.SerializerMethodField()
-
-    class Meta:
-        model = StoreProductVariant
-        fields = "__all__"
-
-    def get_store_product_name(self, obj):
-        return f"{obj.store_product.product.name} - {obj.store_product.store.name}"
-
-    def get_effective_cost(self, obj):
-        return obj.get_effective_cost()
-
-    def get_effective_price(self, obj):
-        return obj.get_effective_price()
-
-
 class DeliveryScheduleSerializer(serializers.ModelSerializer):
     delivery_info = serializers.SerializerMethodField()
     route_name = serializers.CharField(source="route.name", read_only=True)
@@ -1401,31 +1382,57 @@ class ProductSerializer(BaseAuditSerializer):
     total_variants = serializers.SerializerMethodField()
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     margin = serializers.SerializerMethodField()
-    group_id = serializers.PrimaryKeyRelatedField(
-        queryset=ProductCategory.objects.all(),
-        source='group',
-        write_only = False # en lecture aussi
-    )
-    type_id = serializers.PrimaryKeyRelatedField(
-        queryset=ProductCategory.objects.all(),
-        source='product_type',
-        allow_null=True,
-        required=False
-    )
     # Champ calculé pour la catégorie principale (racine)
     main_category_id = serializers.SerializerMethodField()
+    additional_images = serializers.ListField(
+        child= serializers.ImageField(write_only=True),
+        write_only = True,
+        required=False
+    )
+    # Pour la lecture
+    additional_images_urls = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
         fields = "__all__"
+        extra_kwargs = {
+            'slug': {'required': False, 'allow_blank': True},
+        }
 
     def create(self, validated_data):
+        additional_images = validated_data.pop('additional_images',[])
+        photo = validated_data.pop('photo',None)
         variants_data = validated_data.pop('variants', [])
         product = Product.objects.create(**validated_data)
+
+        if photo:
+            product.photo = photo
+            product.save()
+        # Sauvegarder les iamges supplementaires et générer les URLs
+        urls = []
+        for img in additional_images:
+            # Sauvegarde via Django, l'URL sera accessible via img.url
+            # Par exemple, on peut stocker dans un sous-dossier spécifique
+            path = default_storage.save(f'products/extra/{img.name}', img)
+            urls.append(default_storage.url(path))
+        # Mettre à jour le champ JSONField
+        product.additional_images = urls
+        product.save(update_fields=['additional_images'])
+
         for variant_data in variants_data:
             ProductVariant.objects.create(product=product, **variant_data)
         return product
     
     def update(self, instance, validated_data):
+        additional_images = validated_data.pop("additional_images",None)
+        if additional_images is not None:
+            # Traiter les nouvelles images (à adapter selon ton besoin)
+            urls = []
+            for img in additional_images:
+                path = default_storage.save(f'products/extra/{img.name}', img)
+                urls.append(default_storage.url(path))
+            instance.additional_images = urls
+
         variants_data = validated_data.pop('variants', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -1453,37 +1460,94 @@ class ProductSerializer(BaseAuditSerializer):
         if obj.cost_price and obj.base_price and obj.cost_price > 0:
             return ((obj.base_price - obj.cost_price) / obj.cost_price) * 100
         return 0
+    
+    def get_additional_images_urls(self, obj):
+        # Si additional_images est une liste de chemins relatifs
+        request = self.context.get('request')
+        if obj.additional_images and request:
+            return [request.build_absolute_uri(img) for img in obj.additional_images]
+        return obj.additional_images or []
 
+class StoreProductCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StoreProduct
+        fields = [
+            'store', 'product', 'supplier',
+            'store_cost_price', 'store_base_price', 'store_compare_at_price',
+            'qt_item', 'dlv', 'dlc', 'dcr',
+            'is_active', 'display_order',
+            'min_stock_threshold', 'reorder_quantity', 'jour_ecart',
+            'status'
+        ]
+        extra_kwargs = {
+            'supplier': {'required': False,'allow_null':True},
+            'store_cost_price': {'required': False, 'allow_null': True},
+            'store_base_price': {'required': False, 'allow_null': True},
+            'store': {'write_only': True},  # Optionnel, mais souvent on ne renvoie pas l'ID en lecture
+            'product': {'write_only': True},
+        }
 
+    def validate(self, data):
+        # Vérifier que le produit n'est pas déjà lié à cette boutique (unique_together)
+        if StoreProduct.objects.filter(store=data['store'], product=data['product']).exists():
+            raise serializers.ValidationError("Ce produit est déjà lié à cette boutique.")
+        return data
+    
 class StoreProductSerializer(BaseAuditSerializer):
     # Données du produit global
     name = serializers.CharField(source='product.name', read_only=True)
     sku = serializers.CharField(source='product.sku', read_only=True)
     description = serializers.CharField(source='product.description', read_only=True)
-    brand = serializers.CharField(source='product.brand.name', read_only=True)
-    image_url = serializers.SerializerMethodField()
+    brand_name = serializers.CharField(source='product.brand.name', read_only=True)
+    brand = serializers.IntegerField(source='product.brand_id', read_only=True)
+    images_urls = serializers.SerializerMethodField()
     # IDs de catégories
-    group_id = serializers.IntegerField(source='product.group_id', read_only=True)
-    type_id = serializers.IntegerField(source='product.product_type_id', read_only=True)
+    group = serializers.IntegerField(source='product.group_id', read_only=True)
+    product_type = serializers.IntegerField(source='product.product_type_id', read_only=True)
     main_category_id = serializers.SerializerMethodField()
     # Prix spécifiques au magasin
-    price = serializers.DecimalField(source='effective_base_price', max_digits=10, decimal_places=2, read_only=True)
-    cost = serializers.DecimalField(source='effective_cost_price', max_digits=10, decimal_places=2, read_only=True)
+    quantity_item = serializers.DecimalField(source="qt_item", max_digits=10, decimal_places=2)
+    price = serializers.DecimalField(source='store_base_price', max_digits=10, decimal_places=2, read_only=True)
+    cost = serializers.DecimalField(source='store_cost_price', max_digits=10, decimal_places=2, read_only=True)
     stock = serializers.IntegerField(source='quantity_on_hand', read_only=True)  # si vous avez ce champ
-    location = serializers.CharField(source='aisle', read_only=True)  # exemple
+    location = serializers.CharField(source='warehouse', read_only=True)  # exemple
+    status = serializers.CharField()
     # Variantes (à adapter)
     variants = serializers.SerializerMethodField()
     store_id = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = StoreProduct
-        fields = ['id', 'name', 'sku', 'description', 'brand', 'image_url',
-                  'group_id', 'type_id', 'main_category_id',
-                  'price', 'cost', 'stock', 'location', 'variants', 'store_id']
+        fields = ['id', 'name', 'sku', 'description', 'brand','brand_name', 'images_urls',
+                  'group', 'product_type', 'main_category_id','quantity_item',
+                  'price', 'cost', 'stock', 'location', 'variants', 'store_id',
+                  'status'
+                  ]
 
-    def get_image_url(self, obj):
-        # à implémenter selon votre gestion d'images
-        return obj.product.image_url if hasattr(obj.product, 'image_url') else None
+    def get_images_urls(self, obj):
+        request = self.context.get('request')
+        urls = []
+
+        # Photo principale (ImageField)
+        if obj.product.photo:
+            # Construit l'URL absolue si nécessaire
+            if request:
+                urls.append(request.build_absolute_uri(obj.product.photo.url))
+            else:
+                urls.append(obj.product.photo.url)
+
+        # Images supplémentaires (JSONField contenant des URLs ou chemins)
+        additional = obj.product.additional_images or []
+        for img in additional:
+            if img:  # éviter les chaînes vides
+                # Si ce sont des URLs relatives, on peut aussi les convertir en absolues
+                if request and not img.startswith(('http://', 'https://')):
+                    urls.append(request.build_absolute_uri(img))
+                else:
+                    urls.append(img)
+
+        return urls if urls else None
+
 
     def get_main_category_id(self, obj):
         # remonter à la racine du groupe
@@ -1512,6 +1576,108 @@ class StoreProductSerializer(BaseAuditSerializer):
     def get_is_promotion_active(self, obj):
         return obj.is_promotion_active()
 
+class StoreProductPublicSerializer(BaseAuditSerializer):
+    # Données du produit global
+    name = serializers.CharField(source='product.name', read_only=True)
+    sku = serializers.CharField(source='product.sku', read_only=True)
+    description = serializers.CharField(source='product.description', read_only=True)
+    brand_name = serializers.CharField(source='product.brand.name', read_only=True)
+    brand = serializers.IntegerField(source='product.brand_id', read_only=True)
+    images_urls = serializers.SerializerMethodField()
+    # IDs de catégories
+    group = serializers.IntegerField(source='product.group_id', read_only=True)
+    product_type = serializers.IntegerField(source='product.product_type_id', read_only=True)
+    main_category_id = serializers.SerializerMethodField()
+    # Prix spécifiques au magasin
+    quantity_item = serializers.DecimalField(source="qt_item", max_digits=10, decimal_places=2)
+    price = serializers.DecimalField(source='store_base_price', max_digits=10, decimal_places=2, read_only=True)
+    stock = serializers.IntegerField(source='quantity_on_hand', read_only=True)  # si vous avez ce champ
+    location = serializers.CharField(source='warehouse', read_only=True)  # exemple
+    status = serializers.CharField()
+
+    # Variantes (à adapter)
+    variants = serializers.SerializerMethodField()
+    store_id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = StoreProduct
+        fields = ['id', 'name', 'sku', 'description', 'brand','brand_name', 'images_urls',
+                  'group', 'product_type', 'main_category_id','quantity_item',
+                  'price', 'stock', 'location', 'variants', 'store_id',
+                  'status'
+                  ]
+
+    def get_images_urls(self, obj):
+        request = self.context.get('request')
+        urls = []
+
+        # Photo principale (ImageField)
+        if obj.product.photo:
+            # Construit l'URL absolue si nécessaire
+            if request:
+                urls.append(request.build_absolute_uri(obj.product.photo.url))
+            else:
+                urls.append(obj.product.photo.url)
+
+        # Images supplémentaires (JSONField contenant des URLs ou chemins)
+        additional = obj.product.additional_images or []
+        for img in additional:
+            if img:  # éviter les chaînes vides
+                # Si ce sont des URLs relatives, on peut aussi les convertir en absolues
+                if request and not img.startswith(('http://', 'https://')):
+                    urls.append(request.build_absolute_uri(img))
+                else:
+                    urls.append(img)
+
+        return urls if urls else None
+
+    def get_main_category_id(self, obj):
+        # remonter à la racine du groupe
+        return self._get_root_category(obj.product.group)
+
+    def _get_root_category(self, cat):
+        if cat and cat.parent:
+            return self._get_root_category(cat.parent)
+        return cat.id if cat else None
+
+    def get_variants(self, obj):
+        # retourner les variantes liées au produit, mais avec prix spécifiques magasin ?
+        # Si les variantes sont globales, utilisez ProductVariantSerializer
+        from .serializers import ProductVariantSerializer
+        return ProductVariantSerializer(obj.product.variants.all(), many=True).data
+
+    def get_effective_cost_price(self, obj):
+        return obj.get_effective_cost_price()
+
+    def get_effective_base_price(self, obj):
+        return obj.get_effective_base_price()
+
+    def get_margin(self, obj):
+        return obj.get_margin()
+
+    def get_is_promotion_active(self, obj):
+        return obj.is_promotion_active()
+
+
+class StoreProductVariantSerializer(BaseAuditSerializer):
+    store_product_name = serializers.SerializerMethodField()
+    variant_name = serializers.CharField(source="variant.name", read_only=True)
+    effective_cost = serializers.SerializerMethodField()
+    effective_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StoreProductVariant
+        fields = "__all__"
+
+    def get_store_product_name(self, obj):
+        return f"{obj.store_product.product.name} - {obj.store_product.store.name}"
+
+    def get_effective_cost(self, obj):
+        return obj.get_effective_cost()
+
+    def get_effective_price(self, obj):
+        return obj.get_effective_price()
+    
 # =============================================================================
 # GESTION DES STOCKS
 # =============================================================================

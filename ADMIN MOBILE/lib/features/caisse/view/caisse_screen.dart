@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nsp_pos_mobile/features/dashboard/widgets/side_menu.dart';
+import 'package:nsp_pos_mobile/app/side_menu.dart';
 import '../services/caisse_service.dart';
 
 class CaisseScreen extends StatefulWidget {
