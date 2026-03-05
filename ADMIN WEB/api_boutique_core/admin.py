@@ -69,21 +69,13 @@ from .models import (
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'phone', 'is_active', 'date_joined')
-<<<<<<< HEAD
     list_filter = ( 'is_active', 'is_staff', 'date_joined')
-=======
-    list_filter = ('is_active', 'is_staff', 'date_joined')
->>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753
     search_fields = ('username', 'email', 'first_name', 'last_name', 'phone')
     ordering = ('-date_joined',)
     
     fieldsets = UserAdmin.fieldsets + (
         ('Informations supplémentaires', {
-<<<<<<< HEAD
             'fields': ( 'phone', 'phone2', 'address', 'photo')
-=======
-            'fields': ('phone', 'phone2', 'address', 'photo')
->>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753
         }),
     )
 
@@ -151,10 +143,6 @@ class InventoryCountItemInline(admin.TabularInline):
 # ADMIN MODELS
 # =============================================================================
 
-<<<<<<< HEAD
-
-=======
->>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753
 @admin.register(Owner)
 class OwnerAdmin(admin.ModelAdmin):
     list_display = ('user', 'photo_preview', 'created_at')
