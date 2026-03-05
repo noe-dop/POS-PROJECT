@@ -46,7 +46,7 @@ urlpatterns = [
     # Redirige la racine vers swagger
     path('', RedirectView.as_view(url='/swagger/', permanent=False)),
     path('admin/', admin.site.urls),
-
+    
     # Ton app API
     path('api/', include('api_boutique_core.urls')),
     
