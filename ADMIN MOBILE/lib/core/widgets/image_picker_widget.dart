@@ -53,6 +53,15 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
     }
   }
 
+  // Dans _ImagePickerWidgetState, ajoutez cette méthode
+  ImageProvider _getImageProvider(String path) {
+    if (path.startsWith('http')) {
+      return NetworkImage(path);
+    } else {
+      return FileImage(File(path));
+    }
+  }
+
   Future<void> _pickImageWindows() async {
     const XTypeGroup typeGroup = XTypeGroup(
       label: 'Images',
@@ -183,7 +192,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
                         border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(8),
                         image: DecorationImage(
-                          image: FileImage(File(_selectedImages[index].path)),
+                          image: _getImageProvider(_selectedImages[index].path),
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -216,32 +225,32 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
         const SizedBox(height: 8),
         if (canAddMore)
           widget.customAddButton ??
-          GestureDetector(
-            onTap: _pickImage,
-            child: Container(
-              width: double.infinity,
-              height: 100,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.add_photo_alternate,
-                    color: Theme.of(context).primaryColor,
-                    size: 40,
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  width: double.infinity,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Ajouter une image (${_selectedImages.length}/${widget.maxImages})',
-                    style: TextStyle(color: Theme.of(context).primaryColor),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_photo_alternate,
+                        color: Theme.of(context).primaryColor,
+                        size: 40,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Ajouter une image (${_selectedImages.length}/${widget.maxImages})',
+                        style: TextStyle(color: Theme.of(context).primaryColor),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
       ],
     );
   }

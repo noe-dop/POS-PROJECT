@@ -35,6 +35,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
   late TextEditingController _prixAchatController;
   late TextEditingController _descriptionController;
   late TextEditingController _stockController;
+  late TextEditingController _nombreItemController;
   late TextEditingController _locationController;
   late TextEditingController _rechercheTypeController;
   late TextEditingController _rechercheMarqueController;
@@ -48,6 +49,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
   String? _selectedStatus = 'Actif';
   List<String> _images = [];
   int _joursEcart = 15;
+  int _nombreItem = 1;
 
   // Données
   final List<String> _statusList = ['active', 'draft', 'archived'];
@@ -69,6 +71,9 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
     );
     _stockController = TextEditingController(
       text: produit?.stock.toString() ?? '0',
+    );    
+    _nombreItemController = TextEditingController(
+      text: produit?.nombreItem.toString() ?? '0',
     );
     _locationController = TextEditingController(text: produit?.location ?? '');
     _rechercheTypeController = TextEditingController();
@@ -89,6 +94,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
     _prixAchatController.dispose();
     _descriptionController.dispose();
     _stockController.dispose();
+    _nombreItemController.dispose();
     _locationController.dispose();
     _rechercheTypeController.dispose();
     _rechercheMarqueController.dispose();
@@ -106,7 +112,6 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
         listen: false,
       );
       final int storeId = boutiqueservice.selectedStore!.boutique.id;
-
       final produit = Product(
         name: _nomController.text,
         status: _selectedStatus ?? 'active',
@@ -115,7 +120,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
         description: _descriptionController.text,
         price: double.tryParse(_prixVenteController.text) ?? 0.0,
         cost: double.tryParse(_prixAchatController.text) ?? 0.0,
-        nombreItem: int.tryParse(_stockController.text) ?? 0,
+        nombreItem: int.tryParse(_nombreItemController.text) ?? 0,
         stock: int.tryParse(_stockController.text) ?? 0,
         location: _locationController.text,
         variants: widget.produit?.variants ?? [],
@@ -124,7 +129,6 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
         typeId: _selectedTypeId,
         storeId: storeId,
       );
-
       if (widget.produit == null) {
         productProvider.addProduct(produit);
       } else {
@@ -310,13 +314,28 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
                 const SizedBox(height: 16),
 
                 // Jours d'écart
-                _buildCounterSection(
-                  label: 'Jours d\'écart',
-                  value: _joursEcart,
-                  onDecrement: () => setState(
-                    () => _joursEcart = _joursEcart > 0 ? _joursEcart - 1 : 0,
-                  ),
-                  onIncrement: () => setState(() => _joursEcart++),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildCounterSection(
+                        label: 'Jours d\'écart',
+                        value: _joursEcart ,
+                        onDecrement: () => setState(
+                          () => _joursEcart = _joursEcart > 0 ? _joursEcart - 1 : 0,
+                        ),
+                        onIncrement: () => setState(() => _joursEcart++),
+                      ),
+                    ),
+                    const SizedBox(width: 16,),
+                    Expanded(
+                      child: _buildCounterSection(
+                        label: "Nombre d'Item", 
+                        value: _nombreItem , 
+                        onDecrement: ()=> setState(
+                         ()=> _nombreItem = _nombreItem > 1 ? _nombreItem - 1 : 1,
+                        ), 
+                        onIncrement: () => setState(() => _nombreItem++)))
+                  ],
                 ),
 
                 const SizedBox(height: 24),
@@ -420,6 +439,11 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
   }
 
   Widget _buildTypeField(TypesProduitsViewModel provider) {
+    final type = provider.typesProduits.cast<TypeProduit?>().firstWhere(
+      (t) => t?.id == _selectedTypeId,
+      orElse: () => null,
+    );
+
     // Les types disponibles sont déjà filtrés dans _filteredTypes
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,11 +474,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
               children: [
                 Expanded(
                   child: Text(
-                    _selectedTypeId != null
-                        ? provider.typesProduits
-                              .firstWhere((t) => t.id == _selectedTypeId)
-                              .nom
-                        : 'Sélectionner un type...',
+                    type != null ? type.nom : 'Type introuvable',
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: _selectedTypeId != null
@@ -840,7 +860,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
 
   Widget _buildCounterSection({
     required String label,
-    required int value,
+    required dynamic value,
     required VoidCallback onDecrement,
     required VoidCallback onIncrement,
   }) {

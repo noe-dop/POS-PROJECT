@@ -1,0 +1,528 @@
+ERROR 2026-03-06 15:22:25,425 log Internal Server Error: /swagger/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 141, in get
+    'schema_url': self._get_schema_url(request),
+                  ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 159, in _get_schema_url
+    schema_url = self.url or get_relative_url(reverse(self.url_name, request=request))
+                                              ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\reverse.py", line 47, in reverse
+    url = _reverse(viewname, args, kwargs, request, format, **extra)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\reverse.py", line 60, in _reverse
+    url = django_reverse(viewname, args=args, kwargs=kwargs, **extra)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\urls\base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\urls\resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'schema' not found. 'schema' is not a valid view function or pattern name.
+ERROR 2026-03-06 15:22:25,432 basehttp "GET /swagger/ HTTP/1.1" 500 130811
+ERROR 2026-03-06 15:24:00,499 log Internal Server Error: /swagger/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 141, in get
+    'schema_url': self._get_schema_url(request),
+                  ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 159, in _get_schema_url
+    schema_url = self.url or get_relative_url(reverse(self.url_name, request=request))
+                                              ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\reverse.py", line 47, in reverse
+    url = _reverse(viewname, args, kwargs, request, format, **extra)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\reverse.py", line 60, in _reverse
+    url = django_reverse(viewname, args=args, kwargs=kwargs, **extra)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\urls\base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\urls\resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'schema' with no arguments not found. 1 pattern(s) tried: ['swagger(?P<format>\\.json|\\.yaml)$']
+ERROR 2026-03-06 15:24:00,504 basehttp "GET /swagger/ HTTP/1.1" 500 132341
+ERROR 2026-03-06 15:24:06,656 log Internal Server Error: /swagger/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 141, in get
+    'schema_url': self._get_schema_url(request),
+                  ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 159, in _get_schema_url
+    schema_url = self.url or get_relative_url(reverse(self.url_name, request=request))
+                                              ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\reverse.py", line 47, in reverse
+    url = _reverse(viewname, args, kwargs, request, format, **extra)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\reverse.py", line 60, in _reverse
+    url = django_reverse(viewname, args=args, kwargs=kwargs, **extra)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\urls\base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\urls\resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'schema' with no arguments not found. 1 pattern(s) tried: ['swagger(?P<format>\\.json|\\.yaml)$']
+ERROR 2026-03-06 15:24:06,661 basehttp "GET /swagger/ HTTP/1.1" 500 132485
+ERROR 2026-03-06 15:30:18,536 log Internal Server Error: /swagger/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 141, in get
+    'schema_url': self._get_schema_url(request),
+                  ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 159, in _get_schema_url
+    schema_url = self.url or get_relative_url(reverse(self.url_name, request=request))
+                                              ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\reverse.py", line 47, in reverse
+    url = _reverse(viewname, args, kwargs, request, format, **extra)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\reverse.py", line 60, in _reverse
+    url = django_reverse(viewname, args=args, kwargs=kwargs, **extra)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\urls\base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\urls\resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'schema' with no arguments not found. 1 pattern(s) tried: ['swagger(?P<format>\\.json|\\.yaml)$']
+ERROR 2026-03-06 15:30:18,541 basehttp "GET /swagger/ HTTP/1.1" 500 132341
+ERROR 2026-03-06 15:30:43,540 log Internal Server Error: /swagger/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 141, in get
+    'schema_url': self._get_schema_url(request),
+                  ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 159, in _get_schema_url
+    schema_url = self.url or get_relative_url(reverse(self.url_name, request=request))
+                                              ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\reverse.py", line 47, in reverse
+    url = _reverse(viewname, args, kwargs, request, format, **extra)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\reverse.py", line 60, in _reverse
+    url = django_reverse(viewname, args=args, kwargs=kwargs, **extra)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\urls\base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\urls\resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'schema' with no arguments not found. 1 pattern(s) tried: ['swagger(?P<format>\\.json|\\.yaml)$']
+ERROR 2026-03-06 15:30:43,544 basehttp "GET /swagger/ HTTP/1.1" 500 131792
+ERROR 2026-03-06 15:36:40,031 log Internal Server Error: /api/schema/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 84, in get
+    return self._get_schema_response(request)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 92, in _get_schema_response
+    data=generator.get_schema(request=request, public=self.serve_public),
+         ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\generators.py", line 287, in get_schema
+    paths=self.parse(request, public),
+          ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\generators.py", line 258, in parse
+    operation = view.schema.get_operation(
+        path, path_regex, path_prefix, method, self.registry
+    )
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 93, in get_operation
+    parameters = self._get_parameters()
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 265, in _get_parameters
+    **dict_helper(self._get_filter_parameters()),
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 556, in _get_filter_parameters
+    parameters += filter_extension.get_schema_operation_parameters(self)
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\contrib\django_filters.py", line 58, in get_schema_operation_parameters
+    filterset_class = self.target.get_filterset_class(auto_schema.view, get_manager(model).none())
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django_filters\rest_framework\backends.py", line 49, in get_filterset_class
+    class AutoFilterSet(self.filterset_base):
+    ...<2 lines>...
+            fields = filterset_fields
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django_filters\filterset.py", line 82, in __new__
+    new_class.base_filters = new_class.get_filters()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django_filters\filterset.py", line 371, in get_filters
+    raise TypeError(
+    ...<2 lines>...
+    )
+TypeError: 'Meta.fields' must not contain non-model field names: store, product
+ERROR 2026-03-06 15:36:40,039 basehttp "GET /api/schema/ HTTP/1.1" 500 167156
+ERROR 2026-03-06 15:36:41,436 log Internal Server Error: /api/schema/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 84, in get
+    return self._get_schema_response(request)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 92, in _get_schema_response
+    data=generator.get_schema(request=request, public=self.serve_public),
+         ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\generators.py", line 287, in get_schema
+    paths=self.parse(request, public),
+          ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\generators.py", line 258, in parse
+    operation = view.schema.get_operation(
+        path, path_regex, path_prefix, method, self.registry
+    )
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 93, in get_operation
+    parameters = self._get_parameters()
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 265, in _get_parameters
+    **dict_helper(self._get_filter_parameters()),
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 556, in _get_filter_parameters
+    parameters += filter_extension.get_schema_operation_parameters(self)
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\contrib\django_filters.py", line 58, in get_schema_operation_parameters
+    filterset_class = self.target.get_filterset_class(auto_schema.view, get_manager(model).none())
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django_filters\rest_framework\backends.py", line 49, in get_filterset_class
+    class AutoFilterSet(self.filterset_base):
+    ...<2 lines>...
+            fields = filterset_fields
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django_filters\filterset.py", line 82, in __new__
+    new_class.base_filters = new_class.get_filters()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django_filters\filterset.py", line 371, in get_filters
+    raise TypeError(
+    ...<2 lines>...
+    )
+TypeError: 'Meta.fields' must not contain non-model field names: store, product
+ERROR 2026-03-06 15:36:41,443 basehttp "GET /api/schema/ HTTP/1.1" 500 167156
+ERROR 2026-03-06 15:49:27,936 log Internal Server Error: /api/schema/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 84, in get
+    return self._get_schema_response(request)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 92, in _get_schema_response
+    data=generator.get_schema(request=request, public=self.serve_public),
+         ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\generators.py", line 287, in get_schema
+    paths=self.parse(request, public),
+          ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\generators.py", line 258, in parse
+    operation = view.schema.get_operation(
+        path, path_regex, path_prefix, method, self.registry
+    )
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 93, in get_operation
+    parameters = self._get_parameters()
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 265, in _get_parameters
+    **dict_helper(self._get_filter_parameters()),
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 556, in _get_filter_parameters
+    parameters += filter_extension.get_schema_operation_parameters(self)
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\contrib\django_filters.py", line 58, in get_schema_operation_parameters
+    filterset_class = self.target.get_filterset_class(auto_schema.view, get_manager(model).none())
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django_filters\rest_framework\backends.py", line 49, in get_filterset_class
+    class AutoFilterSet(self.filterset_base):
+    ...<2 lines>...
+            fields = filterset_fields
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django_filters\filterset.py", line 82, in __new__
+    new_class.base_filters = new_class.get_filters()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django_filters\filterset.py", line 371, in get_filters
+    raise TypeError(
+    ...<2 lines>...
+    )
+TypeError: 'Meta.fields' must not contain non-model field names: store, product
+ERROR 2026-03-06 15:49:27,944 basehttp "GET /api/schema/ HTTP/1.1" 500 167156
+ERROR 2026-03-06 15:49:28,691 log Internal Server Error: /api/schema/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 84, in get
+    return self._get_schema_response(request)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 92, in _get_schema_response
+    data=generator.get_schema(request=request, public=self.serve_public),
+         ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\generators.py", line 287, in get_schema
+    paths=self.parse(request, public),
+          ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\generators.py", line 258, in parse
+    operation = view.schema.get_operation(
+        path, path_regex, path_prefix, method, self.registry
+    )
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 93, in get_operation
+    parameters = self._get_parameters()
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 265, in _get_parameters
+    **dict_helper(self._get_filter_parameters()),
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 556, in _get_filter_parameters
+    parameters += filter_extension.get_schema_operation_parameters(self)
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\contrib\django_filters.py", line 58, in get_schema_operation_parameters
+    filterset_class = self.target.get_filterset_class(auto_schema.view, get_manager(model).none())
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django_filters\rest_framework\backends.py", line 49, in get_filterset_class
+    class AutoFilterSet(self.filterset_base):
+    ...<2 lines>...
+            fields = filterset_fields
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django_filters\filterset.py", line 82, in __new__
+    new_class.base_filters = new_class.get_filters()
+                             ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django_filters\filterset.py", line 371, in get_filters
+    raise TypeError(
+    ...<2 lines>...
+    )
+TypeError: 'Meta.fields' must not contain non-model field names: store, product
+ERROR 2026-03-06 15:49:28,695 basehttp "GET /api/schema/ HTTP/1.1" 500 167156
+ERROR 2026-03-06 15:57:39,192 log Internal Server Error: /api/schema/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 84, in get
+    return self._get_schema_response(request)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 92, in _get_schema_response
+    data=generator.get_schema(request=request, public=self.serve_public),
+         ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\generators.py", line 287, in get_schema
+    paths=self.parse(request, public),
+          ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\generators.py", line 258, in parse
+    operation = view.schema.get_operation(
+        path, path_regex, path_prefix, method, self.registry
+    )
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 113, in get_operation
+    operation['responses'] = self._get_response_bodies()
+                             ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 1407, in _get_response_bodies
+    return {'200': self._get_response_for_code(response_serializers, '200', direction=direction)}
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 1463, in _get_response_for_code
+    component = self.resolve_serializer(serializer, direction)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 1658, in resolve_serializer
+    component.schema = self._map_serializer(serializer, direction, bypass_extensions)
+                       ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 959, in _map_serializer
+    schema = self._map_basic_serializer(serializer, direction)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 1052, in _map_basic_serializer
+    for field in serializer.fields.values():
+                 ^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 1081, in get_fields
+    field_names = self.get_field_names(declared_fields, info)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 1177, in get_field_names
+    assert field_name in fields, (
+           ^^^^^^^^^^^^^^^^^^^^
+AssertionError: The field 'stock_details' was declared on serializer StoreProductSerializer, but has not been included in the 'fields' option.
+ERROR 2026-03-06 15:57:39,205 basehttp "GET /api/schema/ HTTP/1.1" 500 205152
+ERROR 2026-03-06 15:57:40,377 log Internal Server Error: /api/schema/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 84, in get
+    return self._get_schema_response(request)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\views.py", line 92, in _get_schema_response
+    data=generator.get_schema(request=request, public=self.serve_public),
+         ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\generators.py", line 287, in get_schema
+    paths=self.parse(request, public),
+          ~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\generators.py", line 258, in parse
+    operation = view.schema.get_operation(
+        path, path_regex, path_prefix, method, self.registry
+    )
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 113, in get_operation
+    operation['responses'] = self._get_response_bodies()
+                             ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 1407, in _get_response_bodies
+    return {'200': self._get_response_for_code(response_serializers, '200', direction=direction)}
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 1463, in _get_response_for_code
+    component = self.resolve_serializer(serializer, direction)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 1658, in resolve_serializer
+    component.schema = self._map_serializer(serializer, direction, bypass_extensions)
+                       ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 959, in _map_serializer
+    schema = self._map_basic_serializer(serializer, direction)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\drf_spectacular\openapi.py", line 1052, in _map_basic_serializer
+    for field in serializer.fields.values():
+                 ^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 1081, in get_fields
+    field_names = self.get_field_names(declared_fields, info)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 1177, in get_field_names
+    assert field_name in fields, (
+           ^^^^^^^^^^^^^^^^^^^^
+AssertionError: The field 'stock_details' was declared on serializer StoreProductSerializer, but has not been included in the 'fields' option.
+ERROR 2026-03-06 15:57:40,385 basehttp "GET /api/schema/ HTTP/1.1" 500 205152

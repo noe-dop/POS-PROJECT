@@ -4,19 +4,23 @@ import 'package:nsp_pos_mobile/core/services/storage_service.dart';
 import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
 import 'package:nsp_pos_mobile/features/produits/viewmodel/product_brand_model.dart';
 import 'package:nsp_pos_mobile/features/produits/viewmodel/product_model.dart';
+import 'package:nsp_pos_mobile/features/produits/viewmodel/store_product_model.dart';
 import 'package:nsp_pos_mobile/features/produits/viewmodel/variante_model.dart';
 
 class ProductProvider extends ChangeNotifier {
   final Dio _dio = Dio();
   final StorageService _storage = StorageService();
-  String baseUrl = 'http://127.0.0.1:8000/api/';
+  // String baseUrl = 'http://127.0.0.1:8000/api/';
+  String baseUrl = 'https://eboutik-api.onrender.com/api/';
   final BoutiqueService boutiqueService;
 
   int? _currentStoreId;
   List<Product> _products = [];
+  List<StoreProduct> _storeProducts = [];
   List<Product> _unlinkedProducts = [];
   List<ProductBrand> _brands = [];
   Product? _selectedProduct;
+  StoreProduct? _selectedStoreProduct;
   String _searchQuery = '';
   String _statusFilter = 'Tous';
   bool _isLoading = false;
@@ -39,6 +43,18 @@ class ProductProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  List<StoreProduct> get storeProducts => _storeProducts;
+  List<StoreProduct> get filteredStoreProducts => _storeProducts.where((sp) {
+    final matchesSearch =
+        _searchQuery.isEmpty ||
+        sp.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        sp.sku.toLowerCase().contains(_searchQuery.toLowerCase());
+    final matchesStatus = _statusFilter == 'Tous' || sp.status == _statusFilter;
+    return matchesSearch && matchesStatus;
+}).toList();
+
+  StoreProduct? get selectedStoreProduct => _selectedStoreProduct;
+
   ProductProvider({required this.boutiqueService}) {
     _dio.options = BaseOptions(
       baseUrl: baseUrl,
@@ -49,8 +65,8 @@ class ProductProvider extends ChangeNotifier {
       validateStatus: (status) => status != null,
     );
     // Écouter les changements de boutique
-    boutiqueService.addListener(_onStoreChanged);
-    Future.microtask(_onStoreChanged);
+    boutiqueService.addListener(onStoreChanged);
+    Future.microtask(onStoreChanged);
     loadBrand();
   }
 
@@ -61,7 +77,7 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  void _onStoreChanged() {
+  void onStoreChanged() {
     final selected = boutiqueService.selectedStore;
     if (selected != null) {
       _currentStoreId = selected.boutique.id;
@@ -78,9 +94,6 @@ class ProductProvider extends ChangeNotifier {
 
   //  UNLINKED PRODUCT
   Future<List<Product>> loadUnlinkedProducts(int storeId) async {
-    print("DEBUT de recuperation");
-    print(_currentStoreId);
-    print(storeId);
     if (_currentStoreId == null || _currentStoreId != storeId) return [];
     _isLoading = true;
     _error = null;
@@ -176,17 +189,15 @@ class ProductProvider extends ChangeNotifier {
         '${baseUrl}stores/$_currentStoreId/products/',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-      if (response.statusCode== 200) 
-      {
+      if (response.statusCode == 200) {
         print(response.data);
         _products = (response.data as List)
-          .map((json) => Product.fromJson(json, null))
-          .toList();
-      } else{
+            .map((json) => Product.fromJson(json, null))
+            .toList();
+      } else {
         print("Erreur : ${response.data}- ${response.statusCode}");
         _products = [];
       }
-      
     } on DioException catch (e) {
       _error = e.response?.data?.toString() ?? e.message;
       print(_error);
@@ -319,57 +330,62 @@ class ProductProvider extends ChangeNotifier {
 
   // VARIANTE
   Future<bool> createVariant(int productId, Map<String, dynamic> data) async {
-  try {
-    final response = await _dio.post('/products/$productId/variants/', data: data);
-    if (response.statusCode == 201) {
-      // Recharger le produit ou la liste des variantes
-      await loadStoreProducts(); // ou autre
-      return true;
+    try {
+      final response = await _dio.post(
+        '/products/$productId/variants/',
+        data: data,
+      );
+      if (response.statusCode == 201) {
+        // Recharger le produit ou la liste des variantes
+        await loadStoreProducts(); // ou autre
+        return true;
+      }
+    } catch (e) {
+      _error = e.toString();
     }
-  } catch (e) {
-    _error = e.toString();
-  }
-  return false;
-}
-
-Future<bool> updateVariant(int variantId, Map<String, dynamic> data) async {
-  _isLoading = true;
-  notifyListeners();  // si vous avez un état de chargement
-  _error = null;
-  try {
-    final response = await _dio.patch('/variants/$variantId/', data: data);
-    if (response.statusCode == 200) {
-      // Succès : mettre à jour la variante dans la liste locale
-      final updatedVariant = Variant.fromJson(response.data);
-      _updateVariantInList(updatedVariant);
-      return true;
-    } else {
-      _error = 'Erreur ${response.statusCode} : ${response.data}';
-      return false;
-    }
-  } catch (e) {
-    _error = e.toString();
     return false;
-  } finally {
-    _isLoading = false;
-    notifyListeners();
   }
-}
 
-// Méthode utilitaire pour mettre à jour la variante dans la liste
-void _updateVariantInList(Variant updatedVariant) {
-  // Si vous stockez les variantes dans le produit sélectionné ou dans une liste globale
-  // Il faut retrouver le produit concerné et remplacer l'ancienne variante.
-  // Exemple : le produit sélectionné est accessible via selectedProduct
-  if (selectedProduct != null) {
-    final index = selectedProduct!.variants?.indexWhere((v) => v.id == updatedVariant.id);
-    if (index != null && index != -1) {
-      selectedProduct!.variants![index] = updatedVariant;
-      // Notifier les listeners
+  Future<bool> updateVariant(int variantId, Map<String, dynamic> data) async {
+    _isLoading = true;
+    notifyListeners(); // si vous avez un état de chargement
+    _error = null;
+    try {
+      final response = await _dio.patch('/variants/$variantId/', data: data);
+      if (response.statusCode == 200) {
+        // Succès : mettre à jour la variante dans la liste locale
+        final updatedVariant = Variant.fromJson(response.data);
+        _updateVariantInList(updatedVariant);
+        return true;
+      } else {
+        _error = 'Erreur ${response.statusCode} : ${response.data}';
+        return false;
+      }
+    } catch (e) {
+      _error = e.toString();
+      return false;
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
-}
+
+  // Méthode utilitaire pour mettre à jour la variante dans la liste
+  void _updateVariantInList(Variant updatedVariant) {
+    // Si vous stockez les variantes dans le produit sélectionné ou dans une liste globale
+    // Il faut retrouver le produit concerné et remplacer l'ancienne variante.
+    // Exemple : le produit sélectionné est accessible via selectedProduct
+    if (selectedProduct != null) {
+      final index = selectedProduct!.variants?.indexWhere(
+        (v) => v.id == updatedVariant.id,
+      );
+      if (index != null && index != -1) {
+        selectedProduct!.variants![index] = updatedVariant;
+        // Notifier les listeners
+        notifyListeners();
+      }
+    }
+  }
 
   // PRODUCT BRAND
 
@@ -464,5 +480,4 @@ void _updateVariantInList(Variant updatedVariant) {
       notifyListeners();
     }
   }
-
 }

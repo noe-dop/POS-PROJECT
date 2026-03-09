@@ -1584,7 +1584,7 @@ class BatchViewSet(viewsets.ModelViewSet):
 class StockViewSet(BaseAuditViewSet):
     queryset = Stock.objects.select_related('product', 'store', 'warehouse')
     serializer_class = StockSerializer
-    filterset_fields = ['store', 'product', 'warehouse']
+    filterset_fields = ['warehouse']
     
     @action(detail=False, methods=['get'])
     def low_stock(self, request):
