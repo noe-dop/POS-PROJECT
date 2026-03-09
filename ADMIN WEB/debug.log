@@ -638,7 +638,7 @@ Traceback (most recent call last):
   File "C:\Users\donan\Desktop\ProjetBoutique\env_boutique\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
     return self.cursor.execute(sql, params)
            ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
-psycopg2.errors.UndefinedTable: ERREUR:  la relation « api_boutique_core_usertype » n'existe pas
+psycopg2.errors.UndefinedTable: ERREUR:  la relation ï¿½ api_boutique_core_usertype ï¿½ n'existe pas
 LINE 1: SELECT 1 AS "a" FROM "api_boutique_core_usertype" WHERE "api...
                              ^
 
@@ -721,7 +721,7 @@ Traceback (most recent call last):
   File "C:\Users\donan\Desktop\ProjetBoutique\env_boutique\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
     return self.cursor.execute(sql, params)
            ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
-django.db.utils.ProgrammingError: ERREUR:  la relation « api_boutique_core_usertype » n'existe pas
+django.db.utils.ProgrammingError: ERREUR:  la relation ï¿½ api_boutique_core_usertype ï¿½ n'existe pas
 LINE 1: SELECT 1 AS "a" FROM "api_boutique_core_usertype" WHERE "api...
                              ^
 
@@ -2263,8 +2263,8 @@ Traceback (most recent call last):
   File "C:\Users\donan\Desktop\ProjetBoutique\env_boutique\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
     return self.cursor.execute(sql, params)
            ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
-psycopg2.errors.UniqueViolation: ERREUR:  la valeur d'une clé dupliquée rompt la contrainte unique « api_boutique_core_store_slug_key »
-DETAIL:  La clé « (slug)=() » existe déjà.
+psycopg2.errors.UniqueViolation: ERREUR:  la valeur d'une clï¿½ dupliquï¿½e rompt la contrainte unique ï¿½ api_boutique_core_store_slug_key ï¿½
+DETAIL:  La clï¿½ ï¿½ (slug)=() ï¿½ existe dï¿½jï¿½.
 
 
 The above exception was the direct cause of the following exception:
@@ -2364,8 +2364,8 @@ Traceback (most recent call last):
   File "C:\Users\donan\Desktop\ProjetBoutique\env_boutique\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
     return self.cursor.execute(sql, params)
            ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
-django.db.utils.IntegrityError: ERREUR:  la valeur d'une clé dupliquée rompt la contrainte unique « api_boutique_core_store_slug_key »
-DETAIL:  La clé « (slug)=() » existe déjà.
+django.db.utils.IntegrityError: ERREUR:  la valeur d'une clï¿½ dupliquï¿½e rompt la contrainte unique ï¿½ api_boutique_core_store_slug_key ï¿½
+DETAIL:  La clï¿½ ï¿½ (slug)=() ï¿½ existe dï¿½jï¿½.
 
 ERROR 2025-10-23 10:08:38,583 basehttp 11796 27588 "POST /api/stores/ HTTP/1.1" 500 27018
 INFO 2025-10-23 10:10:10,256 autoreload 11796 32160 C:\Users\donan\Desktop\ProjetBoutique\api_boutique_core\serializers.py changed, reloading.
@@ -10250,55 +10250,55 @@ INFO 2025-11-04 10:18:34,616 autoreload 16288 35392 C:\Users\donan\Desktop\Proje
 ERROR 2025-11-04 10:21:32,623 basehttp 12004 16796 You're accessing the development server over HTTPS, but it only supports HTTP.
 ERROR 2025-11-04 10:21:32,625 basehttp 12004 4348 You're accessing the development server over HTTPS, but it only supports HTTP.
 INFO 2025-11-04 10:23:27,210 autoreload 26912 3784 Watching for file changes with StatReloader
-INFO 2025-11-04 10:23:29,394 basehttp 26912 11800 code 400, message Bad request syntax ('\x16\x03\x01\x07\x00\x01\x00\x06ü\x03\x03`1{]¹Ü"*$¾\x89¦Såp¯¯õSu')
+INFO 2025-11-04 10:23:29,394 basehttp 26912 11800 code 400, message Bad request syntax ('\x16\x03\x01\x07\x00\x01\x00\x06ï¿½\x03\x03`1{]ï¿½ï¿½"*$ï¿½\x89ï¿½Sï¿½pï¿½ï¿½ï¿½Su')
 ERROR 2025-11-04 10:23:29,394 basehttp 26912 11800 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:23:29,396 basehttp 26912 20556 code 400, message Bad request syntax ('\x16\x03\x01\x07\x00\x01\x00\x06ü\x03\x03Îk)ßïÓýýÂV³z¹ãÙÆ[w¢bNn\x0f¼¬@k[Ê')
+INFO 2025-11-04 10:23:29,396 basehttp 26912 20556 code 400, message Bad request syntax ('\x16\x03\x01\x07\x00\x01\x00\x06ï¿½\x03\x03ï¿½k)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Vï¿½zï¿½ï¿½ï¿½ï¿½[wï¿½bNn\x0fï¿½ï¿½@k[ï¿½')
 ERROR 2025-11-04 10:23:29,396 basehttp 26912 20556 You're accessing the development server over HTTPS, but it only supports HTTP.
 INFO 2025-11-04 10:23:46,546 autoreload 14772 11796 Watching for file changes with StatReloader
-INFO 2025-11-04 10:23:49,276 basehttp 14772 24124 code 400, message Bad request version ('Ì¿%h\x14+×\x109LP~ý\x89§s\x11\x9fÍ±D\x02ù\x18#Üqú?Ùê')
+INFO 2025-11-04 10:23:49,276 basehttp 14772 24124 code 400, message Bad request version ('Ì¿%h\x14+ï¿½\x109LP~ï¿½\x89ï¿½s\x11\x9fÍ±D\x02ï¿½\x18#ï¿½qï¿½?ï¿½ï¿½')
 ERROR 2025-11-04 10:23:49,277 basehttp 14772 24124 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:23:49,279 basehttp 14772 35176 code 400, message Bad request syntax ('\x16\x03\x01\x06À\x01\x00\x06¼\x03\x03\x9bç¢ïÊT\x018,MëË(&')
+INFO 2025-11-04 10:23:49,279 basehttp 14772 35176 code 400, message Bad request syntax ('\x16\x03\x01\x06ï¿½\x01\x00\x06ï¿½\x03\x03\x9bï¿½ï¿½ï¿½T\x018,Mï¿½ï¿½(&')
 ERROR 2025-11-04 10:23:49,280 basehttp 14772 35176 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:23:54,705 basehttp 14772 28620 code 400, message Bad request version ('\x02h2\x08http/1.1ÿ\x01\x00\x01\x00DÍ\x00\x05\x00\x03\x02h2\x00\x12\x00\x00\x00+\x00\x07\x06::\x03\x04\x03\x03\x00')
+INFO 2025-11-04 10:23:54,705 basehttp 14772 28620 code 400, message Bad request version ('\x02h2\x08http/1.1ï¿½\x01\x00\x01\x00Dï¿½\x00\x05\x00\x03\x02h2\x00\x12\x00\x00\x00+\x00\x07\x06::\x03\x04\x03\x03\x00')
 ERROR 2025-11-04 10:23:54,705 basehttp 14772 28620 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:23:54,705 basehttp 14772 7064 code 400, message Bad request version ('Ò\x8e©ÝÄ\x81ì\x839ì\x00+\x00\x07\x06ªª\x03\x04\x03\x03\x00#\x00\x00\x00')
+INFO 2025-11-04 10:23:54,705 basehttp 14772 7064 code 400, message Bad request version ('ï¿½\x8eï¿½ï¿½ï¿½\x81ï¿½\x839ï¿½\x00+\x00\x07\x06ï¿½ï¿½\x03\x04\x03\x03\x00#\x00\x00\x00')
 ERROR 2025-11-04 10:23:54,706 basehttp 14772 7064 You're accessing the development server over HTTPS, but it only supports HTTP.
 INFO 2025-11-04 10:23:54,708 basehttp 14772 904 code 400, message Bad request version ('\x00\x02\x01\x00\x00')
 ERROR 2025-11-04 10:23:54,708 basehttp 14772 904 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:23:54,708 basehttp 14772 14188 code 400, message Bad request version ('ñ5à.í%À\x9as\x16|GÝfêÏK\x003\x04ï\x04í')
+INFO 2025-11-04 10:23:54,708 basehttp 14772 14188 code 400, message Bad request version ('ï¿½5ï¿½.ï¿½%ï¿½\x9as\x16|Gï¿½fï¿½ï¿½K\x003\x04ï¿½\x04ï¿½')
 ERROR 2025-11-04 10:23:54,708 basehttp 14772 14188 You're accessing the development server over HTTPS, but it only supports HTTP.
 INFO 2025-11-04 10:24:12,657 autoreload 14772 11796 C:\Users\donan\Desktop\ProjetBoutique\backend_boutique\settings.py changed, reloading.
 INFO 2025-11-04 10:24:13,339 autoreload 21024 20228 Watching for file changes with StatReloader
-INFO 2025-11-04 10:24:16,101 basehttp 21024 26100 code 400, message Bad request syntax ('\x16\x03\x01\x07\x00\x01\x00\x06ü\x03\x03º(p[·»m\x98ñ\x88')
+INFO 2025-11-04 10:24:16,101 basehttp 21024 26100 code 400, message Bad request syntax ('\x16\x03\x01\x07\x00\x01\x00\x06ï¿½\x03\x03ï¿½(p[ï¿½ï¿½m\x98ï¿½\x88')
 ERROR 2025-11-04 10:24:16,102 basehttp 21024 26100 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:24:16,103 basehttp 21024 31476 code 400, message Bad request syntax ('\x16\x03\x01\x07\x00\x01\x00\x06ü\x03\x03\x80&¾\x05ÿK\x17\x15\x82\x83°-j\x9fÕw¹Ä\x0e9kÎ\x9e')
+INFO 2025-11-04 10:24:16,103 basehttp 21024 31476 code 400, message Bad request syntax ('\x16\x03\x01\x07\x00\x01\x00\x06ï¿½\x03\x03\x80&ï¿½\x05ï¿½K\x17\x15\x82\x83ï¿½-j\x9fï¿½wï¿½ï¿½\x0e9kï¿½\x9e')
 ERROR 2025-11-04 10:24:16,103 basehttp 21024 31476 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:24:28,241 basehttp 21024 21644 code 400, message Bad request version ('Èwj\x05n\x1bû±Ò\x14\x15V\x807\x19ÛXã\x902µC¤7#')
+INFO 2025-11-04 10:24:28,241 basehttp 21024 21644 code 400, message Bad request version ('ï¿½wj\x05n\x1bï¿½ï¿½ï¿½\x14\x15V\x807\x19ï¿½Xï¿½\x902ï¿½Cï¿½7#')
 ERROR 2025-11-04 10:24:28,242 basehttp 21024 21644 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:24:28,243 basehttp 21024 9884 code 400, message Bad request version ('Ïã%5\x03\x97Zû%Éa¯5ÉÄå²\x973E¡óµ\x84\x12\x95\x08®ç»C\x11¼Á\x86\x88¨jZ\x8d´\x05µ\x18\x8a\x93L·Û¢')
+INFO 2025-11-04 10:24:28,243 basehttp 21024 9884 code 400, message Bad request version ('ï¿½ï¿½%5\x03\x97Zï¿½%ï¿½aï¿½5ï¿½ï¿½ï¿½\x973Eï¿½ï¿½\x84\x12\x95\x08ï¿½ï¿½C\x11ï¿½ï¿½\x86\x88ï¿½jZ\x8dï¿½\x05ï¿½\x18\x8a\x93Lï¿½Û¢')
 ERROR 2025-11-04 10:24:28,243 basehttp 21024 9884 You're accessing the development server over HTTPS, but it only supports HTTP.
 INFO 2025-11-04 10:24:28,247 basehttp 21024 11560 code 400, message Bad request version ('\x02h2\x08http/1.1\x00')
 ERROR 2025-11-04 10:24:28,247 basehttp 21024 11560 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:24:28,248 basehttp 21024 9812 code 400, message Bad request version ("»9'¼Ì")
+INFO 2025-11-04 10:24:28,248 basehttp 21024 9812 code 400, message Bad request version ("ï¿½9'ï¿½ï¿½")
 ERROR 2025-11-04 10:24:28,248 basehttp 21024 9812 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:24:28,249 basehttp 21024 8920 code 400, message Bad request version ('\x1a\x1a\x13\x01\x13\x02\x13\x03À+À/À,À0Ì©Ì¨À\x13À\x14\x00\x9c\x00\x9d\x00/\x005\x01\x00\x06\x93')
-INFO 2025-11-04 10:24:28,249 basehttp 21024 32396 code 400, message Bad request version ('*[Ê$uëÌNuW')
+INFO 2025-11-04 10:24:28,249 basehttp 21024 8920 code 400, message Bad request version ('\x1a\x1a\x13\x01\x13\x02\x13\x03ï¿½+ï¿½/ï¿½,ï¿½0Ì©Ì¨ï¿½\x13ï¿½\x14\x00\x9c\x00\x9d\x00/\x005\x01\x00\x06\x93')
+INFO 2025-11-04 10:24:28,249 basehttp 21024 32396 code 400, message Bad request version ('*[ï¿½$uï¿½ï¿½NuW')
 ERROR 2025-11-04 10:24:28,250 basehttp 21024 8920 You're accessing the development server over HTTPS, but it only supports HTTP.
 ERROR 2025-11-04 10:24:28,250 basehttp 21024 32396 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:24:28,403 basehttp 21024 33992 code 400, message Bad request syntax ('\x16\x03\x01\x07\x00\x01\x00\x06ü\x03\x03\x7f8:6O\x18\x16ÈãÌ\x1aÃ\x81Ã\x1aoF\\)\x17¸tºgG=\x18\x9c\x953J')
+INFO 2025-11-04 10:24:28,403 basehttp 21024 33992 code 400, message Bad request syntax ('\x16\x03\x01\x07\x00\x01\x00\x06ï¿½\x03\x03\x7f8:6O\x18\x16ï¿½ï¿½ï¿½\x1aï¿½\x81ï¿½\x1aoF\\)\x17ï¿½tï¿½gG=\x18\x9c\x953J')
 ERROR 2025-11-04 10:24:28,404 basehttp 21024 33992 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:24:28,405 basehttp 21024 16456 code 400, message Bad request version ('K\x92¦t\x05\x9cûD\x8b\x06%\x83f2µ\x86XQÆ\x07\x19&z+q+X¶ò$¶µµPÒd¿Lj=çª\x7fÛÇM\x9c"p"x\x8c)\x13\x10p\x04¨¡Q')
+INFO 2025-11-04 10:24:28,405 basehttp 21024 16456 code 400, message Bad request version ('K\x92ï¿½t\x05\x9cï¿½D\x8b\x06%\x83f2ï¿½\x86XQï¿½\x07\x19&z+q+Xï¿½ï¿½$ï¿½ï¿½ï¿½Pï¿½dï¿½Lj=ï¿½\x7fï¿½ï¿½M\x9c"p"x\x8c)\x13\x10p\x04ï¿½ï¿½Q')
 ERROR 2025-11-04 10:24:28,405 basehttp 21024 16456 You're accessing the development server over HTTPS, but it only supports HTTP.
 INFO 2025-11-04 10:24:28,409 basehttp 21024 33264 code 400, message Bad request version ('\x00\x02\x01\x00\x00')
 ERROR 2025-11-04 10:24:28,409 basehttp 21024 33264 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:24:28,409 basehttp 21024 29780 code 400, message Bad request version ('¶®âòtE%ëÊ(cüát\\¨\x16%-.qã2h>üú¬>á\x89{\x00ðÌõvR³\x14\x9e')
+INFO 2025-11-04 10:24:28,409 basehttp 21024 29780 code 400, message Bad request version ('ï¿½ï¿½ï¿½ï¿½tE%ï¿½ï¿½(cï¿½ï¿½t\\ï¿½\x16%-.qï¿½2h>ï¿½ï¿½ï¿½>ï¿½\x89{\x00ï¿½ï¿½ï¿½vRï¿½\x14\x9e')
 ERROR 2025-11-04 10:24:28,410 basehttp 21024 29780 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:24:28,411 basehttp 21024 14920 code 400, message Bad request version ('2:t\x86>ÑÖº1\x01u~\x18=F\x9aa\x14àg')
+INFO 2025-11-04 10:24:28,411 basehttp 21024 14920 code 400, message Bad request version ('2:t\x86>ï¿½Öº1\x01u~\x18=F\x9aa\x14ï¿½g')
 ERROR 2025-11-04 10:24:28,411 basehttp 21024 14920 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:24:28,412 basehttp 21024 28048 code 400, message Bad request version ('ý¦µ\x12iÚò\x13O')
+INFO 2025-11-04 10:24:28,412 basehttp 21024 28048 code 400, message Bad request version ('ï¿½ï¿½ï¿½\x12iï¿½ï¿½\x13O')
 ERROR 2025-11-04 10:24:28,412 basehttp 21024 28048 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:24:28,629 basehttp 21024 13772 code 400, message Bad request version ('v¤\x84Õ\x92¤\x13\x91<¨¾Æ³sû\x9b\x18')
-INFO 2025-11-04 10:24:28,630 basehttp 21024 19828 code 400, message Bad request version ('\x83^v\x96ô¼')
+INFO 2025-11-04 10:24:28,629 basehttp 21024 13772 code 400, message Bad request version ('vï¿½\x84ï¿½\x92ï¿½\x13\x91<ï¿½ï¿½Æ³sï¿½\x9b\x18')
+INFO 2025-11-04 10:24:28,630 basehttp 21024 19828 code 400, message Bad request version ('\x83^v\x96ï¿½ï¿½')
 ERROR 2025-11-04 10:24:28,630 basehttp 21024 13772 You're accessing the development server over HTTPS, but it only supports HTTP.
 ERROR 2025-11-04 10:24:28,631 basehttp 21024 19828 You're accessing the development server over HTTPS, but it only supports HTTP.
 INFO 2025-11-04 10:24:28,631 basehttp 21024 9224 code 400, message Bad request version ('\x00\x02\x01\x00\x00')
@@ -10309,14 +10309,14 @@ INFO 2025-11-04 10:24:46,109 autoreload 21024 20228 C:\Users\donan\Desktop\Proje
 INFO 2025-11-04 10:24:46,841 autoreload 5180 29056 Watching for file changes with StatReloader
 INFO 2025-11-04 10:24:53,703 autoreload 5180 29056 C:\Users\donan\Desktop\ProjetBoutique\backend_boutique\settings.py changed, reloading.
 INFO 2025-11-04 10:25:14,619 autoreload 20772 34180 Watching for file changes with StatReloader
-INFO 2025-11-04 10:25:19,108 basehttp 20772 3796 code 400, message Bad request version ('ºº\x13\x01\x13\x02\x13\x03À+À/À,À0Ì©Ì¨À\x13À\x14\x00\x9c\x00\x9d\x00/\x005\x01\x00\x06\x93\x9a\x9a\x00\x00\x00\x12\x00\x00\x00-\x00\x02\x01\x01ÿ\x01\x00\x01\x00DÍ\x00\x05\x00\x03\x02h2\x00+\x00\x07\x06')
+INFO 2025-11-04 10:25:19,108 basehttp 20772 3796 code 400, message Bad request version ('ï¿½ï¿½\x13\x01\x13\x02\x13\x03ï¿½+ï¿½/ï¿½,ï¿½0Ì©Ì¨ï¿½\x13ï¿½\x14\x00\x9c\x00\x9d\x00/\x005\x01\x00\x06\x93\x9a\x9a\x00\x00\x00\x12\x00\x00\x00-\x00\x02\x01\x01ï¿½\x01\x00\x01\x00Dï¿½\x00\x05\x00\x03\x02h2\x00+\x00\x07\x06')
 ERROR 2025-11-04 10:25:19,109 basehttp 20772 3796 You're accessing the development server over HTTPS, but it only supports HTTP.
 INFO 2025-11-04 10:25:19,110 basehttp 20772 8976 code 400, message Bad request version ('\x19')
 ERROR 2025-11-04 10:25:19,111 basehttp 20772 8976 You're accessing the development server over HTTPS, but it only supports HTTP.
 INFO 2025-11-04 10:26:19,684 autoreload 16580 12744 Watching for file changes with StatReloader
-INFO 2025-11-04 10:26:22,061 basehttp 16580 9420 code 400, message Bad request version ('[°9ñ')
+INFO 2025-11-04 10:26:22,061 basehttp 16580 9420 code 400, message Bad request version ('[ï¿½9ï¿½')
 ERROR 2025-11-04 10:26:22,061 basehttp 16580 9420 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:26:22,063 basehttp 16580 14560 code 400, message Bad request version ('Ï\xad\x7f<\x9b\x8b´ôç\x96²J¹\x1auÐ\x8d\x94Èo8XË¬¹W¹ëù\x0e\x90·\x00')
+INFO 2025-11-04 10:26:22,063 basehttp 16580 14560 code 400, message Bad request version ('ï¿½\xad\x7f<\x9b\x8bï¿½ï¿½ï¿½\x96ï¿½Jï¿½\x1auï¿½\x8d\x94ï¿½o8XË¬ï¿½Wï¿½ï¿½ï¿½\x0e\x90ï¿½\x00')
 ERROR 2025-11-04 10:26:22,064 basehttp 16580 14560 You're accessing the development server over HTTPS, but it only supports HTTP.
 INFO 2025-11-04 10:26:51,301 basehttp 16580 22936 "GET / HTTP/1.1" 302 0
 INFO 2025-11-04 10:26:51,401 basehttp 16580 22936 "GET /swagger/ HTTP/1.1" 200 1633
@@ -10354,9 +10354,9 @@ INFO 2025-11-04 10:32:47,251 autoreload 3784 26652 C:\Users\donan\Desktop\Projet
 ERROR 2025-11-04 10:32:49,863 basehttp 35580 32032 You're accessing the development server over HTTPS, but it only supports HTTP.
 ERROR 2025-11-04 10:32:49,865 basehttp 35580 27864 You're accessing the development server over HTTPS, but it only supports HTTP.
 INFO 2025-11-04 10:32:56,638 autoreload 24800 13928 Watching for file changes with StatReloader
-INFO 2025-11-04 10:32:58,251 basehttp 24800 20020 code 400, message Bad request version ('ÚÚ\x13\x01\x13\x02\x13\x03À+À/À,À0Ì©Ì¨À\x13À\x14\x00\x9c\x00\x9d\x00/\x005\x01\x00\x06s\x9a\x9a\x00\x00\x00#\x00\x00\x00\x17\x00\x00ÿ\x01\x00\x01\x00\x00-\x00\x02\x01\x01\x00\x1b\x00\x03\x02\x00\x02\x00')
+INFO 2025-11-04 10:32:58,251 basehttp 24800 20020 code 400, message Bad request version ('ï¿½ï¿½\x13\x01\x13\x02\x13\x03ï¿½+ï¿½/ï¿½,ï¿½0Ì©Ì¨ï¿½\x13ï¿½\x14\x00\x9c\x00\x9d\x00/\x005\x01\x00\x06s\x9a\x9a\x00\x00\x00#\x00\x00\x00\x17\x00\x00ï¿½\x01\x00\x01\x00\x00-\x00\x02\x01\x01\x00\x1b\x00\x03\x02\x00\x02\x00')
 ERROR 2025-11-04 10:32:58,252 basehttp 24800 20020 You're accessing the development server over HTTPS, but it only supports HTTP.
-INFO 2025-11-04 10:32:58,253 basehttp 24800 1964 code 400, message Bad request version ('\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01\x08\x06\x06\x01\x00\x1b\x00\x03\x02\x00\x02\x00\x05\x00\x05\x01\x00\x00\x00\x00ÿ\x01\x00\x01\x00\x00\x12\x00\x00\x00')
+INFO 2025-11-04 10:32:58,253 basehttp 24800 1964 code 400, message Bad request version ('\x00\x12\x00\x10\x04\x03\x08\x04\x04\x01\x05\x03\x08\x05\x05\x01\x08\x06\x06\x01\x00\x1b\x00\x03\x02\x00\x02\x00\x05\x00\x05\x01\x00\x00\x00\x00ï¿½\x01\x00\x01\x00\x00\x12\x00\x00\x00')
 ERROR 2025-11-04 10:32:58,254 basehttp 24800 1964 You're accessing the development server over HTTPS, but it only supports HTTP.
 INFO 2025-11-04 10:33:52,041 autoreload 3148 10228 Watching for file changes with StatReloader
 INFO 2025-11-04 10:33:54,328 basehttp 3148 21072 "GET / HTTP/1.1" 302 0
@@ -60349,6 +60349,352 @@ Traceback (most recent call last):
     )
 TypeError: 'Meta.fields' must not contain non-model field names: supplier, status
 ERROR 2025-12-10 14:34:23,839 basehttp "GET /swagger/?format=openapi HTTP/1.1" 500 184671
+<<<<<<< HEAD
+ERROR 2025-12-17 11:30:36,516 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2025-12-17 11:34:59,666 log Internal Server Error: /api/auth/register
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\utils\deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\middleware\common.py", line 108, in process_response
+    return self.response_redirect_class(self.get_full_path_with_slash(request))
+                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\middleware\common.py", line 87, in get_full_path_with_slash
+    raise RuntimeError(
+    ...<9 lines>...
+    )
+RuntimeError: You called this URL via POST, but the URL doesn't end in a slash and you have APPEND_SLASH set. Django can't redirect to the slash URL while maintaining POST data. Change your form to point to 127.0.0.1:8000/api/auth/register/ (note the trailing slash), or set APPEND_SLASH=False in your Django settings.
+ERROR 2025-12-17 11:34:59,671 basehttp "POST /api/auth/register HTTP/1.1" 500 79566
+ERROR 2025-12-17 16:20:35,587 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2025-12-17 17:23:16,564 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2025-12-17 17:34:53,461 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2025-12-18 09:55:17,638 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2025-12-18 13:13:46,527 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2025-12-18 13:39:37,174 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-01-21 15:30:39,946 log Internal Server Error: /api/auth/register/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: ERREUR:  la relation Â« api_boutique_core_user Â» n'existe pas
+LINE 1: SELECT 1 AS "a" FROM "api_boutique_core_user" WHERE "api_bou...
+                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\generics.py", line 194, in post
+    return self.create(request, *args, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 57, in create
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 444, in run_validation
+    value = self.to_internal_value(data)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 501, in to_internal_value
+    validated_value = field.run_validation(primitive_value)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 757, in run_validation
+    return super().run_validation(data)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 539, in run_validation
+    self.run_validators(value)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 551, in run_validators
+    validator(value, self)
+    ~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\validators.py", line 86, in __call__
+    if qs_exists(queryset):
+       ~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\validators.py", line 23, in qs_exists
+    return queryset.exists()
+           ~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\query.py", line 1296, in exists
+    return self.query.has_results(using=self.db)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\sql\query.py", line 674, in has_results
+    return compiler.has_results()
+           ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1591, in has_results
+    return bool(self.execute_sql(SINGLE))
+                ~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: ERREUR:  la relation Â« api_boutique_core_user Â» n'existe pas
+LINE 1: SELECT 1 AS "a" FROM "api_boutique_core_user" WHERE "api_bou...
+                             ^
+
+ERROR 2026-01-21 15:30:39,979 basehttp "POST /api/auth/register/ HTTP/1.1" 500 209442
+ERROR 2026-01-27 13:51:45,913 log Internal Server Error: /api/owner/register/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.NotNullViolation: ERREUR:  une valeur NULL viole la contrainte NOT NULL de la colonne Â« user_type_id Â» dans la relation Â« api_boutique_core_user Â»
+DETAIL:  La ligne en Ã©chec contient (1, , null, f, vlaly493, vignon, laly, lalyvignon@gmail.com, f, t, 0103742646, null, , 2026-01-27 13:51:45.602237+00, 2026-01-27 13:51:45.60225+00, null).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\generics.py", line 194, in post
+    return self.create(request, *args, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 57, in create
+    owner = serializer.save()
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 323, in create
+    user = super().create(validated_data)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 311, in create
+    user = User.objects.create(**validated_data)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\contrib\auth\base_user.py", line 65, in save
+    super().save(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, fields, returning_fields, raw
+    )
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\query.py", line 1868, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.IntegrityError: ERREUR:  une valeur NULL viole la contrainte NOT NULL de la colonne Â« user_type_id Â» dans la relation Â« api_boutique_core_user Â»
+DETAIL:  La ligne en Ã©chec contient (1, , null, f, vlaly493, vignon, laly, lalyvignon@gmail.com, f, t, 0103742646, null, , 2026-01-27 13:51:45.602237+00, 2026-01-27 13:51:45.60225+00, null).
+
+ERROR 2026-01-27 13:51:45,925 basehttp "POST /api/owner/register/ HTTP/1.1" 500 221580
+ERROR 2026-01-27 14:01:39,893 log Internal Server Error: /api/owner/register/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\generics.py", line 194, in post
+    return self.create(request, *args, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 63, in create
+    "id": owner.user.id,
+          ^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'user'
+ERROR 2026-01-27 14:01:39,899 basehttp "POST /api/owner/register/ HTTP/1.1" 500 108330
+ERROR 2026-01-27 14:06:45,738 log Internal Server Error: /api/owner/register/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\generics.py", line 194, in post
+    return self.create(request, *args, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 64, in create
+    "user_id": owner.user_id,
+               ^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'user_id'
+ERROR 2026-01-27 14:06:45,742 basehttp "POST /api/owner/register/ HTTP/1.1" 500 108382
+ERROR 2026-01-27 15:12:13,308 log Internal Server Error: /api/owner/register/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\generics.py", line 194, in post
+    return self.create(request, *args, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 64, in create
+    "user_id": owner.user.id,
+               ^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'user'
+ERROR 2026-01-27 15:12:13,313 basehttp "POST /api/owner/register/ HTTP/1.1" 500 108358
+ERROR 2026-01-27 15:19:15,844 log Internal Server Error: /api/owner/register/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\generic\base.py", line 105, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\generics.py", line 194, in post
+    return self.create(request, *args, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 68, in create
+    "photo_url": owner.user.photo.url if owner.user.photo else None
+                                         ^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'photo'. Did you mean: 'phone'?
+ERROR 2026-01-27 15:19:15,849 basehttp "POST /api/owner/register/ HTTP/1.1" 500 108541
+=======
 ERROR 2025-12-10 16:04:34,955 log Internal Server Error: /api/employee-roles/
 Traceback (most recent call last):
   File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
@@ -69270,11 +69616,681 @@ Traceback (most recent call last):
          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\utils.py", line 91, in __exit__
     raise dj_exc_value.with_traceback(traceback) from exc_value
-  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
-    return self.cursor.execute(sql, params)
-           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
-django.db.utils.ProgrammingError: column api_boutique_core_user.user_type_id does not exist
-LINE 1: ..."is_staff", "api_boutique_core_user"."is_active", "api_bouti...
-                                                             ^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: connection to server at "aws-1-eu-west-1.pooler.supabase.com" (18.202.64.2), port 5432 failed: FATAL:  Tenant or user not found
+connection to server at "aws-1-eu-west-1.pooler.supabase.com" (18.202.64.2), port 5432 failed: FATAL:  Tenant or user not found
 
-ERROR 2026-03-09 15:05:26,658 basehttp "POST /api/auth/login/ HTTP/1.1" 500 218081
+ERROR 2026-01-07 10:11:13,988 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 43, in list
+    return self.get_paginated_response(serializer.data)
+                                       ^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 797, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 716, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 540, in to_representation
+    ret[field.field_name] = field.to_representation(attribute)
+                            ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\fields.py", line 1870, in to_representation
+    return method(value)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 758, in get_margin
+    if obj.cost_price and obj.base_price and obj.cost_price > 0:
+       ^^^^^^^^^^^^^^
+AttributeError: 'Product' object has no attribute 'cost_price'
+ERROR 2026-01-07 10:11:13,995 basehttp "GET /api/products/ HTTP/1.1" 500 157562
+ERROR 2026-01-07 10:11:14,092 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 43, in list
+    return self.get_paginated_response(serializer.data)
+                                       ^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 797, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 716, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 540, in to_representation
+    ret[field.field_name] = field.to_representation(attribute)
+                            ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\fields.py", line 1870, in to_representation
+    return method(value)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 758, in get_margin
+    if obj.cost_price and obj.base_price and obj.cost_price > 0:
+       ^^^^^^^^^^^^^^
+AttributeError: 'Product' object has no attribute 'cost_price'
+ERROR 2026-01-07 10:11:14,095 basehttp "GET /api/products/ HTTP/1.1" 500 157562
+ERROR 2026-01-07 10:11:14,198 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 43, in list
+    return self.get_paginated_response(serializer.data)
+                                       ^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 797, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 716, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 540, in to_representation
+    ret[field.field_name] = field.to_representation(attribute)
+                            ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\fields.py", line 1870, in to_representation
+    return method(value)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 758, in get_margin
+    if obj.cost_price and obj.base_price and obj.cost_price > 0:
+       ^^^^^^^^^^^^^^
+AttributeError: 'Product' object has no attribute 'cost_price'
+ERROR 2026-01-07 10:11:14,202 basehttp "GET /api/products/ HTTP/1.1" 500 157562
+ERROR 2026-01-07 10:11:14,332 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 43, in list
+    return self.get_paginated_response(serializer.data)
+                                       ^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 797, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 716, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 540, in to_representation
+    ret[field.field_name] = field.to_representation(attribute)
+                            ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\fields.py", line 1870, in to_representation
+    return method(value)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 758, in get_margin
+    if obj.cost_price and obj.base_price and obj.cost_price > 0:
+       ^^^^^^^^^^^^^^
+AttributeError: 'Product' object has no attribute 'cost_price'
+ERROR 2026-01-07 10:11:14,337 basehttp "GET /api/products/ HTTP/1.1" 500 157562
+ERROR 2026-01-07 10:14:40,202 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 43, in list
+    return self.get_paginated_response(serializer.data)
+                                       ^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 797, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 716, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 540, in to_representation
+    ret[field.field_name] = field.to_representation(attribute)
+                            ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\fields.py", line 1870, in to_representation
+    return method(value)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 758, in get_margin
+    if obj.cost_price and obj.base_price and obj.cost_price > 0:
+       ^^^^^^^^^^^^^^
+AttributeError: 'Product' object has no attribute 'cost_price'
+ERROR 2026-01-07 10:14:40,205 basehttp "GET /api/products/?store=1 HTTP/1.1" 500 158024
+ERROR 2026-01-07 10:16:18,070 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 43, in list
+    return self.get_paginated_response(serializer.data)
+                                       ^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 797, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 716, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 540, in to_representation
+    ret[field.field_name] = field.to_representation(attribute)
+                            ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\fields.py", line 1870, in to_representation
+    return method(value)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 758, in get_margin
+    if obj.cost_price and obj.base_price and obj.cost_price > 0:
+       ^^^^^^^^^^^^^^
+AttributeError: 'Product' object has no attribute 'cost_price'
+ERROR 2026-01-07 10:16:18,074 basehttp "GET /api/products/?store=1 HTTP/1.1" 500 158024
+ERROR 2026-01-07 10:17:25,552 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 43, in list
+    return self.get_paginated_response(serializer.data)
+                                       ^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 797, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 716, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 540, in to_representation
+    ret[field.field_name] = field.to_representation(attribute)
+                            ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\fields.py", line 1870, in to_representation
+    return method(value)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 758, in get_margin
+    if obj.cost_price and obj.base_price and obj.cost_price > 0:
+       ^^^^^^^^^^^^^^
+AttributeError: 'Product' object has no attribute 'cost_price'
+ERROR 2026-01-07 10:17:25,556 basehttp "GET /api/products/ HTTP/1.1" 500 157562
+ERROR 2026-01-07 10:17:25,787 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 43, in list
+    return self.get_paginated_response(serializer.data)
+                                       ^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 797, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 716, in to_representation
+    self.child.to_representation(item) for item in iterable
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\serializers.py", line 540, in to_representation
+    ret[field.field_name] = field.to_representation(attribute)
+                            ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\fields.py", line 1870, in to_representation
+    return method(value)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 758, in get_margin
+    if obj.cost_price and obj.base_price and obj.cost_price > 0:
+       ^^^^^^^^^^^^^^
+AttributeError: 'Product' object has no attribute 'cost_price'
+ERROR 2026-01-07 10:17:25,791 basehttp "GET /api/products/ HTTP/1.1" 500 157562
+ERROR 2026-01-13 15:04:58,469 log Internal Server Error: /api/inventory-counts
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\middleware\common.py", line 108, in process_response
+    return self.response_redirect_class(self.get_full_path_with_slash(request))
+                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\middleware\common.py", line 87, in get_full_path_with_slash
+    raise RuntimeError(
+    ...<9 lines>...
+    )
+RuntimeError: You called this URL via POST, but the URL doesn't end in a slash and you have APPEND_SLASH set. Django can't redirect to the slash URL while maintaining POST data. Change your form to point to localhost:8000/api/inventory-counts/ (note the trailing slash), or set APPEND_SLASH=False in your Django settings.
+ERROR 2026-01-13 15:04:58,483 basehttp "POST /api/inventory-counts HTTP/1.1" 500 84624
+ERROR 2026-01-13 15:20:18,592 log Internal Server Error: /api/inventory-counts
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\middleware\common.py", line 108, in process_response
+    return self.response_redirect_class(self.get_full_path_with_slash(request))
+                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\middleware\common.py", line 87, in get_full_path_with_slash
+    raise RuntimeError(
+    ...<9 lines>...
+    )
+RuntimeError: You called this URL via POST, but the URL doesn't end in a slash and you have APPEND_SLASH set. Django can't redirect to the slash URL while maintaining POST data. Change your form to point to localhost:8000/api/inventory-counts/ (note the trailing slash), or set APPEND_SLASH=False in your Django settings.
+ERROR 2026-01-13 15:20:18,596 basehttp "POST /api/inventory-counts HTTP/1.1" 500 84624
+ERROR 2026-01-13 15:27:33,971 log Internal Server Error: /api/inventory-counts
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\utils\deprecation.py", line 122, in __call__
+    response = self.process_response(request, response)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\middleware\common.py", line 108, in process_response
+    return self.response_redirect_class(self.get_full_path_with_slash(request))
+                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\middleware\common.py", line 87, in get_full_path_with_slash
+    raise RuntimeError(
+    ...<9 lines>...
+    )
+RuntimeError: You called this URL via POST, but the URL doesn't end in a slash and you have APPEND_SLASH set. Django can't redirect to the slash URL while maintaining POST data. Change your form to point to localhost:8000/api/inventory-counts/ (note the trailing slash), or set APPEND_SLASH=False in your Django settings.
+ERROR 2026-01-13 15:27:33,973 basehttp "POST /api/inventory-counts HTTP/1.1" 500 84624
+ERROR 2026-01-19 11:32:31,285 log Internal Server Error: /api/categories/1/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 91, in destroy
+    self.perform_destroy(instance)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 95, in perform_destroy
+    instance.delete()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\base.py", line 1280, in delete
+    collector.collect([self], keep_parents=keep_parents)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\deletion.py", line 350, in collect
+    raise ProtectedError(
+    ...<7 lines>...
+    )
+django.db.models.deletion.ProtectedError: ("Cannot delete some instances of model 'ProductCategory' because they are referenced through protected foreign keys: 'Product.category'.", {<Product: Product object (1)>, <Product: Product object (3)>, <Product: Product object (4)>})
+ERROR 2026-01-19 11:32:31,297 basehttp "DELETE /api/categories/1/ HTTP/1.1" 500 125662
+ERROR 2026-01-19 11:34:56,158 log Internal Server Error: /api/categories/1/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 91, in destroy
+    self.perform_destroy(instance)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 95, in perform_destroy
+    instance.delete()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\base.py", line 1280, in delete
+    collector.collect([self], keep_parents=keep_parents)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\deletion.py", line 350, in collect
+    raise ProtectedError(
+    ...<7 lines>...
+    )
+django.db.models.deletion.ProtectedError: ("Cannot delete some instances of model 'ProductCategory' because they are referenced through protected foreign keys: 'Product.category'.", {<Product: Product object (1)>, <Product: Product object (3)>, <Product: Product object (4)>})
+ERROR 2026-01-19 11:34:56,164 basehttp "DELETE /api/categories/1/ HTTP/1.1" 500 125662
+ERROR 2026-01-19 11:36:35,924 log Internal Server Error: /api/categories/1/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 91, in destroy
+    self.perform_destroy(instance)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 95, in perform_destroy
+    instance.delete()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\base.py", line 1280, in delete
+    collector.collect([self], keep_parents=keep_parents)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\deletion.py", line 350, in collect
+    raise ProtectedError(
+    ...<7 lines>...
+    )
+django.db.models.deletion.ProtectedError: ("Cannot delete some instances of model 'ProductCategory' because they are referenced through protected foreign keys: 'Product.category'.", {<Product: Product object (1)>, <Product: Product object (3)>, <Product: Product object (4)>})
+ERROR 2026-01-19 11:36:35,929 basehttp "DELETE /api/categories/1/ HTTP/1.1" 500 27540
+ERROR 2026-01-19 11:40:33,392 log Internal Server Error: /api/categories/1/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 91, in destroy
+    self.perform_destroy(instance)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 95, in perform_destroy
+    instance.delete()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\base.py", line 1280, in delete
+    collector.collect([self], keep_parents=keep_parents)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\deletion.py", line 350, in collect
+    raise ProtectedError(
+    ...<7 lines>...
+    )
+django.db.models.deletion.ProtectedError: ("Cannot delete some instances of model 'ProductCategory' because they are referenced through protected foreign keys: 'Product.category'.", {<Product: Product object (1)>, <Product: Product object (3)>, <Product: Product object (4)>})
+ERROR 2026-01-19 11:40:33,398 basehttp "DELETE /api/categories/1/ HTTP/1.1" 500 125662
+ERROR 2026-01-19 11:43:13,105 log Internal Server Error: /api/categories/1/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 91, in destroy
+    self.perform_destroy(instance)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 95, in perform_destroy
+    instance.delete()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\base.py", line 1280, in delete
+    collector.collect([self], keep_parents=keep_parents)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\deletion.py", line 350, in collect
+    raise ProtectedError(
+    ...<7 lines>...
+    )
+django.db.models.deletion.ProtectedError: ("Cannot delete some instances of model 'ProductCategory' because they are referenced through protected foreign keys: 'Product.category'.", {<Product: Product object (1)>, <Product: Product object (3)>, <Product: Product object (4)>})
+ERROR 2026-01-19 11:43:13,113 basehttp "DELETE /api/categories/1/ HTTP/1.1" 500 27540
+ERROR 2026-01-19 11:43:37,456 log Internal Server Error: /api/categories/1/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 91, in destroy
+    self.perform_destroy(instance)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 95, in perform_destroy
+    instance.delete()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\base.py", line 1280, in delete
+    collector.collect([self], keep_parents=keep_parents)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\deletion.py", line 350, in collect
+    raise ProtectedError(
+    ...<7 lines>...
+    )
+django.db.models.deletion.ProtectedError: ("Cannot delete some instances of model 'ProductCategory' because they are referenced through protected foreign keys: 'Product.category'.", {<Product: Product object (1)>, <Product: Product object (3)>, <Product: Product object (4)>})
+ERROR 2026-01-19 11:43:37,461 basehttp "DELETE /api/categories/1/ HTTP/1.1" 500 27540
+ERROR 2026-01-19 11:48:49,872 log Internal Server Error: /api/categories/1/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 91, in destroy
+    self.perform_destroy(instance)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 95, in perform_destroy
+    instance.delete()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\base.py", line 1280, in delete
+    collector.collect([self], keep_parents=keep_parents)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\deletion.py", line 350, in collect
+    raise ProtectedError(
+    ...<7 lines>...
+    )
+django.db.models.deletion.ProtectedError: ("Cannot delete some instances of model 'ProductCategory' because they are referenced through protected foreign keys: 'Product.category'.", {<Product: Product object (1)>, <Product: Product object (3)>, <Product: Product object (4)>})
+ERROR 2026-01-19 11:48:49,877 basehttp "DELETE /api/categories/1/ HTTP/1.1" 500 125662
+ERROR 2026-01-19 11:49:55,666 log Internal Server Error: /api/categories/1/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 91, in destroy
+    self.perform_destroy(instance)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\rest_framework\mixins.py", line 95, in perform_destroy
+    instance.delete()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\base.py", line 1280, in delete
+    collector.collect([self], keep_parents=keep_parents)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\models\deletion.py", line 350, in collect
+    raise ProtectedError(
+    ...<7 lines>...
+    )
+django.db.models.deletion.ProtectedError: ("Cannot delete some instances of model 'ProductCategory' because they are referenced through protected foreign keys: 'Product.category'.", {<Product: Product object (3)>})
+ERROR 2026-01-19 11:49:55,670 basehttp "DELETE /api/categories/1/ HTTP/1.1" 500 124998

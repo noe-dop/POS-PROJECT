@@ -1,3 +1,5 @@
+import secrets
+import string
 from django.db import models
 from django.db.models import JSONField, Index, UniqueConstraint
 from django.utils import timezone
@@ -82,7 +84,7 @@ class User(AbstractUser):
 # -----------------------------
 
 class Owner(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, db_index=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, db_index=True,related_name="owner")
     photo = models.ImageField(upload_to='profiles/owners/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     
@@ -133,7 +135,7 @@ class Address(models.Model):
     address_line2 = models.CharField("Complément", max_length=255, blank=True, null=True)
     city = models.CharField("Ville", max_length=100, db_index=True)
     state = models.CharField("Région", max_length=100)
-    postal_code = models.CharField("Code postal", max_length=20, db_index=True)
+    postal_code = models.CharField("Code postal", max_length=20, db_index=True,null=True,blank=True)
     country = models.CharField("Pays", max_length=100, default="Sénégal", db_index=True)
     latitude = models.DecimalField("Latitude", max_digits=9, decimal_places=6, blank=True, null=True)
     longitude = models.DecimalField("Longitude", max_digits=9, decimal_places=6, blank=True, null=True)
@@ -153,7 +155,6 @@ class Address(models.Model):
 # -----------------------------
 
 class StoreType(models.Model):
-    code = models.CharField("Code", max_length=20, unique=True, db_index=True)
     name = models.CharField("Nom", max_length=100)
     description = models.TextField("Description", blank=True, null=True)
     
@@ -179,8 +180,8 @@ class Store(models.Model):
     store_type = models.ForeignKey(StoreType, on_delete=models.PROTECT, null=True, blank=True, db_index=True)
     network = models.ForeignKey(StoreNetwork, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
     address = models.ForeignKey(Address, on_delete=models.PROTECT, null=True, blank=True, db_index=True)
-    phone = models.CharField("Téléphone", max_length=15, null=True, blank=True)
-    email = models.EmailField("Email", blank=True, null=True)
+    phone = models.CharField("Téléphone", max_length=15, null=True, blank=True,unique=True)
+    email = models.EmailField("Email", blank=True, null=True,unique=True)
     opening_hours = JSONField("Heures d'ouverture", default=dict)
     is_active = models.BooleanField("Active", default=True, db_index=True)
     logo = models.ImageField(upload_to='store/logos/', blank=True, null=True)
@@ -188,7 +189,7 @@ class Store(models.Model):
     slogan = models.TextField("Slogan", blank=True)
     configuration = JSONField("Paramètres Boutique", default=dict)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
-    
+    updated_at = models.DateTimeField(auto_now=True)
     owners = models.ManyToManyField(Owner, through='StoreOwnership')
     
     class Meta:
@@ -198,7 +199,7 @@ class Store(models.Model):
         indexes = [
             models.Index(fields=['name']),
             models.Index(fields=['is_active']),
-            models.Index(fields=['created_at']),
+            models.Index(fields=['created_at','updated_at']),
             models.Index(fields=['store_type', 'is_active']),
         ]
 
@@ -233,6 +234,38 @@ class StoreShareholder(models.Model):
         verbose_name_plural = "Parts actionnaires"
         ordering = ['store__name', 'shareholder__user__username']
 
+class StorePermission(models.Model):
+    """Permissions spécifiques par boutique pour les employés"""
+    
+    class PermissionType(models.TextChoices):
+        MANAGER = 'manager', 'Gérant'
+        CASHIER = 'cashier', 'Caissier'
+        STOCK_MANAGER = 'stock_manager', 'Responsable stock'
+        VIEWER = 'viewer', 'Consultant'
+    
+    employee = models.ForeignKey('Employee', on_delete=models.CASCADE, related_name='store_permissions')
+    store = models.ForeignKey(Store, on_delete=models.CASCADE)
+    permission_type = models.CharField(
+        max_length=20,
+        choices=PermissionType.choices,
+        default=PermissionType.VIEWER
+    )
+    can_manage_employees = models.BooleanField(default=False)
+    can_manage_products = models.BooleanField(default=False)
+    can_manage_sales = models.BooleanField(default=False)
+    can_view_reports = models.BooleanField(default=False)
+    valid_from = models.DateField(default=timezone.now)
+    valid_until = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        unique_together = ('employee', 'store')
+        verbose_name = "Permission boutique"
+        verbose_name_plural = "Permissions boutiques"
+    
+    def __str__(self):
+        return f"{self.employee.user.get_full_name()} - {self.store.name} ({self.permission_type})"
+
 class Department(models.Model):
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='departments', db_index=True)
     name = models.CharField("Nom du rayon", max_length=100, db_index=True)
@@ -255,6 +288,194 @@ class Department(models.Model):
             models.Index(fields=['store', 'name']),
         ]
 
+
+# =================
+# Gestion des Boutiques et Appareils pour utilisation de QR Codes
+# =================
+
+class StoreDevice(models.Model):
+    """
+    Modèle pour gérer les appareils connectés à une boutique
+    (Tablettes, caisses enregistreuses, smartphones du personnel)
+    """
+    
+    class DeviceType(models.TextChoices):
+        CASH_REGISTER = 'CAISSE', 'Caisse enregistreuse'
+        TABLET = 'TABLETTE', 'Tablette'
+        MOBILE = 'MOBILE', 'Mobile personnel'
+        KIOSK = 'KIOSK', 'Kiosk client'
+        OTHER = 'AUTRE', 'Autre appareil'
+    
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='devices')
+    device_id = models.CharField("ID Appareil", max_length=100, unique=True, db_index=True)
+    device_name = models.CharField("Nom de l'appareil", max_length=100)
+    device_type = models.CharField("Type", max_length=20, choices=DeviceType.choices, default=DeviceType.TABLET)
+    
+    # Authentification par QR code
+    pairing_code = models.CharField("Code d'appairage", max_length=25, unique=True, db_index=True, blank=True)
+    qr_code_token = models.CharField("Token QR Code", max_length=64, unique=True, db_index=True, null=True, blank=True)
+    pairing_expires_at = models.DateTimeField("Expiration du code", null=True, blank=True)
+    paired_at = models.DateTimeField("Appairé le", null=True, blank=True)
+    
+    # Informations de session
+    last_login = models.DateTimeField("Dernière connexion", null=True, blank=True)
+    current_session = models.CharField("Session actuelle", max_length=100, null=True, blank=True)
+    is_active = models.BooleanField("Actif", default=True, db_index=True)
+    
+    # Appareil info
+    device_model = models.CharField("Modèle", max_length=100, blank=True)
+    os_version = models.CharField("Version OS", max_length=50, blank=True)
+    app_version = models.CharField("Version App", max_length=50, blank=True)
+    
+    # Permissions spécifiques à l'appareil
+    permissions = JSONField("Permissions", default=dict)
+    
+    # Métadonnées
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Appareil boutique"
+        verbose_name_plural = "Appareils boutique"
+        ordering = ['store__name', '-last_login']
+        indexes = [
+            models.Index(fields=['store', 'is_active']),
+            models.Index(fields=['pairing_code']),
+            models.Index(fields=['qr_code_token']),
+            models.Index(fields=['pairing_expires_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.device_name} - {self.store.name}"
+    
+    def generate_pairing_code(self):
+        """Génère un code d'appairage lisible"""
+        # Format: ABC-DEF-GHI (plus facile à saisir)
+        alphabet = string.ascii_uppercase + string.digits
+        code = '-'.join([
+            ''.join(secrets.choice(alphabet) for _ in range(3)),
+            ''.join(secrets.choice(alphabet) for _ in range(3)),
+            ''.join(secrets.choice(alphabet) for _ in range(3))
+        ])
+        
+        self.pairing_code = code
+        self.qr_code_token = secrets.token_urlsafe(32)
+        self.pairing_expires_at = timezone.now() + timezone.timedelta(minutes=15)
+        self.paired_at = None
+        self.save()
+        
+        return {
+            'code': self.pairing_code,
+            'token': self.qr_code_token,
+            'expires_at': self.pairing_expires_at,
+            'qr_data': f"storepair:{self.store.id}:{self.qr_code_token}"
+        }
+    
+    def verify_pairing(self, token):
+        """Vérifie si le token est valide pour l'appairage"""
+        if (self.qr_code_token == token and 
+            self.pairing_expires_at and 
+            timezone.now() < self.pairing_expires_at):
+            
+            self.paired_at = timezone.now()
+            self.pairing_expires_at = None
+            self.save()
+            return True
+        return False
+
+class StoreSession(models.Model):
+    """
+    Sessions actives pour les appareils connectés
+    """
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='sessions')
+    device = models.ForeignKey(StoreDevice, on_delete=models.CASCADE, related_name='sessions')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    session_token = models.CharField("Token session", max_length=64, unique=True, db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    
+    is_active = models.BooleanField("Session active", default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    expires_at = models.DateTimeField(db_index=True)
+    last_activity = models.DateTimeField(auto_now=True, db_index=True)
+    
+    class Meta:
+        verbose_name = "Session boutique"
+        verbose_name_plural = "Sessions boutique"
+        ordering = ['-last_activity']
+        indexes = [
+            models.Index(fields=['store', 'is_active']),
+            models.Index(fields=['device', 'is_active']),
+            models.Index(fields=['expires_at', 'is_active']),
+        ]
+
+class StoreQRCode(models.Model):
+    """
+    Modèle pour les QR codes spécifiques aux boutiques
+    (Pour paiement, accès rapide, etc.)
+    """
+    class QRCodeType(models.TextChoices):
+        PAYMENT = 'PAIEMENT', 'QR Code de paiement'
+        CONNECTION = 'CONNEXION', 'QR Code de connexion'
+        PROMOTION = 'PROMOTION', 'QR Code promotionnel'
+        MENU = 'MENU', 'QR Code menu digital'
+        DELIVERY = 'LIVRAISON', 'QR Code livraison'
+    
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='qrcodes')
+    name = models.CharField("Nom du QR Code", max_length=100)
+    qr_type = models.CharField("Type", max_length=20, choices=QRCodeType.choices, default=QRCodeType.PAYMENT)
+    
+    # Données encodées
+    qr_data = models.TextField("Données QR")
+    qr_token = models.CharField("Token QR", max_length=64, unique=True, db_index=True)
+    
+    # Pour les paiements
+    amount = models.DecimalField("Montant fixe", max_digits=10, decimal_places=2, null=True, blank=True)
+    currency = models.CharField("Devise", max_length=3, default='XOF')
+    
+    # Usage tracking
+    scan_count = models.PositiveIntegerField("Nombre de scans", default=0)
+    last_scan = models.DateTimeField("Dernier scan", null=True, blank=True)
+    
+    # Expiration
+    is_active = models.BooleanField("Actif", default=True, db_index=True)
+    valid_from = models.DateTimeField("Valide du", auto_now_add=True)
+    valid_until = models.DateTimeField("Valide jusqu'au", null=True, blank=True, db_index=True)
+    
+    # Métadonnées
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    
+    class Meta:
+        verbose_name = "QR Code boutique"
+        verbose_name_plural = "QR Codes boutique"
+        ordering = ['store__name', '-created_at']
+        indexes = [
+            models.Index(fields=['store', 'qr_type', 'is_active']),
+            models.Index(fields=['qr_token']),
+            models.Index(fields=['valid_until', 'is_active']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} - {self.store.name}"
+    
+    def generate_payment_qr(self, amount=None):
+        """Génère un QR code pour paiement"""
+        self.qr_token = secrets.token_urlsafe(32)
+        
+        if amount:
+            self.amount = amount
+        
+        # Format: storepay://{store_id}/{token}?amount={amount}
+        self.qr_data = f"storepay://{self.store.id}/{self.qr_token}"
+        
+        if self.amount:
+            self.qr_data += f"?amount={self.amount}&currency={self.currency}"
+        
+        self.save()
+        return self.qr_data
+
 # -----------------------------
 # Employés et Rôles OPTIMISÉS
 # -----------------------------
@@ -271,7 +492,7 @@ class EmployeeRole(models.Model):
         ordering = ['name']
 
 class Employee(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, db_index=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, db_index=True,related_name="employee")
     store = models.ForeignKey(Store, on_delete=models.CASCADE, db_index=True)
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
     role = models.ForeignKey(EmployeeRole, on_delete=models.PROTECT, db_index=True)
@@ -517,9 +738,8 @@ class RetailSupply(models.Model):
 # Produits, Catégories et Marques OPTIMISÉS
 # -----------------------------
 
-class ProductCategory(AuditModel):
-    name = models.CharField("Nom", max_length=150, db_index=True)
-    sub_category = models.CharField("Sub_category", max_length=150, db_index=True)
+class ProductCategory(models.Model):
+    name = models.CharField("Nom", max_length=150, db_index=True,unique=True)
     slug = models.SlugField("Slug", unique=True, db_index=True)
     parent = models.ForeignKey(
         'self', 
@@ -532,7 +752,10 @@ class ProductCategory(AuditModel):
     description = models.TextField("Description", blank=True)
     image = models.ImageField("Image", upload_to='categories/', blank=True, null=True)
     sort_order = models.IntegerField("Ordre d'affichage", default=0)
-    
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+
     class Meta:
         verbose_name = "Catégorie produit"
         verbose_name_plural = "Catégories produits"
@@ -544,25 +767,30 @@ class ProductCategory(AuditModel):
             models.Index(fields=['sort_order']),
         ]
 
-class ProductBrand(AuditModel):
+class ProductBrand(models.Model):
     name = models.CharField("Nom", max_length=100, unique=True, db_index=True)
     logo = models.ImageField("Logo", upload_to='brands/', blank=True, null=True)
     description = models.TextField("Description", blank=True)
-    
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+
     class Meta:
         verbose_name = "Marque"
         verbose_name_plural = "Marques"
         ordering = ['name']
 
-class Product(AuditModel):
+class Product(models.Model):
     SKU_PREFIX = "PROD"
     
-    category = models.ForeignKey(
+    group = models.ForeignKey(
         ProductCategory, 
         on_delete=models.PROTECT, 
-        related_name='products',
-        verbose_name="Catégorie",
-        db_index=True
+        related_name='products_as_group',
+        verbose_name="Group",
+        db_index=True,
+        null=True,
+        blank=True
     )
     brand = models.ForeignKey(
         ProductBrand, 
@@ -577,10 +805,25 @@ class Product(AuditModel):
     description = models.TextField("Description", blank=True)
     photo = models.ImageField("Photo principale", upload_to='products/main/', blank=True, null=True)
     additional_images = JSONField("Images supplémentaires", default=list, blank=True)
-
-   
-    
     search_vector = models.TextField(blank=True)
+    product_type = models.ForeignKey(
+        ProductCategory, 
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='products_as_type')
+    nombre_item = models.IntegerField('nombre_item',default=1)
+    base_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    STATUS_CHOICES = [
+    ('draft', 'Brouillon'),
+    ('active', 'Actif'),
+    ('archived', 'Archivé'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True, db_index=True)
     
     class Meta:
         verbose_name = "Produit"
@@ -589,13 +832,27 @@ class Product(AuditModel):
         indexes = [
             models.Index(fields=['sku']),
             models.Index(fields=['name']),
-            models.Index(fields=['category']),
+            models.Index(fields=['group']),
             models.Index(fields=['is_active']),
             models.Index(fields=['created_at']),
         ]
 
     def save(self, *args, **kwargs):
-        if not self.sku:
+        if not self.sku and self.group:
+            # Générer un code à partir du nom du groupe (2 lettres)
+            group_name = self.group.name
+            # Exemple: "Frais libre service" -> "FL"
+            words = group_name.split()
+            if len(words) >= 2:
+                code = words[0][0].upper() + words[1][0].upper()
+            else:
+                code = words[0][:2].upper()
+            
+            # Compter les produits existants dans ce groupe
+            count = Product.objects.filter(group=self.group).count()
+            # Le nouveau produit aura le numéro count+1
+            self.sku = f"{code}-{count+1:05d}"
+        elif not self.sku:
             last_product = Product.objects.order_by('-id').first()
             next_id = (last_product.id + 1) if last_product else 1
             self.sku = f"{self.SKU_PREFIX}{next_id:06d}"
@@ -626,7 +883,182 @@ class ProductVariant(AuditModel):
             models.Index(fields=['product']),
             models.Index(fields=['name']),
         ]
-        
+
+# -----------------------------
+# Liaison stores et produits avec prix spécifiques OPTIMISÉE
+# -----------------------------
+
+class StoreProduct(AuditModel):
+    store = models.ForeignKey(
+        Store, 
+        on_delete=models.CASCADE, 
+        related_name='store_products',
+        verbose_name="Boutique",
+        db_index=True
+    )
+    product = models.ForeignKey(
+        Product, 
+        on_delete=models.CASCADE, 
+        related_name='in_stores',
+        verbose_name="Produit",
+        db_index=True
+    )
+    supplier = models.ForeignKey(
+        Supplier, 
+        on_delete=models.PROTECT, 
+        related_name='products',
+        verbose_name="Fournisseur",
+        db_index=True,
+        null= True,
+        blank=True
+    )
+    store_cost_price = models.DecimalField(
+        "Prix d'achat boutique", 
+        max_digits=12, 
+        decimal_places=2, 
+        null=True, 
+        blank=True
+    )
+    store_base_price = models.DecimalField(
+        "Prix de vente boutique", 
+        max_digits=12, 
+        decimal_places=2, 
+        null=True, 
+        blank=True
+    )
+    store_compare_at_price = models.DecimalField(
+        "Prix vente 2 boutique", 
+        max_digits=12, 
+        decimal_places=2, 
+        null=True, 
+        blank=True
+    )
+    
+    qt_item = models.DecimalField(
+        "Quantité item", 
+        max_digits=10, 
+        decimal_places=2, 
+        default=1
+    )
+    dlv = models.DateField("Date limite vente", null=True, blank=True)
+    dlc = models.DateField("Date limite consommation", null=True, blank=True)
+    dcr = models.DateField("Date création/entrée", null=True, blank=True)
+    
+    is_active = models.BooleanField("Actif dans la boutique", default=True, db_index=True)
+    display_order = models.IntegerField("Ordre d'affichage", default=0)
+    
+    min_stock_threshold = models.IntegerField("Seuil alerte boutique", null=True, blank=True)
+    reorder_quantity = models.IntegerField("Quantité réappro boutique", null=True, blank=True)
+    jour_ecart = models.IntegerField("Jours écart", default=15)
+    status = models.CharField(
+        "Statut",
+        max_length=20,
+        choices=[
+            ('draft', 'Brouillon'),
+            ('active', 'Actif'),
+            ('archived', 'Archivé'),
+        ],
+        default='draft',
+        db_index=True
+    )
+    class Meta:
+        verbose_name = "Produit en boutique"
+        verbose_name_plural = "Produits en boutiques"
+        ordering = ['store__name', 'product__name']
+        unique_together = ['store', 'product']
+        indexes = [
+            models.Index(fields=['store', 'is_active']),
+            models.Index(fields=['product', 'store']),
+            models.Index(fields=['is_active', 'display_order']),
+        ]
+
+    def get_effective_cost_price(self):
+        return self.store_cost_price or self.product.cost_price
+
+    def get_effective_base_price(self):
+        return self.store_base_price or self.product.base_price
+
+    def get_effective_compare_price(self):
+        return self.store_compare_at_price or self.product.compare_at_price
+
+    def get_margin(self):
+        cost = self.get_effective_cost_price()
+        price = self.get_effective_base_price()
+        if cost and price and cost > 0:
+            return ((price - cost) / cost) * 100
+        return 0
+
+    def is_promotion_active(self):
+        if self.store_compare_at_price and self.store_base_price:
+            return self.store_compare_at_price > self.store_base_price
+        return False
+
+class StoreProductVariant(AuditModel):
+    store_product = models.ForeignKey(
+        StoreProduct, 
+        on_delete=models.CASCADE, 
+        related_name='store_variants',
+        verbose_name="Produit boutique",
+        db_index=True
+    )
+    variant = models.ForeignKey(
+        ProductVariant, 
+        on_delete=models.CASCADE, 
+        related_name='store_prices',
+        verbose_name="Variante",
+        db_index=True
+    )
+    
+    store_variant_cost = models.DecimalField(
+        "Coût variante boutique", 
+        max_digits=12, 
+        decimal_places=2, 
+        null=True, 
+        blank=True
+    )
+    store_variant_price = models.DecimalField(
+        "Prix variante boutique", 
+        max_digits=12, 
+        decimal_places=2, 
+        null=True, 
+        blank=True
+    )
+    prix_reduction = models.DecimalField("Prix réduit", max_digits=10, decimal_places=2, blank=True, null=True)
+    quantity = models.DecimalField("Quantité", max_digits=10, decimal_places=2)
+    weight = models.DecimalField(
+        "Poids (kg)", 
+        max_digits=8, 
+        decimal_places=3, 
+        blank=True, 
+        null=True
+    )
+    
+    selection = models.BooleanField("Sélectionnée", default=False, db_index=True)
+    
+    class Meta:
+        verbose_name = "Prix variante boutique"
+        verbose_name_plural = "Prix variantes boutiques"
+        ordering = ['store_product__store__name', 'variant__name']
+        unique_together = ['store_product', 'variant']
+        indexes = [
+            models.Index(fields=['store_product', 'variant']),
+        ]
+
+    def get_effective_cost(self):
+        return (
+            self.store_variant_cost or
+            self.store_product.store_cost_price or
+            self.variant.cost_price or
+            self.store_product.product.cost_price
+        )
+
+    def get_effective_price(self):
+        return (
+            self.store_variant_price or
+            self.store_product.store_base_price or
+            self.variant.prix_vente or
+            self.store_product.product.base_price
+        )        
 
 # -----------------------------
 # Gestion des Stocks Avancée OPTIMISÉE
@@ -936,182 +1368,21 @@ class InventoryCountItem(AuditModel):
         super().save(*args, **kwargs)
 
 # -----------------------------
-# Liaison stores et produits avec prix spécifiques OPTIMISÉE
-# -----------------------------
-
-class StoreProduct(AuditModel):
-    store = models.ForeignKey(
-        Store, 
-        on_delete=models.CASCADE, 
-        related_name='store_products',
-        verbose_name="Boutique",
-        db_index=True
-    )
-    product = models.ForeignKey(
-        Product, 
-        on_delete=models.CASCADE, 
-        related_name='in_stores',
-        verbose_name="Produit",
-        db_index=True
-    )
-    supplier = models.ForeignKey(
-        Supplier, 
-        on_delete=models.PROTECT, 
-        related_name='products',
-        verbose_name="Fournisseur",
-        db_index=True
-    )
-    store_cost_price = models.DecimalField(
-        "Prix d'achat boutique", 
-        max_digits=12, 
-        decimal_places=2, 
-        null=True, 
-        blank=True
-    )
-    store_base_price = models.DecimalField(
-        "Prix de vente boutique", 
-        max_digits=12, 
-        decimal_places=2, 
-        null=True, 
-        blank=True
-    )
-    store_compare_at_price = models.DecimalField(
-        "Prix vente 2 boutique", 
-        max_digits=12, 
-        decimal_places=2, 
-        null=True, 
-        blank=True
-    )
-    
-    qt_item = models.DecimalField(
-        "Quantité par item", 
-        max_digits=10, 
-        decimal_places=2, 
-        default=1
-    )
-    dlv = models.DateField("Date limite vente", null=True, blank=True)
-    dlc = models.DateField("Date limite consommation", null=True, blank=True)
-    dcr = models.DateField("Date création/entrée", null=True, blank=True)
-    
-    is_active = models.BooleanField("Actif dans la boutique", default=True, db_index=True)
-    display_order = models.IntegerField("Ordre d'affichage", default=0)
-    
-    min_stock_threshold = models.IntegerField("Seuil alerte boutique", null=True, blank=True)
-    reorder_quantity = models.IntegerField("Quantité réappro boutique", null=True, blank=True)
-    jour_ecart = models.IntegerField("Jours écart", default=15)
-    status = models.CharField(
-        "Statut",
-        max_length=20,
-        choices=[
-            ('draft', 'Brouillon'),
-            ('active', 'Actif'),
-            ('archived', 'Archivé'),
-        ],
-        default='draft',
-        db_index=True
-    )
-    class Meta:
-        verbose_name = "Produit en boutique"
-        verbose_name_plural = "Produits en boutiques"
-        ordering = ['store__name', 'product__name']
-        unique_together = ['store', 'product']
-        indexes = [
-            models.Index(fields=['store', 'is_active']),
-            models.Index(fields=['product', 'store']),
-            models.Index(fields=['is_active', 'display_order']),
-        ]
-
-    def get_effective_cost_price(self):
-        return self.store_cost_price or self.product.cost_price
-
-    def get_effective_base_price(self):
-        return self.store_base_price or self.product.base_price
-
-    def get_effective_compare_price(self):
-        return self.store_compare_at_price or self.product.compare_at_price
-
-    def get_margin(self):
-        cost = self.get_effective_cost_price()
-        price = self.get_effective_base_price()
-        if cost and price and cost > 0:
-            return ((price - cost) / cost) * 100
-        return 0
-
-    def is_promotion_active(self):
-        if self.store_compare_at_price and self.store_base_price:
-            return self.store_compare_at_price > self.store_base_price
-        return False
-
-class StoreProductVariant(AuditModel):
-    store_product = models.ForeignKey(
-        StoreProduct, 
-        on_delete=models.CASCADE, 
-        related_name='store_variants',
-        verbose_name="Produit boutique",
-        db_index=True
-    )
-    variant = models.ForeignKey(
-        ProductVariant, 
-        on_delete=models.CASCADE, 
-        related_name='store_prices',
-        verbose_name="Variante",
-        db_index=True
-    )
-    
-    store_variant_cost = models.DecimalField(
-        "Coût variante boutique", 
-        max_digits=12, 
-        decimal_places=2, 
-        null=True, 
-        blank=True
-    )
-    store_variant_price = models.DecimalField(
-        "Prix variante boutique", 
-        max_digits=12, 
-        decimal_places=2, 
-        null=True, 
-        blank=True
-    )
-    prix_reduction = models.DecimalField("Prix réduit", max_digits=10, decimal_places=2, blank=True, null=True)
-    quantity = models.DecimalField("Quantité", max_digits=10, decimal_places=2)
-    weight = models.DecimalField(
-        "Poids (kg)", 
-        max_digits=8, 
-        decimal_places=3, 
-        blank=True, 
-        null=True
-    )
-    
-    selection = models.BooleanField("Sélectionnée", default=False, db_index=True)
-    
-    class Meta:
-        verbose_name = "Prix variante boutique"
-        verbose_name_plural = "Prix variantes boutiques"
-        ordering = ['store_product__store__name', 'variant__name']
-        unique_together = ['store_product', 'variant']
-        indexes = [
-            models.Index(fields=['store_product', 'variant']),
-        ]
-
-    def get_effective_cost(self):
-        return (
-            self.store_variant_cost or
-            self.store_product.store_cost_price or
-            self.variant.cost_price or
-            self.store_product.product.cost_price
-        )
-
-    def get_effective_price(self):
-        return (
-            self.store_variant_price or
-            self.store_product.store_base_price or
-            self.variant.prix_vente or
-            self.store_product.product.base_price
-        )
-
-# -----------------------------
 # COMMANDES (ORDERS) - NOUVEAUX MODÈLES
 # -----------------------------
+
+class Pack(BaseModel): 
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, null=True, blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+
+class PackItem(models.Model):
+    pack = models.ForeignKey(Pack, on_delete=models.CASCADE, related_name='items')
+    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
 
 class OrderStatus(models.Model):
     """Statuts de commande spécifiques"""
@@ -1314,7 +1585,7 @@ class Order(AuditModel):
 class OrderItem(AuditModel):
     """Articles d'une commande"""
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items', db_index=True)
-    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='order_items', db_index=True)
+    pack = models.ForeignKey(Pack, on_delete=models.SET_NULL, null=True, blank=True)
     variant = models.ForeignKey(ProductVariant, on_delete=models.PROTECT, null=True, blank=True, db_index=True)
     
     quantity = models.DecimalField("Quantité", max_digits=10, decimal_places=2)
@@ -1333,9 +1604,9 @@ class OrderItem(AuditModel):
     class Meta:
         verbose_name = "Article de commande"
         verbose_name_plural = "Articles de commande"
-        ordering = ['order', 'product__name']
+        ordering = ['order', 'variant']
         indexes = [
-            models.Index(fields=['order', 'product']),
+            models.Index(fields=['order', 'variant']),
         ]
     
     def save(self, *args, **kwargs):

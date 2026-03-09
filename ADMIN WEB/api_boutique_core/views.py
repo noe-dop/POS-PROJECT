@@ -1,8 +1,10 @@
 # views.py
-from rest_framework import viewsets, status, filters, generics
+from rest_framework import viewsets, status, filters, generics,permissions
 from rest_framework.decorators import action
+from django.db.models import Exists, OuterRef
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
@@ -15,6 +17,7 @@ from django.http import HttpResponse
 import csv
 from datetime import datetime
 
+from .permissions import IsAdminOrOwner, CanManageStoreProducts
 # Import des modèles
 from .models import (
     User, UserType, Owner, Shareholder, Customer, Address, Currency,
@@ -41,6 +44,322 @@ from .models import (
 # Import de tous les sérialiseurs
 from .serializers import *
 
+class LoginView(APIView):
+    """
+    Connexion et génération de token
+    POST /api/auth/login/
+    """
+    permission_classes = [AllowAny]
+    
+    def post(self, request, *args, **kwargs):
+        serializer = LoginSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response({
+                "success": False,
+                "message": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = serializer.validated_data['user']
+        # Mettre a jour le Last_login
+        user.last_login = timezone.now()
+        user.save(update_fields = ["last_login"]) # Pour ne sauvegarder que ce champ
+        # Générer les tokens JWT (Simple JWT) 
+        refresh = RefreshToken.for_user(user)
+
+        # Préparer les données de réponse
+        response_data = {
+            "success": True,
+            "message": "Connexion réussie",
+            "access": str(refresh.access_token), # Token d'accès
+            "refresh": str(refresh),          # Token de rafraîchissement
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "full_name": user.get_full_name(),
+                "phone": user.phone,
+                "is_staff": user.is_staff,
+                "is_superuser": user.is_superuser,
+                "last_login": user.last_login,
+                "created_at": user.date_joined,
+            },
+            'expires_in': refresh.access_token.lifetime.total_seconds()
+        }
+        
+        # Ajouter le rôle de l'utilisateur
+        if hasattr(user, 'owner'):
+            owner = user.owner
+            response_data["user"]["role"] = "owner"
+            response_data["user"]["owner_profile"] = {
+                "id": owner.id,
+                "photo": owner.photo if owner.photo else None,
+                "created_at": owner.created_at
+            }
+            
+        elif hasattr(user, 'employee'):
+            response_data["user"]["role"] = "employee"
+            response_data["user"]["employee_id"] = user.employee.id
+            response_data["user"]["store_id"] = user.employee.store_id
+            response_data["user"]["role_name"] = user.employee.role.name
+            response_data["user"]["department"] = user.employee.department.name if user.employee.department else None
+            
+        elif hasattr(user, 'shareholder'):
+            response_data["user"]["role"] = "shareholder"
+            response_data["user"]["shareholder_id"] = user.shareholder.id
+            response_data["user"]["investment_amount"] = user.shareholder.investment_amount
+            
+        elif hasattr(user, 'customer'):
+            response_data["user"]["role"] = "customer"
+            response_data["user"]["customer_id"] = user.customer.id
+            response_data["user"]["loyalty_points"] = user.customer.loyalty_points
+            
+        else:
+            response_data["user"]["role"] = "user"  # Pas de profil spécifique
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class LogoutView(APIView):
+    """
+    Déconnexion - Suppression du token
+    POST /api/auth/logout/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        # Supprimer le token
+        try:
+            refresh_token = request.data.get('refresh')
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()  
+
+                return Response({
+                    "success": True,
+                    "message": "Déconnexion réussie"
+                }, status=status.HTTP_205_RESET_CONTENT)
+            else:
+                return Response({
+                    "success": False,
+                    "message": "Token de rafraîchissement manquant"
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                "success": False,
+                "message": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+class PasswordResetRequestView(generics.GenericAPIView):
+    serializer_class = PasswordResetRequestSerializer
+    
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+        return Response({
+            "success": True,
+            "message": "Email de réinitialisation envoyé.",
+            "uid": result['uid'],
+            "token": result['token'],  # En dev seulement!
+        }, status=status.HTTP_200_OK)
+
+class PasswordResetConfirmView(generics.GenericAPIView):
+    serializer_class = PasswordResetConfirmSerializer
+    
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        return Response({
+            "success": True,
+            "message": "Mot de passe réinitialisé avec succès."
+        }, status=status.HTTP_200_OK)
+    
+# ===========================
+# VUE DES PROFILS UTILISATEURS
+# ===========================
+
+class UserProfileView(APIView):
+    """
+    Récupérer le profil de l'utilisateur connecté
+    #GET /api/auth/profile/
+    #PATCH /api/auth/profile/
+    #PUT /api/auth/profile/"""
+    def get(self, request, *args, **kwargs):
+        """Récupérer le profil"""
+        user = request.user
+        
+        response_data = {
+            "success": True,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "full_name": user.get_full_name(),
+                "phone": user.phone,
+                "address": user.address,
+                "phone": getattr(user, 'phone', ''),
+                "address": getattr(user, 'address', ''),
+                "is_staff": user.is_staff,
+                "is_superuser": user.is_superuser,
+                "date_joined": user.date_joined,
+                "last_login": user.last_login,
+            }
+        }
+        
+        # Ajouter les infos spécifiques au rôle
+        if hasattr(user, 'owner'):
+            owner = user.owner
+            response_data["user"]["role"] = "owner"
+            response_data["user"]["owner_profile"] = {
+                "id": owner.id,
+                "photo": owner.photo if owner.photo else None,
+                "created_at": owner.created_at
+            }
+            
+        elif hasattr(user, 'employee'):
+            employee = user.employee
+            response_data["user"]["role"] = "employee"
+            response_data["user"]["employee_profile"] = {
+                "id": employee.id,
+                "store_id": employee.store_id,
+                "store_name": employee.store.name,
+                "role_id": employee.role_id,
+                "role_name": employee.role.name,
+                "department": employee.department.name if employee.department else None,
+                "hire_date": employee.hire_date,
+                "salary": employee.salary,
+                "is_active": employee.is_active,
+                "photo": employee.photo if employee.photo else None
+            }
+            
+        elif hasattr(user, 'shareholder'):
+            shareholder = user.shareholder
+            response_data["user"]["role"] = "shareholder"
+            response_data["user"]["shareholder_profile"] = {
+                "id": shareholder.id,
+                "investment_amount": shareholder.investment_amount,
+                "photo": shareholder.photo if shareholder.photo else None
+            }
+            
+        elif hasattr(user, 'customer'):
+            customer = user.customer
+            response_data["user"]["role"] = "customer"
+            response_data["user"]["customer_profile"] = {
+                "id": customer.id,
+                "birth_date": customer.birth_date,
+                "loyalty_points": customer.loyalty_points,
+                "total_spent": customer.total_spent,
+                "first_purchase": customer.first_purchase,
+                "last_purchase": customer.last_purchase
+            }
+    
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+    def patch(self, request, *args, **kwargs):
+        """Mettre à jour partiellement le profil"""
+        user = request.user
+        
+        # Mettre à jour les champs de l'utilisateur
+        if 'first_name' in request.data:
+            user.first_name = request.data['first_name']
+        if 'last_name' in request.data:
+            user.last_name = request.data['last_name']
+        if 'email' in request.data:
+            user.email = request.data['email']
+        if 'phone' in request.data:
+            user.phone = request.data['phone']
+        if 'address' in request.data:
+            user.address = request.data['address']
+        
+        user.save()
+        
+        # Gérer la photo selon le profil
+        if 'photo' in request.FILES:
+            photo = request.FILES['photo']
+            
+            if hasattr(user, 'owner'):
+                user.owner.photo = photo
+                user.owner.save()
+            elif hasattr(user, 'employee'):
+                user.employee.photo = photo
+                user.employee.save()
+            elif hasattr(user, 'customer'):
+                user.customer.photo = photo
+                user.customer.save()
+            elif hasattr(user, 'shareholder'):
+                user.shareholder.photo = photo
+                user.shareholder.save()
+        
+        # Retourner le profil mis à jour
+        return self.get(request)
+    
+    def put(self, request, *args, **kwargs):
+        """Mettre à jour complètement le profil (alias pour PATCH)"""
+        return self.patch(request, *args, **kwargs)
+
+        # api_boutique_core/views.py
+
+# Ajoutez cette nouvelle classe APRÈS UserProfileView
+class ChangePasswordView(APIView):
+    """
+    Changer le mot de passe de l'utilisateur connecté
+    POST /api/auth/change-password/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+        
+        # Vérifications
+        if not current_password or not new_password:
+            return Response({
+                'success': False,
+                'error': 'Les mots de passe sont requis'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Vérifier l'ancien mot de passe
+        if not user.check_password(current_password):
+            return Response({
+                'success': False,
+                'error': 'Mot de passe actuel incorrect'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Vérifier la longueur du nouveau mot de passe
+        if len(new_password) < 6:
+            return Response({
+                'success': False,
+                'error': 'Le nouveau mot de passe doit contenir au moins 6 caractères'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Vérifier que le nouveau mot de passe est différent
+        if user.check_password(new_password):
+            return Response({
+                'success': False,
+                'error': 'Le nouveau mot de passe doit être différent de l\'ancien'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Changer le mot de passe
+        user.set_password(new_password)
+        user.save()
+        
+        # 🚫 OPTION SUPPRIMÉE - La méthode blacklist() n'existe pas
+        # from rest_framework_simplejwt.tokens import RefreshToken
+        # RefreshToken.for_user(user).blacklist()  ← À SUPPRIMER
+        
+        return Response({
+            'success': True,
+            'message': 'Mot de passe modifié avec succès'
+        }, status=status.HTTP_200_OK)
+    
 # =============================================================================
 # VUES D'AUTHENTIFICATION
 # =============================================================================
@@ -479,6 +798,10 @@ class OwnerViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return OwnerCreateSerializer
         return OwnerSerializer
+    
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
 class ShareholderViewSet(viewsets.ModelViewSet):
     queryset = Shareholder.objects.select_related('user')
@@ -490,13 +813,31 @@ class ShareholderViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             return ShareholderCreateSerializer
         return ShareholderSerializer
+    
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.select_related('user')
-    serializer_class = CustomerSerializer
     permission_classes = [AllowAny]
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return CustomerCreateSerializer
+        return CustomerSerializer
     filterset_fields = ['loyalty_points']
     search_fields = ['user__first_name', 'user__last_name', 'user__email']
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        # Utilise le sérialiseur de création (CustomerCreateSerializer)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        customer = serializer.save()  # retourne une instance Customer
+
+        # Utilise le sérialiseur de lecture (CustomerSerializer) pour la réponse
+        response_serializer = CustomerSerializer(customer, context=self.get_serializer_context())
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['get'])
     def purchase_history(self, request, pk=None):
@@ -530,51 +871,286 @@ class StoreNetworkViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
 class StoreViewSet(viewsets.ModelViewSet):
-    queryset = Store.objects.select_related('store_type', 'network', 'address').filter(is_active=True)
-    serializer_class = StoreSerializer
-    permission_classes = [AllowAny]
-    filterset_fields = ['store_type', 'network', 'is_active']
-    search_fields = ['name', 'slug', 'email', 'phone']
+    queryset = Store.objects.select_related('store_type', 'network', 'address').all()
+    
+    def get_serializer_class(self):
+        # Utiliser StoreCreateSerializer pour la création
+        if self.action == 'create':
+            return StoreCreateSerializer
+        elif self.action in ["update", "partial_update"]:
+            return StoreUpdateSerializer
+        # StoreSerializer pour les autres actions
+        return StoreSerializer
+    
+    def get_permissions(self):
+        """Permissions adaptées à chaque action"""
+        if self.action in ['list','public_products']:
+            # Public: voir les boutiques
+            return [permissions.AllowAny()]
+        elif self.action in [ 'retrieve', 'nearby','my_accessible_stores', 'dashboard',
+                             'available_products','products']:
+            # Connecté: voir ses boutiques accessibles
+            return [permissions.IsAuthenticated()]
+        else:
+            # Création/modification: admin ou propriétaire
+            return [permissions.IsAuthenticated(), IsAdminOrOwner()]
+    
+    def get_queryset(self):
+        """Filtrer selon le rôle et les permissions"""
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        # Pour les actions publiques: seulement boutiques actives
+        if self.action in ['list', 'retrieve', 'nearby','public_products']:
+            return queryset.filter(is_active=True)
+        
+        # Pour utilisateur non connecté
+        if not user.is_authenticated:
+            return queryset.none()
+        
+        # Superuser voit tout
+        if user.is_superuser:
+            return queryset
+        
+        # Propriétaire: voit ses boutiques
+        if hasattr(user, 'owner'):
+            owner = user.owner
+            store_ids = StoreOwnership.objects.filter(owner=owner).values_list('store_id', flat=True)
+            return queryset.filter(id__in=store_ids)
+        
+        # Employé: voit les boutiques où il a des permissions
+        if hasattr(user, 'employee'):
+            employee = user.employee
+            # Récupérer les boutiques où l'employé a des permissions actives
+            store_ids = StorePermission.objects.filter(
+                employee=employee,
+                is_active=True,
+                valid_until__gte=timezone.now().date()
+            ).values_list('store_id', flat=True)
+            return queryset.filter(id__in=store_ids)
+        
+        return queryset.none()
+    
+    @action(detail=False, methods=['get'])
+    def my_accessible_stores(self, request):
+        """
+        Retourne toutes les boutiques accessibles à l'utilisateur connecté
+        avec le niveau de permission pour chaque boutique
+        """
+        user = request.user
+        
+        if not user.is_authenticated:
+            return Response({'error': 'Authentification requise'}, status=401)
+        
+        stores = self.get_queryset()
+        
+        # Pour chaque boutique, déterminer le niveau d'accès
+        stores_with_permissions = []
+        for store in stores:
+            store_data = StoreSerializer(store).data
+            
+            # Déterminer le rôle/permissions
+            if user.is_superuser:
+                role = 'superadmin'
+                permissions = ['all']
+            elif hasattr(user, 'owner'):
+                # Vérifier si c'est le propriétaire principal
+                is_primary = StoreOwnership.objects.filter(
+                    store=store,
+                    owner=user.owner,
+                    is_primary=True
+                ).exists()
+                role = 'owner_primary' if is_primary else 'owner'
+                permissions = ['all']
+            elif hasattr(user, 'employee'):
+                employee = user.employee
+                store_permission = StorePermission.objects.filter(
+                    employee=employee,
+                    store=store,
+                    is_active=True
+                ).first()
+                
+                if store_permission:
+                    role = store_permission.permission_type
+                    permissions = []
+                    if store_permission.can_manage_employees:
+                        permissions.append('manage_employees')
+                    if store_permission.can_manage_products:
+                        permissions.append('manage_products')
+                    if store_permission.can_manage_sales:
+                        permissions.append('manage_sales')
+                    if store_permission.can_view_reports:
+                        permissions.append('view_reports')
+                else:
+                    continue  # L'employé n'a pas accès à cette boutique
+            else:
+                continue
+            
+            stores_with_permissions.append({
+                **store_data,
+                'access_role': role,
+                'permissions': permissions,
+            })
+        
+        return Response(stores_with_permissions)
     
     @action(detail=True, methods=['get'])
-    def statistics(self, request, pk=None):
-        """Statistiques d'une boutique"""
+    def dashboard(self, request, pk=None):
+        """Dashboard d'une boutique avec vérification des permissions"""
         store = self.get_object()
+        user = request.user
+        
+        # Vérifier les permissions d'accès à cette boutique
+        if not self._has_store_access(user, store):
+            raise PermissionDenied("Vous n'avez pas accès à cette boutique")
+        
+        # Récupérer les permissions spécifiques
+        user_permissions = self._get_user_store_permissions(user, store)
+        
+        # Statistiques selon les permissions
+        dashboard_data = {
+            'store': StoreSerializer(store).data,
+            'user_permissions': user_permissions,
+            'statistics': self._get_store_statistics(store, user_permissions),
+        }
+        
+        return Response(dashboard_data)
+    
+    def _has_store_access(self, user, store):
+        """Vérifie si l'utilisateur a accès à la boutique"""
+        if user.is_superuser:
+            return True
+        
+        if hasattr(user, 'owner_profile'):
+            return StoreOwnership.objects.filter(
+                owner=user.owner_profile,
+                store=store
+            ).exists()
+        
+        if hasattr(user, 'employee_profile'):
+            return StorePermission.objects.filter(
+                employee=user.employee_profile,
+                store=store,
+                is_active=True,
+                valid_until__gte=timezone.now().date()
+            ).exists()
+        
+        return False
+    
+    def _get_user_store_permissions(self, user, store):
+        """Retourne les permissions spécifiques de l'utilisateur pour cette boutique"""
+        if user.is_superuser:
+            return {
+                'role': 'superadmin',
+                'can_manage_all': True,
+                'permissions': ['all']
+            }
+        
+        if hasattr(user, 'owner_profile'):
+            is_primary = StoreOwnership.objects.filter(
+                store=store,
+                owner=user.owner_profile,
+                is_primary=True
+            ).exists()
+            return {
+                'role': 'owner_primary' if is_primary else 'owner',
+                'can_manage_all': True,
+                'permissions': ['all']
+            }
+        
+        if hasattr(user, 'employee_profile'):
+            permission = StorePermission.objects.filter(
+                employee=user.employee_profile,
+                store=store,
+                is_active=True
+            ).first()
+            
+            if permission:
+                return {
+                    'role': permission.permission_type,
+                    'can_manage_employees': permission.can_manage_employees,
+                    'can_manage_products': permission.can_manage_products,
+                    'can_manage_sales': permission.can_manage_sales,
+                    'can_view_reports': permission.can_view_reports,
+                    'valid_until': permission.valid_until,
+                }
+        
+        return {'role': 'no_access'}
+    
+    def _get_store_statistics(self, store, user_permissions):
+        """Retourne les statistiques selon les permissions de l'utilisateur"""
         today = timezone.now().date()
+        stats = {}
         
-        # Ventes
-        daily_sales = Sale.objects.filter(
-            store=store,
-            sale_date__date=today
-        ).aggregate(
-            total_amount=Sum('total_amount'),
-            count_sales=Count('id')
-        )
-        
-        # Commandes
-        daily_orders = Order.objects.filter(
-            store=store,
-            order_date__date=today
-        ).aggregate(
-            total_amount=Sum('total_amount'),
-            count_orders=Count('id')
-        )
-        
-        low_stock = Stock.objects.filter(
-            store=store,
-            quantity_available__lte=F('min_stock_threshold')
+        # Statistiques de base (toujours visibles)
+        stats['active_employees'] = Employee.objects.filter(
+            store=store, 
+            is_active=True
         ).count()
         
-        active_employees = Employee.objects.filter(store=store, is_active=True).count()
+        stats['total_products'] = store.store_products.filter(
+            is_active=True
+        ).count()
         
-        return Response({
-            'daily_sales': daily_sales['total_amount'] or 0,
-            'daily_sales_count': daily_sales['count_sales'] or 0,
-            'daily_orders': daily_orders['total_amount'] or 0,
-            'daily_orders_count': daily_orders['count_orders'] or 0,
-            'low_stock_items': low_stock,
-            'active_employees': active_employees
-        })
+        # Statistiques conditionnelles
+        if user_permissions.get('can_view_reports') or user_permissions.get('role') in ['owner', 'owner_primary', 'superadmin']:
+            # Ventes du jour
+            daily_sales = Sale.objects.filter(
+                store=store,
+                sale_date__date=today
+            ).aggregate(
+                total_amount=Sum('total_amount'),
+                count_sales=Count('id')
+            )
+            
+            stats['daily_sales'] = daily_sales['total_amount'] or 0
+            stats['daily_sales_count'] = daily_sales['count_sales'] or 0
+        
+        if user_permissions.get('can_manage_products') or user_permissions.get('role') in ['owner', 'owner_primary', 'superadmin']:
+            # Stock bas
+            stats['low_stock_items'] = Stock.objects.filter(
+                store=store,
+                quantity_available__lte=F('min_stock_threshold')
+            ).count()
+        
+        return stats
+    
+    @action(detail=True, methods=['get'])
+    def public_products(self, request, pk=None):
+        """
+        Retourne les produits de la boutique avec les informations publiques
+        (sans prix d'achat, ni données internes).
+        """
+        store = self.get_object()  # Vérifie que la boutique existe et est active (via get_queryset)
+        store_products = StoreProduct.objects.filter(store=store, is_active=True)
+        serializer = StoreProductPublicSerializer(store_products, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def products(self, request, pk=None):
+        store = self.get_object()
+        store_products = StoreProduct.objects.filter(store=store, is_active=True)
+        serializer = StoreProductSerializer(store_products, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'], url_path='available-products')
+    def available_products(self, request, pk=None):
+        store = self.get_object()  # Vérifie l'accès via permissions du viewset
+        # Produits non liés
+        has_store_product = StoreProduct.objects.filter(
+            store=store,
+            product=OuterRef('pk')
+        )
+        products = Product.objects.filter(is_active=True).annotate(
+            is_linked=Exists(has_store_product)
+        ).filter(is_linked=False)
+        
+        page = self.paginate_queryset(products)
+        if page is not None:
+            serializer = ProductSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+        serializer = ProductSerializer(products, many=True, context={'request': request})
+        return Response(serializer.data)
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.select_related('store', 'manager__user')
@@ -596,6 +1172,10 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     queryset = Employee.objects.select_related('user', 'store', 'role', 'department')
     serializer_class = EmployeeSerializer
     permission_classes = [AllowAny]
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+    
     filterset_fields = ['store', 'department', 'role', 'is_active']
     search_fields = ['user__first_name', 'user__last_name', 'user__email']
     
@@ -741,12 +1321,13 @@ class RetailSupplyViewSet(viewsets.ModelViewSet):
 # PRODUITS ET CATÉGORIES
 # =============================================================================
 
-class ProductCategoryViewSet(BaseAuditViewSet):
+class ProductCategoryViewSet(viewsets.ModelViewSet):
     queryset = ProductCategory.objects.filter(is_active=True)
     serializer_class = ProductCategorySerializer
     filterset_fields = ['parent']
     search_fields = ['name', 'slug']
     ordering_fields = ['sort_order', 'name']
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -759,19 +1340,28 @@ class ProductCategoryViewSet(BaseAuditViewSet):
             
         return queryset.order_by('sort_order', 'name')
     
-    # AJOUTEZ JUSTE CES 2 ACTIONS POUR RÉSOUDRE LES ERREURS 404
+    @transaction.atomic
+    def create(self,request, *args, **kwargs):
+        return super().create(request, *args,**kwargs)
+    
     @action(detail=False, methods=['get'])
     def stats(self, request):
         total = ProductCategory.objects.filter(is_active=True).count()
+        
+        # Compter les catégories qui ont au moins un produit comme group ou comme product_type
+        from django.db.models import Q
         with_products = ProductCategory.objects.filter(
-            products__isnull=False
+            Q(products_as_group__isnull=False) | Q(products_as_type__isnull=False)
         ).distinct().count()
+        
+        root_categories = ProductCategory.objects.filter(parent__isnull=True).count()
+        subcategories = ProductCategory.objects.exclude(parent__isnull=True).count()
         
         return Response({
             'total_categories': total,
             'categories_with_products': with_products,
-            'root_categories': ProductCategory.objects.filter(parent__isnull=True).count(),
-            'subcategories': ProductCategory.objects.exclude(parent__isnull=True).count()
+            'root_categories': root_categories,
+            'subcategories': subcategories
         })
     
     @action(detail=False, methods=['get'])
@@ -788,6 +1378,8 @@ class ProductCategoryViewSet(BaseAuditViewSet):
                     'id': category.id,
                     'name': category.name,
                     'slug': category.slug,
+                    'description':category.description,
+                    'parent_id':category.parent_id,
                     'children': build_tree(category.id)
                 })
             return tree
@@ -795,17 +1387,62 @@ class ProductCategoryViewSet(BaseAuditViewSet):
         return Response({
             'tree': build_tree()
         })
+    
+    @action(detail=False, methods=['get'], url_path='types-with-product-count')
+    def types_with_product_count(self, request):
+        store_id = request.query_params.get('store_id')
+        if not store_id:
+            return Response({"error": "Le paramètre 'store_id' est requis."}, status=400)
+        
+        # Verification de l'existance de la boutique
+        try:
+            store = Store.objects.get(id=store_id, is_active=True)
+        except Store.DoesNotExist:
+            return Response({"error": "Boutique introuvable ou inactive."}, status=404)
+        # Filtrer les catégories de niveau 3 (celles qui ont un parent et dont le parent a un parent)
+        types = ProductCategory.objects.filter(
+            parent__isnull=False,
+            parent__parent__isnull=False,
+            is_active=True
+        ).annotate(
+            product_count=Count(
+                'products_as_group',
+                filter=Q(
+                    products_as_group__in_stores__store_id=store_id,
+                    products_as_group__in_stores__is_active=True
+                )
+            ) + Count(
+                'products_as_type',
+                filter=Q(
+                    products_as_type__in_stores__store_id=store_id,
+                    products_as_type__in_stores__is_active=True
+                )
+            )
+        ).values('id', 'name', 'slug', 'product_count').order_by('name')
 
-class ProductBrandViewSet(BaseAuditViewSet):
+        return Response(types)
+
+class ProductBrandViewSet(viewsets.ModelViewSet):
     queryset = ProductBrand.objects.filter(is_active=True)
     serializer_class = ProductBrandSerializer
     search_fields = ['name']
+    permission_classes= [AllowAny]
 
-class ProductViewSet(BaseAuditViewSet):
-    queryset = Product.objects.select_related('category', 'brand').prefetch_related('variants')
+    @transaction.atomic
+    def create(self,request, *args, **kwargs):
+        return super().create(request, *args,**kwargs)
+
+
+class ProductViewSet(viewsets.ModelViewSet):
+    queryset = Product.objects.select_related('group', 'brand').prefetch_related('variants')
     serializer_class = ProductSerializer
-    filterset_fields = ['category', 'brand']  # CORRIGÉ : retiré 'supplier' et 'status'
+    filterset_fields = ['group', 'brand']  
     search_fields = ['name', 'sku', 'description']
+    permission_classes=[AllowAny]
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
     
     @action(detail=True, methods=['get'])
     def stock_info(self, request, pk=None):
@@ -813,13 +1450,38 @@ class ProductViewSet(BaseAuditViewSet):
         stocks = Stock.objects.filter(product=product)
         serializer = StockSerializer(stocks, many=True)
         return Response(serializer.data)
-
+    
 class ProductVariantViewSet(BaseAuditViewSet):
     queryset = ProductVariant.objects.select_related('product')
     serializer_class = ProductVariantSerializer
     filterset_fields = ['product']  # CORRIGÉ : retiré 'selection'
     search_fields = ['barcode', 'name']
+    permission_classes = [AllowAny]
 
+    @transaction.atomic
+    def create(self,request, *args, **kwargs):
+        return super().create(request, *args,**kwargs)
+
+
+class StoreProductViewSet(viewsets.ModelViewSet):
+    queryset = StoreProduct.objects.select_related('store', 'product', 'supplier').all()
+    permission_classes = [IsAuthenticated, ] #CanManageStoreProducts à ajouter pour employee qui ont acces
+    filterset_fields = ['store', 'product', 'is_active']
+    search_fields = ['product__name', 'product__sku']
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return StoreProductCreateSerializer
+        return StoreProductSerializer
+
+    # def perform_create(self, serializer):
+    #     # Vous pouvez ajouter des validations supplémentaires ici
+    #     serializer.save()
+
+class StoreProductVariantViewSet(BaseAuditViewSet):
+    queryset = StoreProductVariant.objects.select_related('store_product', 'variant')
+    serializer_class = StoreProductVariantSerializer
+    permission_classes = [AllowAny]
 
 # =============================================================================
 # GESTION DES STOCKS
@@ -922,6 +1584,7 @@ class StockViewSet(BaseAuditViewSet):
         )
         
         return Response(summary_data)
+    
 
 class ReorderRuleViewSet(viewsets.ModelViewSet):
     queryset = ReorderRule.objects.select_related('product', 'store')
@@ -948,17 +1611,6 @@ class InventoryCountItemViewSet(BaseAuditViewSet):
     queryset = InventoryCountItem.objects.select_related('inventory_count', 'product', 'variant')
     serializer_class = InventoryCountItemSerializer
     permission_classes = [AllowAny]
-
-class StoreProductViewSet(BaseAuditViewSet):
-    queryset = StoreProduct.objects.select_related('store', 'product')
-    serializer_class = StoreProductSerializer
-    filterset_fields = ['store', 'product', 'is_active']
-
-class StoreProductVariantViewSet(BaseAuditViewSet):
-    queryset = StoreProductVariant.objects.select_related('store_product', 'variant')
-    serializer_class = StoreProductVariantSerializer
-    permission_classes = [AllowAny]
-
 
 # =============================================================================
 # CAISSES
@@ -1581,7 +2233,6 @@ class OrderItemViewSet(viewsets.ModelViewSet):
     """
     queryset = OrderItem.objects.select_related(
         'order',
-        'product',
         'variant'
     ).all()
     
@@ -1589,7 +2240,7 @@ class OrderItemViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['order', 'product']
+    filterset_fields = ['order', 'variant']
     
     def get_queryset(self):
         """

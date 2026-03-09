@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'drf_yasg',
     'corsheaders',
     'django_filters',
@@ -57,6 +58,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.cache.UpdateCacheMiddleware',  # Cache - DOIT ÊTRE EN PREMIER
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -65,7 +67,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.cache.FetchFromCacheMiddleware',  # Cache - DOIT ÊTRE EN DERNIER
 ]
-
+# Optionnel : compression et mise en cache
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 ROOT_URLCONF = 'backend_boutique.urls'
 
 # ——————————————————————
@@ -109,10 +112,13 @@ else:
             'USER': 'postgres',
             'PASSWORD': '12345',
             'HOST': 'localhost',
-            'PORT': '5432',
+            'PORT': os.environ.get("DB_PORT"),
+<<<<<<< HEAD
+=======
+            'CONN_MAX_AGE': 0,
+>>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753
         }
     }
-
 # ——————————————————————
 # Configuration du Cache - NOUVEAU
 # ——————————————————————
@@ -173,7 +179,7 @@ USE_TZ = True
 # ——————————————————————
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+#STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

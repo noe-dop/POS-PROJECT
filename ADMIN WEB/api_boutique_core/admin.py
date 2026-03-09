@@ -8,14 +8,22 @@ from .models import *
 # =============================================================================
 
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'user_type', 'phone', 'is_active', 'date_joined')
-    list_filter = ('user_type', 'is_active', 'is_staff', 'date_joined')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'phone', 'is_active', 'date_joined')
+<<<<<<< HEAD
+    list_filter = ( 'is_active', 'is_staff', 'date_joined')
+=======
+    list_filter = ('is_active', 'is_staff', 'date_joined')
+>>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753
     search_fields = ('username', 'email', 'first_name', 'last_name', 'phone')
     ordering = ('-date_joined',)
     
     fieldsets = UserAdmin.fieldsets + (
         ('Informations supplémentaires', {
-            'fields': ('user_type', 'phone', 'phone2', 'address', 'photo')
+<<<<<<< HEAD
+            'fields': ( 'phone', 'phone2', 'address', 'photo')
+=======
+            'fields': ('phone', 'phone2', 'address', 'photo')
+>>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753
         }),
     )
 
@@ -83,13 +91,10 @@ class InventoryCountItemInline(admin.TabularInline):
 # ADMIN MODELS
 # =============================================================================
 
-# 👇 SUPPRIMÉ - UserType n'existe pas
-# @admin.register(UserType)
-# class UserTypeAdmin(admin.ModelAdmin):
-#     list_display = ('name', 'code', 'description')
-#     search_fields = ('name', 'code')
-#     list_filter = ('code',)
+<<<<<<< HEAD
 
+=======
+>>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753
 @admin.register(Owner)
 class OwnerAdmin(admin.ModelAdmin):
     list_display = ('user', 'photo_preview', 'created_at')
@@ -144,8 +149,8 @@ class CurrencyAdmin(admin.ModelAdmin):
 
 @admin.register(StoreType)
 class StoreTypeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'code', 'description')
-    search_fields = ('name', 'code')
+    list_display = ('name', 'description')
+    search_fields = ['name']
 
 @admin.register(StoreNetwork)
 class StoreNetworkAdmin(admin.ModelAdmin):
@@ -300,10 +305,10 @@ class ProductBrandAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('sku', 'name', 'category', 'brand')
-    list_filter = ('category', 'brand')
+    list_display = ('sku', 'name', 'group', 'brand')
+    list_filter = ('group', 'brand')
     search_fields = ('sku', 'name', 'description')
-    raw_id_fields = ('category', 'brand')
+    raw_id_fields = ('group', 'brand')
     inlines = [ProductVariantInline]
     
     def get_queryset(self, request):
