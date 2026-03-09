@@ -1,379 +1,330 @@
-// src/hooks/useStock.ts
-// HOOK RÉEL POUR LA GESTION DES STOCKS AVEC L'API
-import { useState, useEffect, useCallback, useRef } from 'react';
-import StockService, { Stock, StockStats, StockFilters } from '@/services/StockService';
+// src/hooks/useStock.ts - VERSION CORRIGÉE
+import { useState, useEffect, useCallback } from 'react';
+import StockService from '@/services/StockService';
+import { 
+  Stock, 
+  StockMovement, 
+  InventoryCount,
+  ReorderRule,
+  Warehouse,
+  Batch,
+  StockStats
+} from '@/types/stock.types';
 
-export interface UseStockOptions {
+interface UseStockOptions {
   storeId?: number;
-  warehouseId?: number;
   autoRefresh?: boolean;
   refreshInterval?: number;
-  initialLoad?: boolean;
 }
 
-export interface UseStockReturn {
-  // Données
-  stocks: Stock[];
-  stockStats: StockStats | null;
-  
-  // États
-  loading: {
-    stocks: boolean;
-    stats: boolean;
-    all: boolean;
-  };
-  error: {
-    message: string;
-    details?: any;
-    timestamp?: string;
-  } | null;
-  apiStatus: string;
-  hasData: boolean;
-  lastUpdated: string | null;
-  
-  // Actions
-  fetchStocks: (filters?: StockFilters) => Promise<void>;
-  fetchStats: (params?: { storeId?: number; warehouseId?: number }) => Promise<StockStats>;
-  refreshAll: () => Promise<void>;
-  resetError: () => void;
-  testConnection: () => Promise<{ success: boolean; message: string }>;
-  
-  // Utilitaires
-  getLowStockProducts: () => Stock[];
-  getProductStock: (productId: number) => Stock | undefined;
-  calculateStockValue: () => number;
-  
-  // États dérivés
-  isLoading: boolean;
-  hasError: boolean;
-}
+export const useStock = (options: UseStockOptions = {}) => {
+  const { storeId, autoRefresh = false, refreshInterval = 30000 } = options;
 
-export const useStock = (options: UseStockOptions = {}): UseStockReturn => {
-  const { 
-    storeId, 
-    warehouseId,
-    autoRefresh = false, 
-    refreshInterval = 60000, // 60 secondes
-    initialLoad = true 
-  } = options;
-
-  // Références
-  const isInitialMount = useRef(true);
-  const autoRefreshRef = useRef<NodeJS.Timeout | null>(null);
-  const mountedRef = useRef(true);
-
-  // États
+  // États pour les données
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [stockStats, setStockStats] = useState<StockStats | null>(null);
-  
+  const [movements, setMovements] = useState<StockMovement[]>([]);
+  const [inventoryCounts, setInventoryCounts] = useState<InventoryCount[]>([]);
+  const [reorderRules, setReorderRules] = useState<ReorderRule[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [alerts, setAlerts] = useState<any[]>([]);
+
+  // États pour le chargement et les erreurs
   const [loading, setLoading] = useState({
     stocks: false,
     stats: false,
-    all: false
+    movements: false,
+    inventoryCounts: false,
+    reorderRules: false,
+    warehouses: false,
+    batches: false,
+    alerts: false,
   });
+  
+  const [error, setError] = useState<{ message: string; details?: any } | null>(null);
+  const [apiStatus, setApiStatus] = useState<string>('🟡 Connexion en cours...');
+  const [availableEndpoints, setAvailableEndpoints] = useState<string[]>([]);
 
-  const [error, setError] = useState<{ 
-    message: string; 
-    details?: any;
-    timestamp?: string;
-  } | null>(null);
+  // ==================== FONCTIONS DE RÉCUPÉRATION ROBUSTES ====================
 
-  const [apiStatus, setApiStatus] = useState<string>('Connexion en cours...');
-  const [hasData, setHasData] = useState<boolean>(false);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-
-  // ==================== FONCTIONS API ====================
-
-  const fetchStocks = useCallback(async (filters?: StockFilters): Promise<void> => {
-    if (!mountedRef.current) return;
-    
+  const fetchStocks = useCallback(async (params?: any) => {
     setLoading(prev => ({ ...prev, stocks: true }));
-    setError(null);
     
     try {
-      const baseFilters: StockFilters = {
-        ...filters,
-        store: storeId,
-        warehouse: warehouseId,
-        page_size: 100
-      };
-
-      const result = await StockService.getStocks(baseFilters);
+      const result = await StockService.getStocks({ 
+        store_id: storeId,
+        ...params 
+      });
+      setStocks(result.data);
       
-      if (mountedRef.current) {
-        setStocks(result.data);
-        setHasData(result.data.length > 0);
-        setLastUpdated(new Date().toISOString());
-        
-        if (result.data.length === 0) {
-          console.log('⚠️ Aucun stock trouvé avec les filtres:', baseFilters);
-        }
+      if (result.data.length > 0) {
+        setAvailableEndpoints(prev => [...new Set([...prev, '/stocks/'])]);
       }
       
+      return result;
     } catch (err: any) {
-      console.error('❌ Erreur fetchStocks:', err);
-      
-      if (mountedRef.current) {
-        setError({ 
-          message: 'Impossible de charger les stocks',
-          details: err.message,
-          timestamp: new Date().toISOString()
-        });
-      }
+      console.warn('⚠️ Erreur récupération stocks:', err.message);
+      // Ne pas afficher d'erreur pour cette requête
+      return { data: [], total: 0 };
     } finally {
-      if (mountedRef.current) {
-        setLoading(prev => ({ ...prev, stocks: false }));
-      }
+      setLoading(prev => ({ ...prev, stocks: false }));
     }
-  }, [storeId, warehouseId]);
+  }, [storeId]);
 
-  const fetchStats = useCallback(async (params?: { 
-    storeId?: number; 
-    warehouseId?: number 
-  }): Promise<StockStats> => {
-    if (!mountedRef.current) {
-      return {
-        totalProducts: 0,
-        totalStock: 0,
-        outOfStock: 0,
-        lowStock: 0
-      };
-    }
-    
+  const fetchStockStats = useCallback(async () => {
     setLoading(prev => ({ ...prev, stats: true }));
     
     try {
-      const stats = await StockService.getStats({
-        store: params?.storeId || storeId,
-        warehouse: params?.warehouseId || warehouseId
-      });
+      const stats = await StockService.getStockStats(storeId);
+      setStockStats(stats);
       
-      if (mountedRef.current) {
-        setStockStats(stats);
+      if (stats.totalProducts > 0) {
+        setAvailableEndpoints(prev => [...new Set([...prev, '/stocks/stats/'])]);
       }
       
       return stats;
-      
     } catch (err: any) {
-      console.error('❌ Erreur fetchStats:', err);
-      
-      // Fallback: calculer localement
-      const localStats: StockStats = {
+      console.warn('⚠️ Erreur récupération stats:', err.message);
+      // Calculer les stats localement
+      return {
         totalProducts: stocks.length,
-        totalStock: stocks.reduce((sum, stock) => sum + (stock.quantity_on_hand || 0), 0),
+        totalStock: stocks.reduce((sum, stock) => sum + (stock.quantity_available || 0), 0),
         outOfStock: stocks.filter(s => s.stock_status === 'out_of_stock').length,
-        lowStock: stocks.filter(s => s.stock_status === 'low_stock').length
+        lowStock: stocks.filter(s => s.stock_status === 'low_stock').length,
+        totalValue: stocks.reduce((sum, stock) => 
+          sum + ((stock.quantity_on_hand || 0) * (stock.product?.cost_price || 0)), 0
+        ),
+        averageStockValue: 0
       };
-      
-      if (mountedRef.current) {
-        setStockStats(localStats);
-      }
-      
-      return localStats;
-      
     } finally {
-      if (mountedRef.current) {
-        setLoading(prev => ({ ...prev, stats: false }));
-      }
+      setLoading(prev => ({ ...prev, stats: false }));
     }
-  }, [storeId, warehouseId, stocks]);
+  }, [storeId, stocks]);
 
-  // ==================== GESTION CONNEXION ====================
-
-  const testConnection = useCallback(async (): Promise<{ success: boolean; message: string }> => {
+  const fetchMovements = useCallback(async (params?: any) => {
+    setLoading(prev => ({ ...prev, movements: true }));
+    
     try {
-      const result = await StockService.testConnection();
-      setApiStatus(result.message);
+      const result = await StockService.getStockMovements({ 
+        store_id: storeId,
+        ...params 
+      });
+      setMovements(result.data);
+      
+      if (result.data.length > 0) {
+        setAvailableEndpoints(prev => [...new Set([...prev, '/stock-movements/'])]);
+      }
+      
       return result;
     } catch (err: any) {
-      const message = 'Impossible de contacter le serveur';
-      setApiStatus(message);
-      return { success: false, message };
+      console.warn('⚠️ Endpoint mouvements non disponible');
+      // Retourner des données vides
+      return { data: [], total: 0 };
+    } finally {
+      setLoading(prev => ({ ...prev, movements: false }));
+    }
+  }, [storeId]);
+
+  // Fonctions avec gestion d'erreurs silencieuse pour endpoints optionnels
+  const fetchOptionalData = useCallback(async (endpoint: string, fetchFunction: Function) => {
+    try {
+      const result = await fetchFunction();
+      if (result.data?.length > 0 || result.length > 0) {
+        setAvailableEndpoints(prev => [...new Set([...prev, endpoint])]);
+      }
+      return result;
+    } catch (err: any) {
+      // Ignorer silencieusement les erreurs 404 pour les endpoints optionnels
+      if (err.response?.status === 404) {
+        console.log(`ℹ️ Endpoint ${endpoint} non disponible (optionnel)`);
+      } else {
+        console.warn(`⚠️ Erreur ${endpoint}:`, err.message);
+      }
+      return { data: [], total: 0 };
     }
   }, []);
 
-  const loadInitialData = useCallback(async (): Promise<void> => {
-    if (!mountedRef.current) return;
-    
-    setLoading(prev => ({ ...prev, all: true }));
-    setError(null);
-    setApiStatus('Chargement des données...');
-    
-    try {
-      const connection = await testConnection();
-      
-      if (!connection.success) {
-        setApiStatus('Connexion limitée à l\'API');
-        return;
-      }
+  // ==================== CHARGEMENT INITIAL INTELLIGENT ====================
 
-      await Promise.all([
-        fetchStocks(),
-        fetchStats()
-      ]);
+  useEffect(() => {
+    const loadInitialData = async () => {
+      console.log('🔄 Démarrage chargement données stock...');
       
-      if (mountedRef.current) {
-        setApiStatus(`Connecté - ${stocks.length} stocks chargés`);
-      }
-      
-    } catch (err: any) {
-      console.error('💥 Erreur loadInitialData:', err);
-      
-      if (mountedRef.current) {
-        setError({
-          message: 'Erreur lors du chargement des données',
-          details: err.message,
-          timestamp: new Date().toISOString()
+      try {
+        // Tester la connexion API d'abord
+        const testResult = await StockService.testConnection();
+        setApiStatus(testResult.message);
+        
+        if (!testResult.success) {
+          setError({ message: testResult.message });
+          return;
+        }
+
+        // Charger les données essentielles
+        const essentialPromises = [
+          fetchStocks({ page_size: 100 }),
+          fetchMovements({ page_size: 20 }),
+          fetchStockStats()
+        ];
+
+        // Charger les données optionnelles (sans bloquer)
+        const optionalPromises = [
+          fetchOptionalData('/warehouses/', () => StockService.getWarehouses({ store_id: storeId })),
+          fetchOptionalData('/inventory-counts/', () => StockService.getInventoryCounts({ store_id: storeId })),
+          fetchOptionalData('/reorder-rules/', () => StockService.getReorderRules({ store_id: storeId })),
+          fetchOptionalData('/batches/', () => StockService.getBatches({ store_id: storeId })),
+          fetchOptionalData('/stock-alerts/', () => StockService.getStockAlerts({ store_id: storeId }))
+        ];
+
+        await Promise.all(essentialPromises);
+        
+        // Lancer les optionnelles en arrière-plan
+        Promise.allSettled(optionalPromises).then(results => {
+          results.forEach((result, index) => {
+            if (result.status === 'fulfilled') {
+              const endpoint = [
+                '/warehouses/',
+                '/inventory-counts/',
+                '/reorder-rules/',
+                '/batches/',
+                '/stock-alerts/'
+              ][index];
+              console.log(`✅ Données ${endpoint} chargées (optionnel)`);
+            }
+          });
         });
-        setApiStatus('Erreur de chargement');
-      }
-    } finally {
-      if (mountedRef.current) {
-        setLoading(prev => ({ ...prev, all: false }));
-      }
-    }
-  }, [fetchStocks, fetchStats, testConnection, stocks.length]);
 
-  const refreshAll = useCallback(async (): Promise<void> => {
-    if (!mountedRef.current) return;
-    
-    setApiStatus('Rafraîchissement...');
-    setError(null);
-    
-    try {
-      await Promise.all([
-        fetchStocks(),
-        fetchStats()
-      ]);
-      
-      if (mountedRef.current) {
-        setApiStatus(`Rafraîchi - ${stocks.length} stocks`);
-        setLastUpdated(new Date().toISOString());
-      }
-      
-    } catch (err: any) {
-      console.error('❌ Erreur refreshAll:', err);
-      
-      if (mountedRef.current) {
-        setApiStatus('Erreur de rafraîchissement');
-      }
-    }
-  }, [fetchStocks, fetchStats, stocks.length]);
+        console.log('✅ Données essentielles chargées avec succès');
+        console.log('📋 Endpoints disponibles:', availableEndpoints);
+        
+        // Mettre à jour le statut
+        if (stocks.length > 0) {
+          setApiStatus(`🟢 Connecté - ${stocks.length} produits chargés`);
+        } else {
+          setApiStatus('🟡 Connecté - Aucun produit trouvé');
+        }
 
-  // ==================== UTILITAIRES ====================
+      } catch (err: any) {
+        console.error('💥 Erreur critique lors du chargement:', err);
+        
+        // Ne pas afficher d'erreur pour les endpoints manquants
+        if (!err.message?.includes('404')) {
+          setError({ 
+            message: 'Impossible de charger les données essentielles',
+            details: err 
+          });
+        }
+        
+        setApiStatus('🔴 Erreur de connexion');
+      }
+    };
 
-  const getLowStockProducts = useCallback((): Stock[] => {
+    loadInitialData();
+  }, []); // Exécuter une seule fois au montage
+
+  // ==================== UTILITAIRES POUR L'UI ====================
+
+  const getLowStockProducts = useCallback(() => {
     return stocks.filter(stock => 
-      stock.stock_status === 'low_stock' || 
-      stock.stock_status === 'out_of_stock' ||
-      (stock.quantity_available <= stock.min_stock_threshold)
+      stock.stock_status === 'low_stock' || stock.stock_status === 'out_of_stock'
     );
   }, [stocks]);
 
-  const getProductStock = useCallback((productId: number): Stock | undefined => {
-    return stocks.find(stock => stock.product === productId);
+  const getProductStock = useCallback((productId: number) => {
+    return stocks.find(stock => stock.product?.id === productId);
   }, [stocks]);
 
-  const calculateStockValue = useCallback((): number => {
+  const calculateStockValue = useCallback(() => {
     return stocks.reduce((total, stock) => {
-      let costPrice = 0;
-      
-      if (stock.product_details?.cost_price) {
-        costPrice = stock.product_details.cost_price;
-      }
-      
-      const quantity = stock.quantity_on_hand || 0;
-      return total + (quantity * costPrice);
+      const costPrice = stock.product?.cost_price || 0;
+      return total + ((stock.quantity_on_hand || 0) * costPrice);
     }, 0);
   }, [stocks]);
 
-  const resetError = useCallback((): void => {
+  // ==================== ACTIONS AVEC GESTION D'ERREURS ====================
+
+  const createStockMovement = useCallback(async (movementData: any) => {
     setError(null);
-  }, []);
-
-  // ==================== EFFETS ====================
-
-  // Nettoyage
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-      if (autoRefreshRef.current) {
-        clearInterval(autoRefreshRef.current);
-      }
-    };
-  }, []);
-
-  // Chargement initial
-  useEffect(() => {
-    if (initialLoad && isInitialMount.current && mountedRef.current) {
-      loadInitialData();
-      isInitialMount.current = false;
-    }
-  }, [initialLoad, loadInitialData]);
-
-  // Rafraîchissement automatique
-  useEffect(() => {
-    if (autoRefresh && hasData && mountedRef.current) {
-      if (autoRefreshRef.current) {
-        clearInterval(autoRefreshRef.current);
-      }
+    
+    try {
+      const result = await StockService.createStockMovement({
+        ...movementData,
+        store_id: storeId || movementData.store_id
+      });
       
-      autoRefreshRef.current = setInterval(() => {
-        if (mountedRef.current) {
-          fetchStocks();
-          fetchStats();
-        }
+      // Rafraîchir les données après création
+      await fetchStocks();
+      await fetchMovements();
+      
+      return result;
+    } catch (err: any) {
+      const errorMsg = err.message || 'Erreur lors de la création du mouvement';
+      setError({ message: errorMsg, details: err });
+      throw err;
+    }
+  }, [storeId, fetchStocks, fetchMovements]);
+
+  // ==================== RECHARGEMENT AUTOMATIQUE ====================
+
+  useEffect(() => {
+    if (autoRefresh && stocks.length > 0) {
+      const interval = setInterval(() => {
+        console.log('🔄 Rafraîchissement automatique des données');
+        fetchStocks();
+        fetchMovements();
       }, refreshInterval);
-      
-      return () => {
-        if (autoRefreshRef.current) {
-          clearInterval(autoRefreshRef.current);
-          autoRefreshRef.current = null;
-        }
-      };
-    } else if (autoRefreshRef.current) {
-      clearInterval(autoRefreshRef.current);
-      autoRefreshRef.current = null;
-    }
-  }, [autoRefresh, refreshInterval, hasData, fetchStocks, fetchStats]);
 
-  // Rechargement quand storeId ou warehouseId change
-  useEffect(() => {
-    if (!isInitialMount.current && mountedRef.current) {
-      refreshAll();
+      return () => clearInterval(interval);
     }
-  }, [storeId, warehouseId, refreshAll]);
+  }, [autoRefresh, refreshInterval, fetchStocks, fetchMovements, stocks.length]);
 
-  // ==================== RETURN ====================
+  // ==================== VALEURS RETOURNÉES ====================
 
   return {
-    // Données
+    // Données principales
     stocks,
     stockStats,
+    movements,
     
-    // États
+    // Données optionnelles
+    inventoryCounts,
+    reorderRules,
+    warehouses,
+    batches,
+    alerts,
+    
+    // Métadonnées
     loading,
     error,
     apiStatus,
-    hasData,
-    lastUpdated,
+    availableEndpoints,
     
-    // Actions
+    // Actions principales
     fetchStocks,
-    fetchStats,
-    refreshAll,
-    resetError,
-    testConnection,
+    fetchStockStats,
+    fetchMovements,
+    createStockMovement,
     
-    // Utilitaires
+    // Utilitaires pour l'UI
     getLowStockProducts,
     getProductStock,
     calculateStockValue,
     
-    // États dérivés
-    isLoading: loading.all || loading.stocks || loading.stats,
-    hasError: error !== null
+    // État global
+    isLoading: loading.stocks || loading.stats || loading.movements,
+    hasError: error !== null,
+    hasData: stocks.length > 0,
+    
+    // Réinitialisation
+    resetError: () => setError(null),
+    refreshAll: async () => {
+      console.log('🔄 Rafraîchissement manuel des données');
+      await Promise.all([
+        fetchStocks(),
+        fetchStockStats(),
+        fetchMovements()
+      ]);
+    }
   };
 };
-
-export default useStock;

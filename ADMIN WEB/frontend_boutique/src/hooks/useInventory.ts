@@ -1,4 +1,4 @@
-// src/hooks/useInventory.ts - VERSION COMPLÈTE FONCTIONNELLE
+// src/hooks/useInventory.ts - Version avec support du nouveau payload
 import { useState, useEffect, useCallback } from 'react';
 import { 
   inventoryService, 
@@ -158,7 +158,7 @@ export const useInventory = (): UseInventoryReturn => {
         progress: InventoryUtils.getProgressPercentage(inv, itemsCache[inv.id]),
         store_name: inv.store_name || 'Magasin inconnu',
         items: itemsCache[inv.id] || [],
-        notes: inv.metadata?.notes || ''
+        notes: inv.metadata?.notes || inv.notes || ''
       }));
       
       setInventories(inventoriesWithDetails);
@@ -234,14 +234,16 @@ export const useInventory = (): UseInventoryReturn => {
     setErrorMessage(null);
     
     try {
+      console.log('Hook - création avec payload:', payload);
       const created = await inventoryService.createInventory(payload);
+      console.log('Hook - réponse création:', created);
       
       const newInventory: LocalInventoryCount = {
         ...created,
         progress: 0,
         store_name: created.store_name || 'Magasin inconnu',
         items: [],
-        notes: created.metadata?.notes || ''
+        notes: created.metadata?.notes || created.notes || ''
       };
       
       setInventories(prev => [newInventory, ...prev]);
@@ -250,6 +252,7 @@ export const useInventory = (): UseInventoryReturn => {
       
       return newInventory;
     } catch (err: any) {
+      console.error('Hook - erreur création:', err);
       setErrorMessage(err.message);
       throw err;
     } finally {
@@ -269,7 +272,7 @@ export const useInventory = (): UseInventoryReturn => {
         progress: InventoryUtils.getProgressPercentage(updated, itemsCache[id]),
         store_name: updated.store_name || 'Magasin inconnu',
         items: itemsCache[id] || [],
-        notes: updated.metadata?.notes || ''
+        notes: updated.metadata?.notes || updated.notes || ''
       };
       
       setInventories(prev => prev.map(i => i.id === id ? transformed : i));

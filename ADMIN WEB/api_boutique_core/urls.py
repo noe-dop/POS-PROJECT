@@ -232,16 +232,18 @@ custom_urlpatterns = [
     # 🔄 ENDPOINT REQUESTS
     path('requests/', views.RequestsAPIView.as_view(), name='api-requests'),
     
-    # 📊 RAPPORTS
+    # 📊 RAPPORTS ET ANALYTIQUES DES COMMANDES
     path('reports/orders-analytics/', views.OrdersAnalyticsView.as_view(), name='orders-analytics'),
     path('reports/orders-report/', views.OrdersReportView.as_view(), name='orders-report'),
     path('exports/orders-csv/', views.ExportOrdersCSVView.as_view(), name='export-orders-csv'),
+    
+    # 🔍 AUTRES RAPPORTS ET EXPORTS
     path('reports/sales-summary/', views.SalesSummaryView.as_view(), name='sales-summary'),
     path('reports/inventory-report/', views.InventoryReportView.as_view(), name='inventory-report'),
     path('reports/financial-summary/', views.FinancialSummaryView.as_view(), name='financial-summary'),
     path('exports/sales-csv/', views.ExportSalesCSVView.as_view(), name='export-sales-csv'),
     
-    # 📈 STATISTIQUES
+    # 📈 STATISTIQUES AVANCÉES
     path('stats/daily-sales/', views.DailySalesStatsView.as_view(), name='daily-sales-stats'),
     path('stats/top-products/', views.TopProductsView.as_view(), name='top-products'),
     path('stats/customer-analytics/', views.CustomerAnalyticsView.as_view(), name='customer-analytics'),
@@ -254,7 +256,7 @@ custom_urlpatterns = [
 ]
 
 # =============================================================================
-# COMBINAISON FINALE DES URLS - CORRIGÉE !
+# COMBINAISON DES URLS
 # =============================================================================
 
 urlpatterns = [

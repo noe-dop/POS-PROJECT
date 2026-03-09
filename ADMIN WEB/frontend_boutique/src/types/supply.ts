@@ -1,4 +1,4 @@
-// src/types/supply.ts
+// src/types/supply.ts - VERSION CORRIGÉE
 
 // =============================================================================
 // TYPES DE BASE
@@ -64,29 +64,61 @@ export interface SupplyItem extends BaseAudit {
   is_complete?: boolean;             // true si quantity_received >= quantity_ordered
 }
 
+// =============================================================================
+// CORRECTION - PAYLOAD POUR CRÉATION (basé sur l'exemple fourni)
+// =============================================================================
+
 export interface CreateSupplyPayload {
-  ref_supply: string;
-  store: number;
-  supplier: number;
-  utilisateur: number;
-  status?: SupplyStatus;
+  ref_supply: string;                // Requis - Référence
+  total_command: string;              // Requis - Total commande (string)
+  status: SupplyStatus;               // Requis - Statut
+  store: number;                      // Requis - ID magasin
+  supplier: number;                   // Requis - ID fournisseur
+  utilisateur: number;                // Requis - ID utilisateur
+  
+  // Champs optionnels
   expected_date?: string;
   notes?: string;
+  is_active?: boolean;
+  metadata?: Record<string, any>;
+  
+  // Note: Les items peuvent être créés séparément ou inclus selon l'API
   items?: Array<{
     product: number;
     variant?: number | null;
     quantity_ordered: number;
     unit_price: string;
   }>;
+}
+
+// Version alternative si l'API attend exactement ce format
+export interface CreateSupplyPayload {
+  ref_supply: string;
+  total_command: string;
+  status: SupplyStatus;
+  store: number;
+  supplier: number;
+  utilisateur: number;
+  expected_date?: string;
+  notes?: string;
+  is_active?: boolean;
   metadata?: Record<string, any>;
 }
 
 export interface UpdateSupplyPayload {
   ref_supply?: string;
+  total_command?: string;
   status?: SupplyStatus;
+  store?: number;
+  supplier?: number;
+  utilisateur?: number;
   expected_date?: string;
   received_date?: string;
   notes?: string;
+  is_active?: boolean;
+  metadata?: Record<string, any>;
+  
+  // Pour mise à jour des items
   items?: Array<{
     id?: number;
     product: number;
@@ -95,7 +127,6 @@ export interface UpdateSupplyPayload {
     quantity_received?: number | null;
     unit_price: string;
   }>;
-  metadata?: Record<string, any>;
 }
 
 export interface ReceiveSupplyPayload {
@@ -116,6 +147,7 @@ export interface SupplyFilters {
   status?: SupplyStatus | 'all';      // Filtre par statut
   store?: number | 'all';             // Filtre par magasin
   supplier?: number | 'all';           // Filtre par fournisseur
+  utilisateur?: number | 'all';        // Filtre par utilisateur
   date_from?: string;                  // Date de début
   date_to?: string;                    // Date de fin
   is_active?: boolean | 'all';         // Filtre actif/inactif

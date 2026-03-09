@@ -16,7 +16,6 @@ import json
 from django.http import HttpResponse
 import csv
 from datetime import datetime
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from .permissions import IsAdminOrOwner, CanManageStoreProducts
 # Import des modèles

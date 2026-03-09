@@ -1310,9 +1310,6 @@ class InventoryCount(AuditModel):
         default=0
     )
     
-    # AJOUTEZ CES CHAMPS OBLIGATOIRES !
-    notes = models.TextField("Notes", blank=True, default='')
-    
     class Meta:
         verbose_name = "Inventaire physique"
         verbose_name_plural = "Inventaires physiques"

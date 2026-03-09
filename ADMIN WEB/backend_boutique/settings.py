@@ -101,7 +101,6 @@ if DATABASE_URL:
     # 🔥 CORRECTION CRITIQUE : Utiliser le port 6543 pour Supabase (transaction pooler)
     if 'supabase.com' in DATABASE_URL:
         DATABASE_URL = DATABASE_URL.replace(':5432', ':6543')
-        print(f"✅ URL base de données corrigée pour Supabase (port 6543)")
     
     DATABASES = {
         'default': dj_database_url.config(
@@ -116,7 +115,6 @@ if DATABASE_URL:
         'sslmode': 'require',
     }
     
-    print(f"✅ Configuration DB: conn_max_age=0, SSL requis")
 else:
     DATABASES = {
         'default': {
@@ -126,10 +124,6 @@ else:
             'PASSWORD': os.environ.get("DB_PASSWORD"),
             'HOST': 'localhost',
             'PORT': os.environ.get("DB_PORT"),
-<<<<<<< HEAD
-=======
-            'CONN_MAX_AGE': 0,
->>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753
         }
     }
 # ——————————————————————
