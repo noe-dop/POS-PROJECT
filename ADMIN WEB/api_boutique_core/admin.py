@@ -1,88 +1,28 @@
-# api_boutique_core/admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
-from .models import (
-    # Utilisateurs
-    User, Owner, Shareholder, Customer,
-    
-    # Adresses et devises
-    Address, Currency,
-    
-    # Boutiques
-    StoreType, StoreNetwork, Store, StoreOwnership, StoreShareholder, Department,
-    
-    # Employés
-    EmployeeRole, Employee,
-    
-    # Sessions
-    Session, ActivityLog, SousService,
-    
-    # Cartes et fidélité
-    TypeCard, Card, CardTransaction, LoyaltyProgram, LoyaltyReward,
-    
-    # Fournisseurs
-    Supplier, Supply, RetailSupply,
-    
-    # Produits
-    ProductCategory, ProductBrand, Product, ProductVariant,
-    
-    # Stocks
-    Warehouse, Batch, Stock, ReorderRule, StockMovement, StockMovementItem,
-    InventoryCount, InventoryCountItem,  # ← MODÈLES IMPORTANTS !
-    
-    # Produits en boutique
-    StoreProduct, StoreProductVariant,
-    
-    # Caisses
-    CashRegister, CashRegisterSession, CashTransaction,
-    
-    # Ventes
-    PaymentMethod, SaleStatus, Sale, SaleItem, SalePayment,
-    
-    # Livraisons
-    DeliveryAddress, DeliveryVehicle, DeliveryRoute, Delivery, DeliverySchedule,
-    
-    # Retours
-    ReturnReason, ProductReturn, ReturnItem, Refund, ReturnedProduct,
-    
-    # Transactions financières
-    Transaction, MobileMoney, Unite, WithdrawalCode,
-    
-    # Marketing
-    Promotion, Campaign,
-    
-    # Comptabilité
-    ExpenseCategory, Expense, TaxRate, AccountingPeriod, 
-    GeneralLedger, FinancialReport, KPI, KPIMeasurement, Dashboard,
-    
-    # Sécurité et maintenance
-    SecurityIncident, DataBackup, MaintenanceTask, SupportTicket,
-    
-    # Erreurs
-    ErrorReport
-)
+from .models import *
 
 # =============================================================================
 # ADMIN PERSONNALISÉ POUR L'UTILISATEUR
 # =============================================================================
 
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'phone', 'is_active', 'date_joined')
-    list_filter = ('is_active', 'is_staff', 'date_joined')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'user_type', 'phone', 'is_active', 'date_joined')
+    list_filter = ('user_type', 'is_active', 'is_staff', 'date_joined')
     search_fields = ('username', 'email', 'first_name', 'last_name', 'phone')
     ordering = ('-date_joined',)
     
     fieldsets = UserAdmin.fieldsets + (
         ('Informations supplémentaires', {
-            'fields': ('phone', 'phone2', 'address', 'photo')
+            'fields': ('user_type', 'phone', 'phone2', 'address', 'photo')
         }),
     )
 
 admin.site.register(User, CustomUserAdmin)
 
 # =============================================================================
-# ADMIN INLINE (définis après les imports)
+# ADMIN INLINE
 # =============================================================================
 
 class StoreOwnershipInline(admin.TabularInline):
@@ -142,6 +82,13 @@ class InventoryCountItemInline(admin.TabularInline):
 # =============================================================================
 # ADMIN MODELS
 # =============================================================================
+
+# 👇 SUPPRIMÉ - UserType n'existe pas
+# @admin.register(UserType)
+# class UserTypeAdmin(admin.ModelAdmin):
+#     list_display = ('name', 'code', 'description')
+#     search_fields = ('name', 'code')
+#     list_filter = ('code',)
 
 @admin.register(Owner)
 class OwnerAdmin(admin.ModelAdmin):
@@ -422,13 +369,6 @@ class InventoryCountAdmin(admin.ModelAdmin):
     search_fields = ('reference', 'store__name')
     raw_id_fields = ('store',)
     inlines = [InventoryCountItemInline]
-
-@admin.register(InventoryCountItem)
-class InventoryCountItemAdmin(admin.ModelAdmin):
-    list_display = ('inventory_count', 'product', 'expected_quantity', 'counted_quantity', 'discrepancy')
-    list_filter = ('inventory_count__status',)
-    search_fields = ('product__name', 'inventory_count__reference')
-    raw_id_fields = ('inventory_count', 'product', 'variant')
 
 @admin.register(StoreProduct)
 class StoreProductAdmin(admin.ModelAdmin):

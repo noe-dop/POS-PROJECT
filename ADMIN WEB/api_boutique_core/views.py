@@ -14,11 +14,10 @@ import json
 from django.http import HttpResponse
 import csv
 from datetime import datetime
-from rest_framework_simplejwt.tokens import RefreshToken
 
 # Import des modèles
 from .models import (
-    User, Owner, Shareholder, Customer, Address, Currency,
+    User, UserType, Owner, Shareholder, Customer, Address, Currency,
     StoreType, StoreNetwork, Store, StoreOwnership, StoreShareholder, Department,
     EmployeeRole, Employee, Session, ActivityLog, SousService,
     TypeCard, Card, CardTransaction, LoyaltyProgram, LoyaltyReward,
@@ -42,367 +41,37 @@ from .models import (
 # Import de tous les sérialiseurs
 from .serializers import *
 
-class LoginView(APIView):
-    """
-    Connexion et génération de token
-    POST /api/auth/login/
-    """
-    permission_classes = [AllowAny]
-    
-    def post(self, request, *args, **kwargs):
-        serializer = LoginSerializer(data=request.data)
-        
-        if not serializer.is_valid():
-            return Response({
-                "success": False,
-                "errors": serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        user = serializer.validated_data['user']
-        # Générer les tokens JWT (Simple JWT) 
-        refresh = RefreshToken.for_user(user)
-
-        # Préparer les données de réponse
-        response_data = {
-            "success": True,
-            "message": "Connexion réussie",
-            "access": str(refresh.access_token), # Token d'accès
-            "refresh": str(refresh),          # Token de rafraîchissement
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "full_name": user.get_full_name(),
-                "phone": user.phone,
-                "is_staff": user.is_staff,
-                "is_superuser": user.is_superuser,
-                "last_login": user.last_login,
-                "created_at": user.date_joined,
-            },
-            'expires_in': refresh.access_token.lifetime.total_seconds()
-        }
-        
-        # Ajouter le rôle de l'utilisateur
-        if hasattr(user, 'owner'):
-            owner = user.owner
-            response_data["user"]["role"] = "owner"
-            response_data["user"]["owner_profile"] = {
-                "id": owner.id,
-                "photo": owner.photo if owner.photo else None,
-                "created_at": owner.created_at
-            }
-            
-        elif hasattr(user, 'employee'):
-            response_data["user"]["role"] = "employee"
-            response_data["user"]["employee_id"] = user.employee.id
-            response_data["user"]["store_id"] = user.employee.store_id
-            response_data["user"]["role_name"] = user.employee.role.name
-            response_data["user"]["department"] = user.employee.department.name if user.employee.department else None
-            
-        elif hasattr(user, 'shareholder'):
-            response_data["user"]["role"] = "shareholder"
-            response_data["user"]["shareholder_id"] = user.shareholder.id
-            response_data["user"]["investment_amount"] = user.shareholder.investment_amount
-            
-        elif hasattr(user, 'customer'):
-            response_data["user"]["role"] = "customer"
-            response_data["user"]["customer_id"] = user.customer.id
-            response_data["user"]["loyalty_points"] = user.customer.loyalty_points
-            
-        else:
-            response_data["user"]["role"] = "user"  # Pas de profil spécifique
-        
-        return Response(response_data, status=status.HTTP_200_OK)
-
-
-class LogoutView(APIView):
-    """
-    Déconnexion - Suppression du token
-    POST /api/auth/logout/
-    """
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request, *args, **kwargs):
-        # Supprimer le token
-        try:
-            refresh_token = request.data.get("refresh")
-            if refresh_token:
-                token = RefreshToken(refresh_token)
-                token.blacklist()  
-
-            return Response({
-                "success": True,
-                "message": "Déconnexion réussie"
-            }, status=status.HTTP_205_RESET_CONTENT)
-        
-        except Exception as e:
-            return Response({
-                "success": False,
-                "message": str(e)
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-    
-class UserProfileView(APIView):
-    """
-    Récupérer et mettre à jour le profil de l'utilisateur connecté
-    GET /api/auth/profile/
-    PATCH /api/auth/profile/
-    PUT /api/auth/profile/
-    """
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request, *args, **kwargs):
-        """Récupérer le profil"""
-        user = request.user
-        
-        response_data = {
-            "success": True,
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "full_name": user.get_full_name(),
-                "phone": getattr(user, 'phone', ''),
-                "address": getattr(user, 'address', ''),
-                "is_staff": user.is_staff,
-                "is_superuser": user.is_superuser,
-                "date_joined": user.date_joined,
-                "last_login": user.last_login,
-            }
-        }
-        
-        # Ajouter les infos spécifiques au rôle
-        if hasattr(user, 'owner'):
-            owner = user.owner
-            response_data["user"]["role"] = "owner"
-            response_data["owner_profile"] = {
-                "id": owner.id,
-                "photo": owner.photo.url if owner.photo else None,
-                "created_at": owner.created_at
-            }
-            
-        elif hasattr(user, 'employee'):
-            employee = user.employee
-            response_data["user"]["role"] = "employee"
-            response_data["employee_profile"] = {
-                "id": employee.id,
-                "store_id": employee.store_id,
-                "store_name": employee.store.name if employee.store else None,
-                "role_id": employee.role_id,
-                "role_name": employee.role.name if employee.role else None,
-                "department": employee.department.name if employee.department else None,
-                "hire_date": employee.hire_date,
-                "salary": employee.salary,
-                "is_active": employee.is_active,
-                "photo": employee.photo.url if employee.photo else None
-            }
-            
-        elif hasattr(user, 'shareholder'):
-            shareholder = user.shareholder
-            response_data["user"]["role"] = "shareholder"
-            response_data["shareholder_profile"] = {
-                "id": shareholder.id,
-                "investment_amount": shareholder.investment_amount,
-                "photo": shareholder.photo.url if shareholder.photo else None
-            }
-            
-        elif hasattr(user, 'customer'):
-            customer = user.customer
-            response_data["user"]["role"] = "customer"
-            response_data["customer_profile"] = {
-                "id": customer.id,
-                "birth_date": customer.birth_date,
-                "loyalty_points": customer.loyalty_points,
-                "total_spent": str(customer.total_spent) if customer.total_spent else "0",
-                "first_purchase": customer.first_purchase,
-                "last_purchase": customer.last_purchase
-            }
-        
-        return Response(response_data, status=status.HTTP_200_OK)
-    
-    def patch(self, request, *args, **kwargs):
-        """Mettre à jour partiellement le profil"""
-        user = request.user
-        
-        # Mettre à jour les champs de l'utilisateur
-        if 'first_name' in request.data:
-            user.first_name = request.data['first_name']
-        if 'last_name' in request.data:
-            user.last_name = request.data['last_name']
-        if 'email' in request.data:
-            user.email = request.data['email']
-        if 'phone' in request.data:
-            user.phone = request.data['phone']
-        if 'address' in request.data:
-            user.address = request.data['address']
-        
-        user.save()
-        
-        # Gérer la photo selon le profil
-        if 'photo' in request.FILES:
-            photo = request.FILES['photo']
-            
-            if hasattr(user, 'owner'):
-                user.owner.photo = photo
-                user.owner.save()
-            elif hasattr(user, 'employee'):
-                user.employee.photo = photo
-                user.employee.save()
-            elif hasattr(user, 'customer'):
-                user.customer.photo = photo
-                user.customer.save()
-            elif hasattr(user, 'shareholder'):
-                user.shareholder.photo = photo
-                user.shareholder.save()
-        
-        # Retourner le profil mis à jour
-        return self.get(request)
-    
-    def put(self, request, *args, **kwargs):
-        """Mettre à jour complètement le profil (alias pour PATCH)"""
-        return self.patch(request, *args, **kwargs)
-
-        # api_boutique_core/views.py
-
-# Ajoutez cette nouvelle classe APRÈS UserProfileView
-class ChangePasswordView(APIView):
-    """
-    Changer le mot de passe de l'utilisateur connecté
-    POST /api/auth/change-password/
-    """
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request):
-        user = request.user
-        current_password = request.data.get('current_password')
-        new_password = request.data.get('new_password')
-        
-        # Vérifications
-        if not current_password or not new_password:
-            return Response({
-                'success': False,
-                'error': 'Les mots de passe sont requis'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Vérifier l'ancien mot de passe
-        if not user.check_password(current_password):
-            return Response({
-                'success': False,
-                'error': 'Mot de passe actuel incorrect'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Vérifier la longueur du nouveau mot de passe
-        if len(new_password) < 6:
-            return Response({
-                'success': False,
-                'error': 'Le nouveau mot de passe doit contenir au moins 6 caractères'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Vérifier que le nouveau mot de passe est différent
-        if user.check_password(new_password):
-            return Response({
-                'success': False,
-                'error': 'Le nouveau mot de passe doit être différent de l\'ancien'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Changer le mot de passe
-        user.set_password(new_password)
-        user.save()
-        
-        # 🚫 OPTION SUPPRIMÉE - La méthode blacklist() n'existe pas
-        # from rest_framework_simplejwt.tokens import RefreshToken
-        # RefreshToken.for_user(user).blacklist()  ← À SUPPRIMER
-        
-        return Response({
-            'success': True,
-            'message': 'Mot de passe modifié avec succès'
-        }, status=status.HTTP_200_OK)
 # =============================================================================
 # VUES D'AUTHENTIFICATION
 # =============================================================================
 
-class OwnerRegisterView(generics.CreateAPIView):
-    """Création d'un Owner"""
-    serializer_class = OwnerCreateSerializer
+class RegisterView(generics.CreateAPIView):
+    """
+    Vue pour l'inscription des utilisateurs
+    """
+    serializer_class = UserSerializer
     permission_classes = [AllowAny]
-    
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        owner = serializer.save()
-        
-        return Response({
-            "success": True,
-            "message": "Owner créé avec succès",
-            "user": {
-                "id": owner.id,
-                "user_id": owner.user.id,
-                "username": owner.user.username,
-                "email": owner.user.email,
-                "full_name": owner.user.get_full_name(),
-                "photo_url": owner.photo if owner.photo else None
-            }
-        }, status=201)
-    
-class EmployeeRegisterView(generics.CreateAPIView):
-    """Création d'un Employee"""
-    serializer_class = EmployeeCreateSerializer
-    permission_classes = [AllowAny]
-    
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
+        # Créer l'utilisateur
         user = serializer.save()
         
-        
+        # Réponse de succès
         return Response({
-            "success": True,
-            "message": "Employé créé avec succès",
+            "message": "Utilisateur créé avec succès",
             "user": {
-                "id": user.employee.id,
-                "user_id": user.id,
+                "id": user.id,
                 "username": user.username,
                 "email": user.email,
-                "full_name": user.get_full_name(),
-                "photo_url": user.photo.url if user.photo else None,
-                "store": user.employee.store.name,
-                "role": user.employee.role.name,
-                "department": user.employee.department.name if user.employee.department else None,
-                "hire_date": user.employee.hire_date,
-                "last_login": user.last_login,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "full_name": user.get_full_name()
             }
-        }, status=201)
-    
-class ShareholderRegisterView(generics.CreateAPIView):
-    serializer_class = ShareholderCreateSerializer
-    permission_classes = [AllowAny]
-    
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        user = serializer.save()
-        shareholder = user.shareholder
-        
-        return Response({
-            "success": True,
-            "message": "Actionnaire créé avec succès",
-            "user": {
-                "id": shareholder.id,
-                "user_id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "full_name": user.get_full_name(),
-                "investment_amount": shareholder.investment_amount,
-                "last_login": user.last_login,
-            }
-        }, status=201)
+        }, status=status.HTTP_201_CREATED)
+
 
 class CheckUsernameView(APIView):
     """
@@ -769,11 +438,16 @@ class RequestsAPIView(APIView):
 # UTILISATEURS ET AUTHENTIFICATION
 # =============================================================================
 
+class UserTypeViewSet(viewsets.ModelViewSet):
+    queryset = UserType.objects.all()
+    serializer_class = UserTypeSerializer
+    permission_classes = [AllowAny]
+
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+    queryset = User.objects.select_related('user_type')
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
-    filterset_fields = ['is_active', 'is_staff']
+    filterset_fields = ['user_type', 'is_active', 'is_staff']
     search_fields = ['username', 'first_name', 'last_name', 'email', 'phone']
     ordering_fields = ['date_joined', 'last_login']
     
@@ -908,22 +582,18 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     filterset_fields = ['store']
 
+
 # =============================================================================
-# 1. EMPLOYÉS ET RÔLES - DÉFINIS EN PREMIER
+# EMPLOYÉS ET RÔLES
 # =============================================================================
 
 class EmployeeRoleViewSet(viewsets.ModelViewSet):
-    """CRUD pour les rôles d'employés"""
     queryset = EmployeeRole.objects.all()
     serializer_class = EmployeeRoleSerializer
     permission_classes = [AllowAny]
-    filterset_fields = ['code', 'name']
-    search_fields = ['code', 'name', 'description']
-
 
 class EmployeeViewSet(viewsets.ModelViewSet):
-    """CRUD pour les employés"""
-    queryset = Employee.objects.select_related('user', 'store', 'role', 'department').all()
+    queryset = Employee.objects.select_related('user', 'store', 'role', 'department')
     serializer_class = EmployeeSerializer
     permission_classes = [AllowAny]
     filterset_fields = ['store', 'department', 'role', 'is_active']
@@ -936,38 +606,8 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         employee.is_active = not employee.is_active
         employee.save()
         
-        return Response({
-            "success": True,
-            "message": f"Employé {'activé' if employee.is_active else 'désactivé'}",
-            "is_active": employee.is_active
-        })
-
-
-class EmployeeRegisterView(generics.CreateAPIView):
-    """Inscription d'un nouvel employé"""
-    serializer_class = EmployeeCreateSerializer
-    permission_classes = [AllowAny]
-    
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        employe = serializer.save()
-        
-        return Response({
-            "success": True,
-            "message": "Employé créé avec succès",
-            "employee": {
-                "id": employe.id,
-                "username": employe.user.username,
-                "email": employe.user.email,
-                "first_name": employe.user.first_name,
-                "last_name": employe.user.last_name,
-                "store": employe.store.name,
-                "role": employe.role.name,
-                "hire_date": employe.hire_date
-            }
-        }, status=status.HTTP_201_CREATED)
+        serializer = self.get_serializer(employee)
+        return Response(serializer.data)
 
 
 # =============================================================================
@@ -1164,7 +804,7 @@ class ProductBrandViewSet(BaseAuditViewSet):
 class ProductViewSet(BaseAuditViewSet):
     queryset = Product.objects.select_related('category', 'brand').prefetch_related('variants')
     serializer_class = ProductSerializer
-    filterset_fields = ['category', 'brand']
+    filterset_fields = ['category', 'brand']  # CORRIGÉ : retiré 'supplier' et 'status'
     search_fields = ['name', 'sku', 'description']
     
     @action(detail=True, methods=['get'])
@@ -1177,7 +817,7 @@ class ProductViewSet(BaseAuditViewSet):
 class ProductVariantViewSet(BaseAuditViewSet):
     queryset = ProductVariant.objects.select_related('product')
     serializer_class = ProductVariantSerializer
-    filterset_fields = ['product']
+    filterset_fields = ['product']  # CORRIGÉ : retiré 'selection'
     search_fields = ['barcode', 'name']
 
 
@@ -3039,5 +2679,3 @@ class CustomerAnalyticsView(APIView):
                 {'error': f'Erreur serveur: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        
-        

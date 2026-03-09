@@ -1,0 +1,6 @@
+StoreBalance{
+id_store ForeignKeyRelated(source="store")
+balance models.DecimalField(default=0, digit=10)
+is_active models.Boolean(default=True)
+
+}

@@ -1,3 +1,225 @@
+<<<<<<< HEAD
+ERROR 2026-02-13 13:40:30,604 log Internal Server Error: /api/customers/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 437, in get_attribute
+    return get_attribute(instance, self.source_attrs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 104, in get_attribute
+    instance = getattr(instance, attr)
+AttributeError: 'Owner' object has no attribute 'username'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\mixins.py", line 20, in create
+    headers = self.get_success_headers(serializer.data)
+                                       ^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 573, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 527, in to_representation
+    attribute = field.get_attribute(instance)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 470, in get_attribute
+    raise type(exc)(msg)
+AttributeError: Got AttributeError when attempting to get a value for field `username` on serializer `OwnerCreateSerializer`.
+The serializer field might be named incorrectly and not match any attribute or key on the `Owner` instance.
+Original exception text was: 'Owner' object has no attribute 'username'.
+ERROR 2026-02-13 13:40:30,625 basehttp "POST /api/customers/ HTTP/1.1" 500 25845
+ERROR 2026-02-13 14:45:55,122 log Internal Server Error: /api/users/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\mixins.py", line 38, in list
+    queryset = self.filter_queryset(self.get_queryset())
+                                    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\generics.py", line 67, in get_queryset
+    assert self.queryset is not None, (
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'UserViewSet' should either include a `queryset` attribute, or override the `get_queryset()` method.
+ERROR 2026-02-13 14:45:55,134 basehttp "GET /api/users/ HTTP/1.1" 500 24244
+ERROR 2026-02-13 14:56:13,680 log Internal Server Error: /api/customers/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\mixins.py", line 19, in create
+    self.perform_create(serializer)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\mixins.py", line 24, in perform_create
+    serializer.save()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 210, in save
+    self.instance = self.create(validated_data)
+                    ~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 331, in create
+    user = super().create(validated_data)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 220, in create
+    user = User.objects.create(**validated_data)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\query.py", line 661, in create
+    obj = self.model(**kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\base.py", line 569, in __init__
+    raise TypeError(
+    ...<2 lines>...
+    )
+TypeError: User() got unexpected keyword arguments: 'birth_date', 'preferences'
+ERROR 2026-02-13 14:56:13,696 basehttp "POST /api/customers/ HTTP/1.1" 500 25378
+ERROR 2026-02-13 15:41:14,295 log Internal Server Error: /api/customers/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 437, in get_attribute
+    return get_attribute(instance, self.source_attrs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 104, in get_attribute
+    instance = getattr(instance, attr)
+AttributeError: 'Customer' object has no attribute 'username'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python313\Lib\contextlib.py", line 85, in inner
+    return func(*args, **kwds)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 778, in create
+    return super().create(request, *args, **kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\mixins.py", line 20, in create
+    headers = self.get_success_headers(serializer.data)
+                                       ^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 573, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 527, in to_representation
+    attribute = field.get_attribute(instance)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 470, in get_attribute
+    raise type(exc)(msg)
+AttributeError: Got AttributeError when attempting to get a value for field `username` on serializer `CustomerCreateSerializer`.
+The serializer field might be named incorrectly and not match any attribute or key on the `Customer` instance.
+Original exception text was: 'Customer' object has no attribute 'username'.
+ERROR 2026-02-13 15:41:14,312 basehttp "POST /api/customers/ HTTP/1.1" 500 26237
+ERROR 2026-02-13 15:56:36,929 log Internal Server Error: /api/customers/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 437, in get_attribute
+    return get_attribute(instance, self.source_attrs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 104, in get_attribute
+    instance = getattr(instance, attr)
+AttributeError: 'Customer' object has no attribute 'username'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\AppData\Local\Programs\Python\Python313\Lib\contextlib.py", line 85, in inner
+    return func(*args, **kwds)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\views.py", line 778, in create
+    return super().create(request, *args, **kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\mixins.py", line 20, in create
+    headers = self.get_success_headers(serializer.data)
+                                       ^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 573, in data
+    ret = super().data
+          ^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 251, in data
+    self._data = self.to_representation(self.instance)
+                 ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 527, in to_representation
+    attribute = field.get_attribute(instance)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 470, in get_attribute
+    raise type(exc)(msg)
+AttributeError: Got AttributeError when attempting to get a value for field `username` on serializer `CustomerCreateSerializer`.
+The serializer field might be named incorrectly and not match any attribute or key on the `Customer` instance.
+Original exception text was: 'Customer' object has no attribute 'username'.
+ERROR 2026-02-13 15:56:36,945 basehttp "POST /api/customers/ HTTP/1.1" 500 26237
+=======
 ERROR 2026-02-13 00:21:51,661 log Internal Server Error: /api/employee/register/
 Traceback (most recent call last):
   File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
@@ -69,3 +291,4 @@ Traceback (most recent call last):
           ^^^^^^^^^^^^^
 AttributeError: 'Employee' object has no attribute 'employee'
 ERROR 2026-02-13 00:28:13,811 basehttp "POST /api/employee/register/ HTTP/1.1" 500 118205
+>>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753

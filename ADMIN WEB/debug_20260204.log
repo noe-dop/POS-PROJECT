@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+ERROR 2026-02-04 12:33:30,957 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-02-04 14:38:46,863 basehttp You're accessing the development server over HTTPS, but it only supports HTTP.
+=======
 ERROR 2026-02-04 15:21:43,760 log Internal Server Error: /api/inventory-counts/
 Traceback (most recent call last):
   File "C:\Users\donan\Desktop\ProjetBoutique\env_boutique\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
@@ -1593,3 +1597,4 @@ Traceback (most recent call last):
 django.db.utils.OperationalError: connection to server at "aws-1-eu-west-1.pooler.supabase.com" (54.247.26.119), port 5432 failed: FATAL:  MaxClientsInSessionMode: max clients reached - in Session mode max clients are limited to pool_size
 
 ERROR 2026-02-05 11:13:55,593 basehttp "POST /api/auth/login/ HTTP/1.1" 500 247112
+>>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753

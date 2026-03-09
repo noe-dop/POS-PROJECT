@@ -1,3 +1,185 @@
+<<<<<<< HEAD
+ERROR 2026-02-11 17:20:50,628 log Internal Server Error: /api/stores/4/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 444, in run_validation
+    value = self.to_internal_value(data)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 497, in to_internal_value
+    for field in fields:
+                 ^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 380, in _writable_fields
+    for field in self.fields.values():
+                 ^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 1081, in get_fields
+    field_names = self.get_field_names(declared_fields, info)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 1177, in get_field_names
+    assert field_name in fields, (
+           ^^^^^^^^^^^^^^^^^^^^
+AssertionError: The field 'addresse' was declared on serializer StoreUpdateSerializer, but has not been included in the 'fields' option.
+ERROR 2026-02-11 17:20:50,659 basehttp "PUT /api/stores/4/ HTTP/1.1" 500 155481
+ERROR 2026-02-11 17:21:28,019 log Internal Server Error: /api/stores/4/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 444, in run_validation
+    value = self.to_internal_value(data)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 497, in to_internal_value
+    for field in fields:
+                 ^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 380, in _writable_fields
+    for field in self.fields.values():
+                 ^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 1081, in get_fields
+    field_names = self.get_field_names(declared_fields, info)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 1177, in get_field_names
+    assert field_name in fields, (
+           ^^^^^^^^^^^^^^^^^^^^
+AssertionError: The field 'addresse' was declared on serializer StoreUpdateSerializer, but has not been included in the 'fields' option.
+ERROR 2026-02-11 17:21:28,047 basehttp "PUT /api/stores/4/ HTTP/1.1" 500 155503
+ERROR 2026-02-11 17:22:09,089 log Internal Server Error: /api/stores/4/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\mixins.py", line 67, in update
+    serializer.is_valid(raise_exception=True)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 444, in run_validation
+    value = self.to_internal_value(data)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 497, in to_internal_value
+    for field in fields:
+                 ^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 380, in _writable_fields
+    for field in self.fields.values():
+                 ^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 375, in fields
+    fields[key] = value
+    ~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\utils\serializer_helpers.py", line 165, in __setitem__
+    field.bind(field_name=key, parent=self.serializer)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\fields.py", line 358, in bind
+    assert self.source != field_name, (
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: It is redundant to specify `source='address'` on field 'AddressSerializer' in serializer 'StoreUpdateSerializer', because it is the same as the field name. Remove the `source` keyword argument.
+ERROR 2026-02-11 17:22:09,111 basehttp "PUT /api/stores/4/ HTTP/1.1" 500 149242
+ERROR 2026-02-11 17:23:12,291 log Internal Server Error: /api/stores/4/
+Traceback (most recent call last):
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\mixins.py", line 68, in update
+    self.perform_update(serializer)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\mixins.py", line 78, in perform_update
+    serializer.save()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\rest_framework\serializers.py", line 205, in save
+    self.instance = self.update(self.instance, validated_data)
+                    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 1033, in update
+    setattr(instance, attr, value)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\HP\Desktop\PROJECT\POS-PROJECT\.venv\Lib\site-packages\django\db\models\fields\related_descriptors.py", line 291, in __set__
+    raise ValueError(
+    ...<7 lines>...
+    )
+ValueError: Cannot assign "{'address_line1': 'Cité Synatresor,Genie 2000, Abidjan, Côte d’Ivoire', 'address_line2': '', 'city': 'Abidjan', 'state': 'Abidjan', 'postal_code': '00225', 'country': 'Côte d’Ivoire', 'latitude': Decimal('5.370096'), 'longitude': Decimal('-3.929609')}": "Store.address" must be a "Address" instance.
+ERROR 2026-02-11 17:23:12,310 basehttp "PUT /api/stores/4/ HTTP/1.1" 500 142263
+=======
 ERROR 2026-02-11 15:10:48,231 log Internal Server Error: /api/stocks/
 Traceback (most recent call last):
   File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\env_boutique\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
@@ -3875,3 +4057,4 @@ Traceback (most recent call last):
 django.db.utils.OperationalError: connection to server at "aws-1-eu-west-1.pooler.supabase.com" (18.202.64.2), port 5432 failed: FATAL:  Max client connections reached
 
 ERROR 2026-02-11 16:36:27,976 basehttp "GET /api/stores/ HTTP/1.1" 500 243241
+>>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753

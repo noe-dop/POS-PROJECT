@@ -1,7 +1,7 @@
 # api_boutique_core/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from . import views
 
 # =============================================================================
@@ -11,7 +11,7 @@ from . import views
 router = DefaultRouter()
 
 # =============================================================================
-# CAISSES ET TRANSACTIONS FINANCIÈRES
+# CAISSES ET TRANSACTIONS FINANCIÈRES (Endpoints principaux de votre screenshot)
 # =============================================================================
 
 router.register(r'caisses', views.CashRegisterViewSet, basename='caisses')
@@ -19,26 +19,26 @@ router.register(r'cash-sessions', views.CashRegisterSessionViewSet, basename='ca
 router.register(r'cash-transactions', views.CashTransactionViewSet, basename='cash-transactions')
 
 # =============================================================================
-# CARD-TRANSACTIONS
+# CARD-TRANSACTIONS (De votre screenshot)
 # =============================================================================
 
 router.register(r'card-transactions', views.CardTransactionViewSet, basename='card-transactions')
 
 # =============================================================================
-# CARDS
+# CARDS (Pour compléter card-transactions)
 # =============================================================================
 
 router.register(r'cards', views.CardViewSet, basename='cards')
 router.register(r'type-cards', views.TypeCardViewSet, basename='type-cards')
 
 # =============================================================================
-# CATEGORIES
+# CATEGORIES (De votre screenshot)
 # =============================================================================
 
 router.register(r'categories', views.ProductCategoryViewSet, basename='categories')
 
 # =============================================================================
-# COMMANDES (ORDERS)
+# COMMANDES (ORDERS) - NOUVELLES ROUTES
 # =============================================================================
 
 router.register(r'order-statuses', views.OrderStatusViewSet, basename='order-statuses')
@@ -47,14 +47,14 @@ router.register(r'orders', views.OrderViewSet, basename='orders')
 router.register(r'order-items', views.OrderItemViewSet, basename='order-items')
 
 # =============================================================================
-# CONFIGURATIONS
+# CONFIGURATIONS (De votre screenshot)
 # =============================================================================
 
 router.register(r'payment-methods', views.PaymentMethodViewSet, basename='payment-methods')
 router.register(r'tax-rates', views.TaxRateViewSet, basename='tax-rates')
 
 # =============================================================================
-# ANALYTICS
+# ANALYTICS (De votre screenshot)
 # =============================================================================
 
 router.register(r'analytics', views.AnalyticsViewSet, basename='analytics')
@@ -63,6 +63,7 @@ router.register(r'analytics', views.AnalyticsViewSet, basename='analytics')
 # UTILISATEURS ET AUTHENTIFICATION
 # =============================================================================
 
+router.register(r'user-types', views.UserTypeViewSet, basename='user-types')
 router.register(r'users', views.UserViewSet, basename='users')
 router.register(r'owners', views.OwnerViewSet, basename='owners')
 router.register(r'shareholders', views.ShareholderViewSet, basename='shareholders')
@@ -130,6 +131,7 @@ router.register(r'inventory-counts', views.InventoryCountViewSet, basename='inve
 router.register(r'inventory-count-items', views.InventoryCountItemViewSet, basename='inventory-count-items')
 router.register(r'store-products', views.StoreProductViewSet, basename='store-products')
 router.register(r'store-product-variants', views.StoreProductVariantViewSet, basename='store-product-variants')
+router.register(r'inventory', views.StockViewSet, basename='inventory')
 router.register(r'batches', views.BatchViewSet, basename='batches')
 router.register(r'reorder-rules', views.ReorderRuleViewSet, basename='reorder-rules')
 
@@ -207,38 +209,34 @@ router.register(r'support-tickets', views.SupportTicketViewSet, basename='suppor
 router.register(r'error-reports', views.ErrorReportViewSet, basename='error-reports')
 
 # =============================================================================
-# URLS PERSONNALISÉES
+# URLS PERSONNALISÉES (en dehors du router)
 # =============================================================================
 
 custom_urlpatterns = [
-    # 🔐 AUTHENTIFICATION JWT - IMPORTANT : TOUTES SANS PRÉFIXE
-    path('auth/login/', views.LoginView.as_view(), name='login'),
-    path('auth/logout/', views.LogoutView.as_view(), name='logout'),
-    path('auth/profile/', views.UserProfileView.as_view(), name='user-profile'),
+    # 🔐 AUTHENTIFICATION JWT
+    path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('auth/change-password/', views.ChangePasswordView.as_view(), name='change-password'),
-    path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('auth/register/', views.RegisterView.as_view(), name='register'),
     path('auth/check-username/<str:username>/', views.CheckUsernameView.as_view(), name='check-username'),
-    path('auth/owner/register/', views.OwnerRegisterView.as_view(), name='owner-register'),
-    path('auth/employee/register/', views.EmployeeRegisterView.as_view(), name='employee-register'),
-    path('auth/shareholder/register/', views.ShareholderRegisterView.as_view(), name='shareholder-register'),
     
-    # 🎯 DASHBOARD
+    # 🎯 DASHBOARD - CORRIGÉ : DashboardDataView au lieu de DashboardView
     path('dashboard/', views.DashboardDataView.as_view(), name='dashboard-data'),
     
     # 🔄 ENDPOINT REQUESTS
     path('requests/', views.RequestsAPIView.as_view(), name='api-requests'),
     
-    # 📊 RAPPORTS
+    # 📊 RAPPORTS ET ANALYTIQUES DES COMMANDES
     path('reports/orders-analytics/', views.OrdersAnalyticsView.as_view(), name='orders-analytics'),
     path('reports/orders-report/', views.OrdersReportView.as_view(), name='orders-report'),
     path('exports/orders-csv/', views.ExportOrdersCSVView.as_view(), name='export-orders-csv'),
+    
+    # 🔍 AUTRES RAPPORTS ET EXPORTS
     path('reports/sales-summary/', views.SalesSummaryView.as_view(), name='sales-summary'),
     path('reports/inventory-report/', views.InventoryReportView.as_view(), name='inventory-report'),
     path('reports/financial-summary/', views.FinancialSummaryView.as_view(), name='financial-summary'),
     path('exports/sales-csv/', views.ExportSalesCSVView.as_view(), name='export-sales-csv'),
     
-    # 📈 STATISTIQUES
+    # 📈 STATISTIQUES AVANCÉES
     path('stats/daily-sales/', views.DailySalesStatsView.as_view(), name='daily-sales-stats'),
     path('stats/top-products/', views.TopProductsView.as_view(), name='top-products'),
     path('stats/customer-analytics/', views.CustomerAnalyticsView.as_view(), name='customer-analytics'),
@@ -251,13 +249,13 @@ custom_urlpatterns = [
 ]
 
 # =============================================================================
-# COMBINAISON FINALE DES URLS - CORRIGÉE !
+# COMBINAISON DES URLS
 # =============================================================================
 
 urlpatterns = [
-    # ✅ On inclut d'abord les URLs personnalisées
-    *custom_urlpatterns,
+    # Routes API principales via le router
+    path('', include(router.urls)),
     
-    # ✅ Ensuite les URLs du router
-    *router.urls,
+    # Routes personnalisées
+    path('', include(custom_urlpatterns)),
 ]

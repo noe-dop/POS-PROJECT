@@ -1,8 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from .models import *
-from django.contrib.auth import authenticate
-from django.db.models import Sum
 
 # =============================================================================
 # SERIALIZERS DE BASE
@@ -255,47 +253,13 @@ class CurrencySerializer(serializers.ModelSerializer):
 # UTILISATEURS ET AUTHENTIFICATION
 # =============================================================================
 
-class LoginSerializer(serializers.Serializer):
-    """
-    Serializer pour la connexion
-    Accepte email OU username
-    """
-    username = serializers.CharField(required=True)
-    password = serializers.CharField(required=True, write_only=True)
-    
-    def validate(self, data):
-        username_or_email = data.get('username')
-        password = data.get('password')
-        
-        # Essayer de s'authentifier avec email ou username
-        user = None
-        
-        # Essayer avec email d'abord
-        if '@' in username_or_email:
-            try:
-                user = User.objects.get(email=username_or_email)
-                user = authenticate(username=user.username, password=password)
-            except User.DoesNotExist:
-                pass
-        
-        # Si pas trouvé avec email, essayer avec username
-        if user is None:
-            user = authenticate(username=username_or_email, password=password)
-        
-        if user is None:
-            raise serializers.ValidationError({
-                'non_field_errors': 'Un nom d\'utilisateur/email ou mot de passe invalide.'
-            })
-
-        if not user.is_active:
-            raise serializers.ValidationError({
-                'non_field_errors': 'Ce compte est désactivé'
-            })
-        
-        data['user'] = user
-        return data
+class UserTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserType
+        fields = '__all__'
 
 class UserSerializer(serializers.ModelSerializer):
+    user_type_name = serializers.CharField(source='user_type.name', read_only=True)
     full_name = serializers.SerializerMethodField()
     password_confirm = serializers.CharField(write_only=True, required=False)
     
@@ -303,7 +267,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 'full_name',
-            'phone', 'phone2', 'address',
+            'user_type', 'user_type_name', 'phone', 'phone2', 'address',
             'is_active', 'is_staff', 'is_superuser', 'password', 'password_confirm',
             'date_joined', 'last_login', 'updated_at'
         ]
@@ -316,171 +280,105 @@ class UserSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         return obj.get_full_name()
     
-class RegisterSerializer(serializers.ModelSerializer):
-    """Serializer de base pour création d'utilisateur"""
-    password = serializers.CharField(write_only=True, required=True, min_length=8)
-    password_confirm = serializers.CharField(write_only=True, required=True)
-    
-    class Meta:
-        model = User
-        fields = ['username', 'email', 'password', 'password_confirm', 
-                 'first_name', 'last_name', 'phone', 'address']
-    
     def validate(self, data):
-        if data['password'] != data['password_confirm']:
-            raise serializers.ValidationError({
-                'password': 'Les mots de passe ne correspondent pas.'
-            })
-        
-        if User.objects.filter(email=data['email']).exists():
-            raise serializers.ValidationError({
-                'email': 'Cet email est déjà utilisé.'
-            })
-        
-        if User.objects.filter(username=data['username']).exists():
-            raise serializers.ValidationError({
-                'username': 'Ce nom d\'utilisateur est déjà pris.'
-            })
-        
+        """
+        Validation pour vérifier que les mots de passe correspondent
+        """
+        if 'password' in data and 'password_confirm' in data:
+            if data['password'] != data['password_confirm']:
+                raise serializers.ValidationError({
+                    'password_confirm': 'Les mots de passe ne correspondent pas.'
+                })
         return data
     
     def create(self, validated_data):
-        validated_data.pop('password_confirm')
-        password = validated_data.pop('password')
+        # Retirer le champ de confirmation du mot de passe
+        validated_data.pop('password_confirm', None)
         
-        user = User.objects.create(**validated_data)
-        user.set_password(password)
-        user.save()
+        # Hash du mot de passe lors de la création
+        if 'password' in validated_data:
+            validated_data['password'] = make_password(validated_data['password'])
+        return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        # Retirer le champ de confirmation du mot de passe
+        validated_data.pop('password_confirm', None)
         
-        return user
+        # Hash du mot de passe lors de la mise à jour si fourni
+        if 'password' in validated_data:
+            validated_data['password'] = make_password(validated_data['password'])
+        return super().update(instance, validated_data)
 
-class OwnerCreateSerializer(RegisterSerializer):
-    photo = serializers.ImageField(required=False, write_only=True)
-    class Meta(RegisterSerializer.Meta):
-        fields = RegisterSerializer.Meta.fields + ['photo']
+class OwnerCreateSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField()
+    
+    class Meta:
+        model = Owner
+        fields = ['user_id']
     
     def create(self, validated_data):
-        user = super().create(validated_data)
-        
+        user_id = validated_data.get('user_id')
+        user = User.objects.get(id=user_id)
         
         # Vérifier si l'utilisateur est déjà owner
         if Owner.objects.filter(user=user).exists():
             raise serializers.ValidationError({
                 "user_id": "Cet utilisateur est déjà un owner."
             })
-        # Cree le profil Owner avec la photo si fournie
-        photo = validated_data.pop('photo', None)
-        owner = Owner.objects.create(user=user)
-        if photo:
-            owner.photo = photo
-            owner.save()
-
-        return owner
+        
+        return Owner.objects.create(user=user)
 
 class OwnerSerializer(serializers.ModelSerializer):
-    # Pour la lecture, on peut inclure les infos du user
-    user = serializers.SerializerMethodField()
+    user = UserSerializer(read_only=True)
+    full_name = serializers.SerializerMethodField()
+    email = serializers.CharField(source='user.email', read_only=True)
+    phone = serializers.CharField(source='user.phone', read_only=True)
     
     class Meta:
         model = Owner
-        fields = ['id', 'user', 'photo', 'created_at']
-    
-    def get_user(self, obj):
-        return {
-            'id': obj.user.id,
-            'username': obj.user.username,
-            'email': obj.user.email,
-            'full_name': obj.user.get_full_name(),
-            'phone': obj.user.phone
-        }
+        fields = ['id', 'user', 'full_name', 'email', 'phone', 'photo', 'created_at']
     
     def get_full_name(self, obj):
         return obj.user.get_full_name()
 
-    
-class ShareholderCreateSerializer(RegisterSerializer):
-    investment_amount = serializers.DecimalField(
-        max_digits=15, 
-        decimal_places=2, 
-        required=True,
-        write_only=True
+class ShareholderCreateSerializer(serializers.ModelSerializer):
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), 
+        source='user', 
+        write_only=True,
+        required=True
     )
-    photo = serializers.ImageField(required=False, write_only=True)
-    
-    class Meta(RegisterSerializer.Meta):
-        fields = RegisterSerializer.Meta.fields + ['investment_amount', 'photo']
-    
-    def create(self, validated_data):
-        # Créer le User via le parent
-        user = super().create(validated_data)
-        
-        # Vérifier si l'utilisateur est déjà shareholder
-        if Shareholder.objects.filter(user=user).exists():
-            raise serializers.ValidationError({
-                "user": "Cet utilisateur est déjà un actionnaire."
-            })
-        
-        # Extraire les champs spécifiques
-        investment_amount = validated_data.pop('investment_amount')
-        photo = validated_data.pop('photo', None)
-        
-        # Créer le profil Shareholder
-        shareholder =  Shareholder.objects.create(
-            user=user,
-            investment_amount=investment_amount,
-            photo=photo
-        )
-        
-        return shareholder
-
-class ShareholderSerializer(serializers.ModelSerializer):
-    user = serializers.SerializerMethodField()
     
     class Meta:
         model = Shareholder
-        fields = ['id', 'user', 'investment_amount', 'photo']
+        fields = ['user_id', 'investment_amount', 'photo']
     
-    def get_user(self, obj):
-        return {
-            'id': obj.user.id,
-            'username': obj.user.username,
-            'email': obj.user.email,
-            'full_name': obj.user.get_full_name()
-        }
+    def create(self, validated_data):
+        user = validated_data.get('user')
+        
+        # Vérifier si l'utilisateur est déjà actionnaire
+        if Shareholder.objects.filter(user=user).exists():
+            raise serializers.ValidationError({
+                "user_id": "Cet utilisateur est déjà un actionnaire."
+            })
+        
+        return Shareholder.objects.create(**validated_data)
+
+class ShareholderSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='user', write_only=True
+    )
+    full_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Shareholder
+        fields = ['id', 'user', 'user_id', 'full_name', 'investment_amount', 'photo']
+        extra_kwargs = {"user": {"required": False, "read_only": True}}
     
     def get_full_name(self, obj):
         return obj.user.get_full_name()
 
-class CustomerCreateSerializer(RegisterSerializer):
-    birth_date = serializers.DateField(required=False, write_only=True)
-    preferences = serializers.JSONField(required=False, write_only=True, default=dict)
-    
-    class Meta(RegisterSerializer.Meta):
-        fields = RegisterSerializer.Meta.fields + ['birth_date', 'preferences']
-    
-    def create(self, validated_data):
-        # Créer le User via le parent
-        user = super().create(validated_data)
-        
-        # Vérifier si l'utilisateur est déjà customer
-        if Customer.objects.filter(user=user).exists():
-            raise serializers.ValidationError({
-                "user": "Cet utilisateur est déjà un client."
-            })
-        
-        # Extraire les champs spécifiques à Customer
-        birth_date = validated_data.pop('birth_date', None)
-        preferences = validated_data.pop('preferences', {})
-        
-        # Créer le profil Customer
-        customer = Customer.objects.create(
-            user=user,
-            birth_date=birth_date,
-            preferences=preferences
-        )
-        
-        return customer
-    
 class CustomerSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     user_id = serializers.PrimaryKeyRelatedField(
@@ -509,123 +407,7 @@ class CustomerSerializer(serializers.ModelSerializer):
             })
         
         return Customer.objects.create(**validated_data)
-    
-# =============================================================================
-# EMPLOYÉS ET RÔLES
-# =============================================================================
 
-class EmployeeRoleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EmployeeRole
-        fields = '__all__'
-
-
-class EmployeeCreateSerializer(RegisterSerializer):
-    # Champs spécifiques à Employee
-    store_id = serializers.IntegerField(write_only=True, required=True)
-    role_id = serializers.IntegerField(write_only=True, required=True)
-    department_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
-    hire_date = serializers.DateField(write_only=True, required=True)
-    salary = serializers.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
-        write_only=True,
-        required=False,
-        allow_null=True
-    )
-    emergency_contact = serializers.CharField(write_only=True, required=False)
-    photo = serializers.ImageField(write_only=True, required=False)
-    
-    class Meta(RegisterSerializer.Meta):
-        fields = RegisterSerializer.Meta.fields + [
-            'store_id', 'role_id', 'department_id',
-            'hire_date', 'salary', 'emergency_contact', 'photo'
-        ]
-    
-    def validate(self, data):
-        # Validation du parent
-        data = super().validate(data)
-        
-        # Vérifications supplémentaires pour Employee
-        try:
-            Store.objects.get(id=data['store_id'])
-        except Store.DoesNotExist:
-            raise serializers.ValidationError({
-                'store_id': 'Ce magasin n\'existe pas.'
-            })
-        
-        try:
-            EmployeeRole.objects.get(id=data['role_id'])
-        except EmployeeRole.DoesNotExist:
-            raise serializers.ValidationError({
-                'role_id': 'Ce rôle n\'existe pas.'
-            })
-        
-        if data.get('department_id'):
-            try:
-                Department.objects.get(id=data['department_id'])
-            except Department.DoesNotExist:
-                raise serializers.ValidationError({
-                    'department_id': 'Ce département n\'existe pas.'
-                })
-        
-        return data
-    
-    def create(self, validated_data):
-        # 1. EXTRAIRE tous les champs Employee
-        store_id = validated_data.pop('store_id')
-        role_id = validated_data.pop('role_id')
-        department_id = validated_data.pop('department_id', None)
-        hire_date = validated_data.pop('hire_date')
-        salary = validated_data.pop('salary', None)
-        emergency_contact = validated_data.pop('emergency_contact', None)
-        photo = validated_data.pop('photo', None)
-        
-        # 2. Créer le User (maintenant validated_data n'a que les champs User)
-        user = super().create(validated_data)
-        
-        # 3. Vérifier si l'utilisateur est déjà employé
-        if Employee.objects.filter(user=user).exists():
-            raise serializers.ValidationError({
-                "user": "Cet utilisateur est déjà un employé."
-            })
-        
-        # 4. Créer le profil Employee
-        employe = Employee.objects.create(
-            user=user,
-            store_id=store_id,
-            role_id=role_id,
-            department_id=department_id,
-            hire_date=hire_date,
-            salary=salary,
-            emergency_contact=emergency_contact,
-            photo=photo
-        )
-        
-        return employe
-
-
-class EmployeeSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    user_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), source='user', write_only=True
-    )
-    store_name = serializers.CharField(source='store.name', read_only=True)
-    department_name = serializers.CharField(source='department.name', read_only=True)
-    role_name = serializers.CharField(source='role.name', read_only=True)
-    full_name = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Employee
-        fields = [
-            'id', 'user', 'user_id', 'full_name', 'hire_date', 'salary', 'emergency_contact',
-            'is_active', 'store', 'store_name', 'department', 'department_name', 
-            'role', 'role_name', 'photo'
-        ]
-        extra_kwargs = {"user": {"required": False, "read_only": True}}
-    
-    def get_full_name(self, obj):
-        return obj.user.get_full_name()
 # =============================================================================
 # ADRESSES
 # =============================================================================
@@ -725,7 +507,47 @@ class DepartmentSerializer(serializers.ModelSerializer):
             return obj.manager.user.get_full_name()
         return None
 
+# =============================================================================
+# EMPLOYÉS ET RÔLES
+# =============================================================================
 
+class EmployeeRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeRole
+        fields = '__all__'
+
+class EmployeeSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='user', write_only=True
+    )
+    store_name = serializers.CharField(source='store.name', read_only=True)
+    department_name = serializers.CharField(source='department.name', read_only=True)
+    role_name = serializers.CharField(source='role.name', read_only=True)
+    full_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Employee
+        fields = [
+            'id', 'user', 'user_id', 'full_name', 'hire_date', 'salary', 'emergency_contact',
+            'is_active', 'store', 'store_name', 'department', 'department_name', 
+            'role', 'role_name', 'photo'
+        ]
+        extra_kwargs = {"user": {"required": False, "read_only": True}}
+    
+    def get_full_name(self, obj):
+        return obj.user.get_full_name()
+    
+    def create(self, validated_data):
+        user = validated_data.get('user')
+        
+        # Vérifier si l'utilisateur est déjà employé
+        if Employee.objects.filter(user=user).exists():
+            raise serializers.ValidationError({
+                "user_id": "Cet utilisateur est déjà un employé."
+            })
+        
+        return Employee.objects.create(**validated_data)
 
 # =============================================================================
 # SESSIONS ET JOURNALISATION
@@ -878,8 +700,9 @@ class RetailSupplySerializer(serializers.ModelSerializer):
 # =============================================================================
 # PRODUITS, CATÉGORIES ET MARQUES
 # =============================================================================
+
 class ProductCategorySerializer(BaseAuditSerializer):
-    parent_name = serializers.CharField(source='parent.name', read_only=True, allow_null=True)
+    parent_name = serializers.CharField(source='parent.name', read_only=True)
     children_count = serializers.SerializerMethodField()
     products_count = serializers.SerializerMethodField()
     
@@ -906,16 +729,22 @@ class ProductBrandSerializer(BaseAuditSerializer):
 class ProductVariantSerializer(BaseAuditSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_sku = serializers.CharField(source='product.sku', read_only=True)
+    final_price = serializers.SerializerMethodField()
     
     class Meta:
         model = ProductVariant
         fields = '__all__'
+    
+    def get_final_price(self, obj):
+        return obj.get_final_price()
 
 class ProductSerializer(BaseAuditSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
-    brand_name = serializers.CharField(source='brand.name', read_only=True, allow_null=True)
+    brand_name = serializers.CharField(source='brand.name', read_only=True)
+    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
     variants = ProductVariantSerializer(many=True, read_only=True)
     total_variants = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
     margin = serializers.SerializerMethodField()
     
     class Meta:
@@ -926,34 +755,29 @@ class ProductSerializer(BaseAuditSerializer):
         return obj.variants.count()
     
     def get_margin(self, obj):
-        if hasattr(obj, 'cost_price') and hasattr(obj, 'base_price'):
-            if obj.cost_price and obj.base_price and obj.cost_price > 0:
-                try:
-                    return ((obj.base_price - obj.cost_price) / obj.cost_price) * 100
-                except (TypeError, ZeroDivisionError):
-                    return 0
+        if obj.cost_price and obj.base_price and obj.cost_price > 0:
+            return ((obj.base_price - obj.cost_price) / obj.cost_price) * 100
         return 0
 
 # =============================================================================
-# GESTION DES STOCKS - VERSION CORRIGÉE
+# GESTION DES STOCKS
 # =============================================================================
 
 class WarehouseSerializer(serializers.ModelSerializer):
     store_name = serializers.CharField(source='store.name', read_only=True)
     address_details = AddressSerializer(source='address', read_only=True)
     current_usage = serializers.SerializerMethodField()
-
+    
     class Meta:
         model = Warehouse
         fields = '__all__'
-
+    
     def get_current_usage(self, obj):
+        # Calcul simplifié de l'utilisation
         total_stock = Stock.objects.filter(warehouse=obj).aggregate(
-            total=Sum('quantity_on_hand')
+            total=sum('quantity_on_hand')
         )['total'] or 0
-
-        return (total_stock / obj.capacity * 100) if obj.capacity and obj.capacity > 0 else 0
-
+        return (total_stock / obj.capacity * 100) if obj.capacity > 0 else 0
 
 class BatchSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
@@ -967,7 +791,6 @@ class BatchSerializer(serializers.ModelSerializer):
     def get_is_expired(self, obj):
         from django.utils import timezone
         return obj.expiry_date < timezone.now().date() if obj.expiry_date else False
-
 
 class StockSerializer(BaseAuditSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
@@ -987,7 +810,6 @@ class StockSerializer(BaseAuditSerializer):
     def get_needs_restock(self, obj):
         return obj.needs_restock()
 
-
 class StockMovementItemSerializer(BaseAuditSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     variant_name = serializers.CharField(source='variant.name', read_only=True)
@@ -996,7 +818,6 @@ class StockMovementItemSerializer(BaseAuditSerializer):
     class Meta:
         model = StockMovementItem
         fields = '__all__'
-
 
 class StockMovementSerializer(BaseAuditSerializer):
     store_name = serializers.CharField(source='store.name', read_only=True)
@@ -1007,7 +828,6 @@ class StockMovementSerializer(BaseAuditSerializer):
         model = StockMovement
         fields = '__all__'
 
-
 class InventoryCountItemSerializer(BaseAuditSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     variant_name = serializers.CharField(source='variant.name', read_only=True)
@@ -1016,7 +836,6 @@ class InventoryCountItemSerializer(BaseAuditSerializer):
         model = InventoryCountItem
         fields = '__all__'
 
-
 class InventoryCountSerializer(BaseAuditSerializer):
     store_name = serializers.CharField(source='store.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -1024,12 +843,7 @@ class InventoryCountSerializer(BaseAuditSerializer):
     
     class Meta:
         model = InventoryCount
-        # SUPPRIME ou COMMENTE cette ligne :
-        # exclude = ['notes']
-        
-        # REMETS celle-ci :
         fields = '__all__'
-
 
 class StoreProductSerializer(BaseAuditSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
