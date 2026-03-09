@@ -242,10 +242,6 @@ export interface LoyaltyReward {
 
 // === FOURNISSEURS ===
 export interface Supplier {
-  phone: string;
-  phone: string;
-  is_active: undefined;
-  store_name: string;
   id: number;
   store: Store;
   name: string;
@@ -293,7 +289,6 @@ export interface ProductBrand extends AuditModel {
 }
 
 export interface Product extends AuditModel {
-  [x: string]: any;
   sku: string;
   name: string;
   description: string;
@@ -420,8 +415,6 @@ export interface InventoryCountItem extends AuditModel {
 
 // === PRODUITS PAR BOUTIQUE ===
 export interface StoreProduct extends AuditModel {
-  status: string;
-  qt_item: number;
   store: Store;
   product: Product;
   store_cost_price?: number;
@@ -940,18 +933,6 @@ export interface StockFilter {
 
 // === TYPES POUR LES FORMULAIRES ===
 export interface ProductFormData {
-  search_vector: string;
-  additional_images: {};
-  metadata: {};
-  is_active: boolean | undefined;
-  category: any;
-  sku: any;
-  brand: boolean;
-  supplier: number;
-  supplier_name: boolean;
-  supplier_store_name: string;
-  store_products: boolean;
-  type: any;
   name: string;
   description: string;
   category_id: number;
