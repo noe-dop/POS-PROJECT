@@ -329,11 +329,15 @@ class BatchAdmin(admin.ModelAdmin):
 
 @admin.register(Stock)
 class StockAdmin(admin.ModelAdmin):
-    list_display = ('product', 'store', 'warehouse', 'quantity_on_hand', 'quantity_available', 'is_low_stock')
-    list_filter = ('store', 'warehouse')
-    search_fields = ('product__name', 'store__name')
-    raw_id_fields = ('product', 'store', 'warehouse')
-    
+    list_display = ('store_product_display', 'warehouse', 'quantity_on_hand', 'quantity_available', 'is_low_stock')
+    list_filter = ('warehouse', 'stock_status', 'store_product__store')  # filtre via la relation inverse
+    search_fields = ('store_product__product__name', 'store_product__product__sku')  # recherche via relation
+    raw_id_fields = ('warehouse',)  # warehouse est une vraie FK
+
+    def store_product_display(self, obj):
+        return str(obj.store_product)  # ou f"{obj.store_product.product.name} - {obj.store_product.store.name}"
+    store_product_display.short_description = 'Produit en boutique'
+
     def is_low_stock(self, obj):
         return obj.is_low_stock()
     is_low_stock.boolean = True

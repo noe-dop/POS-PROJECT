@@ -28,6 +28,7 @@ class _SelectExistingProductSheetState
     // Déclencher le chargement dès l'ouverture du bottom sheet
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<ProductProvider>(context, listen: false);
+      print("ID DU STORE DANS EXISTING PRODUCT ${widget.storeId}");
       provider.loadUnlinkedProducts(widget.storeId);
     });
   }

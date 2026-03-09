@@ -937,7 +937,13 @@ class StoreProduct(AuditModel):
     
     is_active = models.BooleanField("Actif dans la boutique", default=True, db_index=True)
     display_order = models.IntegerField("Ordre d'affichage", default=0)
-    
+    stock = models.OneToOneField(
+        'Stock', 
+        on_delete=models.CASCADE, 
+        related_name='store_product',
+        null=True,      # Permet de créer un StoreProduct sans stock au début
+        blank=True
+    )    
     min_stock_threshold = models.IntegerField("Seuil alerte boutique", null=True, blank=True)
     reorder_quantity = models.IntegerField("Quantité réappro boutique", null=True, blank=True)
     jour_ecart = models.IntegerField("Jours écart", default=15)
@@ -1091,20 +1097,6 @@ class Batch(models.Model):
         ]
 
 class Stock(AuditModel):
-    product = models.ForeignKey(
-        Product, 
-        on_delete=models.CASCADE, 
-        related_name='stocks',
-        verbose_name="Produit",
-        db_index=True
-    )
-    store = models.ForeignKey(
-        Store, 
-        on_delete=models.CASCADE, 
-        related_name='stocks',
-        verbose_name="Boutique",
-        db_index=True
-    )
     warehouse = models.ForeignKey(Warehouse, on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
     
     quantity_package = models.IntegerField("Quantité en paquet", default=0)
@@ -1139,15 +1131,11 @@ class Stock(AuditModel):
     class Meta:
         verbose_name = "Stock"
         verbose_name_plural = "Stocks"
-        ordering = ['product__name']
-        unique_together = ['product', 'store']
+        ordering = ['store_product']
         indexes = [
-            models.Index(fields=['store', 'product']),
-            models.Index(fields=['quantity_available']),
-            models.Index(fields=['store', 'quantity_available']),
-            models.Index(fields=['stock_status']),
-            models.Index(fields=['last_restocked']),
-            models.Index(fields=['product', 'store', 'quantity_available']),
+            models.Index(fields=['quantity_available'], name='stock_qty_avail_idx'),
+            models.Index(fields=['stock_status'], name='stock_status_idx'),
+            models.Index(fields=['last_restocked'], name='stock_last_restock_idx'),
         ]
 
     def calculate_available(self):

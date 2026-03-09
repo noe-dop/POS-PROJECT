@@ -1471,6 +1471,72 @@ class StoreProductCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Ce produit est déjà lié à cette boutique.")
         return data
     
+    def create(self, validated_data):
+        # Créer le StoreProduct
+        store_product = StoreProduct.objects.create(**validated_data)
+        
+        # Créer le Stock associé avec des valeurs par défaut
+        # On peut initialiser les quantités à 0, et les seuils éventuellement depuis le produit global ou des valeurs par défaut
+        stock = Stock.objects.create(
+            warehouse=None,  # ou un entrepôt par défaut ? À définir
+            quantity_on_hand=0,
+            quantity_reserved=0,
+            quantity_package=0,
+            # autres champs avec valeurs par défaut
+            ideal_stock_level=10,
+            min_stock_threshold=store_product.min_stock_threshold or 2,  # reprendre le seuil du StoreProduct si défini
+            qt_moy_appro=1,
+            stock_turnover_rate=0,
+            last_restocked=None,
+            stock_status='out_of_stock'  # par défaut, pas de stock
+        )
+        # Lier le stock au StoreProduct
+        store_product.stock = stock
+        store_product.save(update_fields=['stock'])
+        return store_product
+    
+class StockSerializer(BaseAuditSerializer):
+    product_name = serializers.CharField(source="store_product.product.name", read_only=True)
+    product_sku = serializers.CharField(source="store_product.product.sku", read_only=True)
+    store_name = serializers.CharField(source="store_product.store.name", read_only=True)
+    warehouse_name = serializers.CharField(source="warehouse.name", read_only=True)
+    is_low_stock = serializers.SerializerMethodField()
+    needs_restock = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Stock
+        fields = "__all__"
+        
+    def update(self, instance, validated_data):
+        # 1. Mise à jour standard des champs de StoreProduct
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # 2. Vérifier si un stock existe déjà, sinon le créer avec des valeurs par défaut
+        if instance.stock is None:
+            # Vous pouvez définir les valeurs par défaut ici (à ajuster selon votre logique métier)
+            stock = Stock.objects.create(
+                warehouse=None,  # ou un entrepôt par défaut si nécessaire
+                quantity_on_hand=0,
+                quantity_reserved=0,
+                quantity_available=0,
+                ideal_stock_level=10,
+                min_stock_threshold=instance.min_stock_threshold or 2,
+                qt_moy_appro=1,
+                stock_status='out_of_stock'
+            )
+            instance.stock = stock
+            instance.save(update_fields=['stock'])
+
+        return instance
+
+    def get_is_low_stock(self, obj):
+        return obj.is_low_stock()
+
+    def get_needs_restock(self, obj):
+        return obj.needs_restock()
+
 class StoreProductSerializer(BaseAuditSerializer):
     # Données du produit global
     name = serializers.CharField(source='product.name', read_only=True)
@@ -1485,20 +1551,23 @@ class StoreProductSerializer(BaseAuditSerializer):
     main_category_id = serializers.SerializerMethodField()
     # Prix spécifiques au magasin
     quantity_item = serializers.DecimalField(source="qt_item", max_digits=10, decimal_places=2)
-    price = serializers.DecimalField(source='store_base_price', max_digits=10, decimal_places=2, read_only=True)
-    cost = serializers.DecimalField(source='store_cost_price', max_digits=10, decimal_places=2, read_only=True)
-    stock = serializers.IntegerField(source='quantity_on_hand', read_only=True)  # si vous avez ce champ
+    price = serializers.DecimalField(source='store_base_price', max_digits=10, decimal_places=2,)
+    cost = serializers.DecimalField(source='store_cost_price', max_digits=10, decimal_places=2,)
+    stock_details = StockSerializer(source='stock', read_only=True)    
     location = serializers.CharField(source='warehouse', read_only=True)  # exemple
+    seuil_alerte = serializers.IntegerField(source="min_stock_threshold")
     status = serializers.CharField()
     # Variantes (à adapter)
     variants = serializers.SerializerMethodField()
     store_id = serializers.IntegerField(read_only=True)
+    product_id = serializers.IntegerField(read_only = True)
+
 
     class Meta:
         model = StoreProduct
         fields = ['id', 'name', 'sku', 'description', 'brand','brand_name', 'images_urls',
                   'group', 'product_type', 'main_category_id','quantity_item',
-                  'price', 'cost', 'stock', 'location', 'variants', 'store_id',
+                  'price', 'cost', 'stock_details', 'location','seuil_alerte', 'variants', 'store_id','product_id',
                   'status'
                   ]
 
@@ -1553,7 +1622,10 @@ class StoreProductSerializer(BaseAuditSerializer):
 
     def get_is_promotion_active(self, obj):
         return obj.is_promotion_active()
-
+    @property
+    def stock(self):
+        return Stock.objects.filter(product=self.product, store=self.store).first()
+        
 class StoreProductPublicSerializer(BaseAuditSerializer):
     # Données du produit global
     name = serializers.CharField(source='product.name', read_only=True)
@@ -1695,24 +1767,6 @@ class BatchSerializer(serializers.ModelSerializer):
 
         return obj.expiry_date < timezone.now().date() if obj.expiry_date else False
 
-
-class StockSerializer(BaseAuditSerializer):
-    product_name = serializers.CharField(source="product.name", read_only=True)
-    product_sku = serializers.CharField(source="product.sku", read_only=True)
-    store_name = serializers.CharField(source="store.name", read_only=True)
-    warehouse_name = serializers.CharField(source="warehouse.name", read_only=True)
-    is_low_stock = serializers.SerializerMethodField()
-    needs_restock = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Stock
-        fields = "__all__"
-
-    def get_is_low_stock(self, obj):
-        return obj.is_low_stock()
-
-    def get_needs_restock(self, obj):
-        return obj.needs_restock()
 
 class StockMovementItemSerializer(BaseAuditSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
