@@ -108,6 +108,7 @@ class _ProductsPageState extends State<ProductsPage> {
                         onChanged: (newStore) {
                           if (newStore != null) {
                             boutiqueService.selectStore(newStore);
+                            provider.onStoreChanged();
                           }
                         },
                         underline: const SizedBox(),

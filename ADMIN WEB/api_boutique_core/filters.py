@@ -116,8 +116,6 @@ class ProductFilter(django_filters.FilterSet):
         return queryset
 
 class StockFilter(django_filters.FilterSet):
-    store = django_filters.ModelChoiceFilter(queryset=Store.objects.all())
-    product = django_filters.ModelChoiceFilter(queryset=Product.objects.all())
     low_stock = django_filters.BooleanFilter(method='filter_low_stock')
     out_of_stock = django_filters.BooleanFilter(method='filter_out_of_stock')
     needs_restock = django_filters.BooleanFilter(method='filter_needs_restock')
@@ -126,7 +124,7 @@ class StockFilter(django_filters.FilterSet):
 
     class Meta:
         model = Stock
-        fields = ['store', 'product', 'warehouse']
+        fields = ['warehouse']
 
     def filter_low_stock(self, queryset, name, value):
         if value:

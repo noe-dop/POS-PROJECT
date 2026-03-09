@@ -12,7 +12,8 @@ import 'package:nsp_pos_mobile/localization/locale_keys.dart';
 class AuthService extends ChangeNotifier {
   final StorageService _storageService = StorageService();
   final Dio _dio = Dio();
-  final baseUrl = 'http://127.0.0.1:8000/api';
+  // final baseUrl = 'http://127.0.0.1:8000/api';
+  String baseUrl = 'https://eboutik-api.onrender.com/api/';
   // État en mémoire uniquement
   Map<String, dynamic> _userData = {};
   String? _accessToken;
@@ -65,7 +66,7 @@ class AuthService extends ChangeNotifier {
     }
     try {
       final response = await _dio.post(
-        '$baseUrl/owner/register/',
+        '${baseUrl}auth/owner/register/',
         data: request.toJson(),
         options: Options(
           contentType: Headers.jsonContentType,
@@ -75,7 +76,7 @@ class AuthService extends ChangeNotifier {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return SignupResponse.fromJson(response.data, response.statusCode);
       } else {
-        throw Exception('Failed to signup: ${response.statusCode}');
+        throw Exception('Failed to signup: ${response.data}} -${response.statusCode}');
       }
     } on DioException catch (e) {
       if (e.response != null) {
@@ -105,7 +106,7 @@ class AuthService extends ChangeNotifier {
         // Tenter la connexion avec timeout court
         final response = await _dio
             .post(
-              '$baseUrl/auth/login/',
+              '${baseUrl}auth/login/',
               data: request.toJson(),
               options: Options(
                 sendTimeout: const Duration(seconds: 8),
@@ -171,7 +172,7 @@ class AuthService extends ChangeNotifier {
   Future<void> getUserProfile() async {
     try {
       final response = await _dio.get(
-        '$baseUrl/auth/profile/',
+        '${baseUrl}auth/profile/',
         options: Options(headers: {'Authorization': 'Bearer $_accessToken'}),
       );
 
@@ -211,7 +212,7 @@ class AuthService extends ChangeNotifier {
         return false;
       }
       final response = await _dio.post(
-        '$baseUrl/auth/logout/',
+        '${baseUrl}auth/logout/',
         data: {'refresh': token},
         options: Options(headers: {'Authorization': 'Bearer $accessToken'},
         ),
@@ -232,7 +233,7 @@ class AuthService extends ChangeNotifier {
 Future<Map<String, dynamic>> requestReset(String email) async {
     try {
       final response = await _dio.post(
-        '/auth/password-reset/',
+        '${baseUrl}auth/chang-password/',
         data: {'email': email},
       );
       

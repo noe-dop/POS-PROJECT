@@ -13,6 +13,7 @@ class Product {
   double? cost;
   int? nombreItem;
   int? stock;
+  int? minStockThreshold;
   String? location;
   List<Variant>? variants;
   int categorieId; // ID de la catégorie principale
@@ -33,6 +34,7 @@ class Product {
     required this.cost,
     required this.nombreItem,
     this.stock,
+    this.minStockThreshold,
     this.location,
     required this.variants,
     required this.categorieId,
@@ -63,10 +65,6 @@ class Product {
             .toList(),
       );
     }
-    for (var  element in json.values) {
-      print(element);
-      print(element.runtimeType);
-    }
     return Product(
       id: json['id'],
       name: json['name'] ?? '',
@@ -77,8 +75,9 @@ class Product {
       description: json['description'] ?? '',
       price: double.tryParse(json['base_price'].toString()) ?? 0.0,
       cost: double.tryParse(json['cost_price'].toString()) ?? 0.0,
-      nombreItem: json["nombre_item"] ?? 0,
+      nombreItem: int.tryParse(json["quantity_item"])?? 1,
       stock: json['stock'] ?? 0,
+      // minStockThreshold: json["seuil"] int.tryParse(json["seuil_alerte"].toString()) ?? 1,
       location: json['location'] ?? '',
       variants:
           (json['variants'] as List?)
@@ -105,6 +104,8 @@ class Product {
       'price': price,
       'cost': cost,
       'stock': stock,
+      'qt_item':nombreItem,
+      'min_stock_threshold': minStockThreshold,
       'location': location,
       'variants': variants?.map((v) => v.toJson()).toList(),
       'categorie_id': categorieId,

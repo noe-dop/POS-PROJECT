@@ -81,7 +81,10 @@
     "title": "Tableau de bord"
   },
   "product": {
-    "title": "Produits"
+    "title": "Produits",
+    "statuts": {
+      "draft": "Brouillon"
+    }
   },
   "type_products": {
     "title": "Types de Produits",
