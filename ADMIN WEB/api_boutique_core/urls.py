@@ -1,11 +1,7 @@
 # api_boutique_core/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-<<<<<<< HEAD
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView,TokenVerifyView
-=======
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
->>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753
 from . import views
 
 # =============================================================================
@@ -215,23 +211,6 @@ router.register(r'error-reports', views.ErrorReportViewSet, basename='error-repo
 # =============================================================================
 
 custom_urlpatterns = [
-<<<<<<< HEAD
-    # 🔐 AUTHENTIFICATION JWT
-    path('auth/login/', views.LoginView.as_view(), name='login'),
-    path('auth/logout/', views.LogoutView.as_view(), name='logout'),
-    path('auth/password-reset/', views.PasswordResetRequestView.as_view(), name='password-reset'),
-    path('auth/password-reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
-
-    path('auth/profile/', views.UserProfileView.as_view(), name='user-profile'),
-    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-    path('auth/check-username/<str:username>/', views.CheckUsernameView.as_view(), name='check-username'),
-    # # Création par Owner/Admin
-    path('owner/register/', views.OwnerRegisterView.as_view(), name='owner-register'),
-    path('employee/register/', views.EmployeeRegisterView.as_view(), name='employee-register'),
-    path('shareholder/register/', views.ShareholderRegisterView.as_view(), name='shareholder-register'),
-    # 🎯 DASHBOARD - CORRIGÉ : DashboardDataView au lieu de DashboardView
-=======
     # 🔐 AUTHENTIFICATION JWT - IMPORTANT : TOUTES SANS PRÉFIXE
     path('auth/login/', views.LoginView.as_view(), name='login'),
     path('auth/logout/', views.LogoutView.as_view(), name='logout'),
@@ -245,7 +224,6 @@ custom_urlpatterns = [
     path('auth/shareholder/register/', views.ShareholderRegisterView.as_view(), name='shareholder-register'),
     
     # 🎯 DASHBOARD
->>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753
     path('dashboard/', views.DashboardDataView.as_view(), name='dashboard-data'),
     
     # ENDPOINT SPECIFIQUE
