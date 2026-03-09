@@ -113,10 +113,6 @@ else:
             'PASSWORD': '12345',
             'HOST': 'localhost',
             'PORT': os.environ.get("DB_PORT"),
-<<<<<<< HEAD
-=======
-            'CONN_MAX_AGE': 0,
->>>>>>> ef83f47918598aa4a434844f36e6dbf67e38b753
         }
     }
 # ——————————————————————
