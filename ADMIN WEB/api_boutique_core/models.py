@@ -1297,7 +1297,6 @@ class InventoryCount(AuditModel):
         decimal_places=2, 
         default=0
     )
-    
     # AJOUTEZ CES CHAMPS OBLIGATOIRES !
     notes = models.TextField("Notes", blank=True, default='')
     
