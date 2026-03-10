@@ -2,91 +2,58 @@ import { useState, useEffect } from 'react';
 import { api } from '@/services/api';
 
 // ============================================
-// TYPES DOUBLES (API + Frontend)
+// TYPES UNIFIÉS - CORRESPONDANCE EXACTE AVEC L'API
 // ============================================
 
-// ✅ Ce que l'API renvoie réellement (avec address_details)
+// ✅ Ce que l'API renvoie réellement (structure plate)
 export interface ApiStore {
   id: number;
   name: string;
-  slug: string;
-  store_type?: number;
-  store_type_details?: {
-    id: number;
-    name: string;
-    code: string;
-  };
-  network?: number;
-  network_details?: {
-    id: number;
-    name: string;
-  };
-  address?: number;
-  address_details?: {  // ⚠️ L'API renvoie ça !
-    id: number;
-    address_line1: string;
-    address_line2: string | null;
-    city: string;
-    state: string;
-    postal_code: string;
-    country: string;
-    full_address: string;
-    latitude?: string | null;  // ⚠️ La géoloc est dans address_details
-    longitude?: string | null;
-  };
-  phone: string | null;
-  email: string | null;
-  opening_hours: Record<string, any>;
-  is_active: boolean;
-  logo: string | null;
-  banner: string | null;
+  phone: string;
+  email: string;
   slogan: string;
+  store_type: number;
+  network: number;
+  is_active: boolean;
   configuration: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-  total_employees?: number;
-  total_products?: number;
+  opening_hours: Record<string, any>;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+  latitude: string;
+  longitude: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-// ✅ Ce que le frontend utilise (structure plate pour StoreCreate)
+// ✅ Interface utilisée par le frontend (identique à l'API)
 export interface Store {
   id: number;
   name: string;
-  slug: string;
-  store_type?: number;
-  store_type_details?: {
-    id: number;
-    name: string;
-    code: string;
-  };
-  network?: number;
-  network_details?: {
-    id: number;
-    name: string;
-  };
-  // ✅ Champs plats pour le frontend
-  address_line1: string | null;
-  address_line2: string | null;
-  city: string | null;
-  state: string | null;
-  postal_code: string | null;
-  country: string | null;
-  latitude: string | null;
-  longitude: string | null;
-  phone: string | null;
-  email: string | null;
-  opening_hours: Record<string, any>;
-  is_active: boolean;
-  logo: string | null;
-  banner: string | null;
+  phone: string;
+  email: string;
   slogan: string;
+  store_type: number;
+  network: number;
+  is_active: boolean;
   configuration: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-  total_employees?: number;
-  total_products?: number;
+  opening_hours: Record<string, any>;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+  latitude: string;
+  longitude: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
+// ✅ Types pour les endpoints supplémentaires
 export interface StoreType {
   id: number;
   name: string;
@@ -121,11 +88,9 @@ export interface Warehouse {
 export interface StoreOption {
   id: number;
   name: string;
-  type?: string;
-  address?: string;
-  phone?: string | null;
-  city?: string | null;
-  country?: string | null;
+  city: string;
+  country: string;
+  phone?: string;
 }
 
 export interface WarehouseOption {
@@ -234,7 +199,7 @@ export const useStores = (): UseStoresReturn => {
     }
   };
 
-  // ✅ Récupérer tous les magasins - PRÉSERVE LES LOGS API
+  // ✅ Récupérer tous les magasins - STRUCTURE PLATE
   const fetchStores = async (): Promise<void> => {
     try {
       setLoading(prev => ({ ...prev, stores: true }));
@@ -242,56 +207,39 @@ export const useStores = (): UseStoresReturn => {
       
       console.log('🏪 Chargement des magasins depuis API...');
       
-      // 🔥 L'API renvoie bien /api/stores/?page_size=200 (comme dans les logs)
       const response = await api.getPaginated<ApiStore>('/stores/', {
-        page_size: 200,  // ⚠️ Gardé à 200 comme dans les logs
+        page_size: 200,
         ordering: 'name'
       });
       
       console.log(`✅ ${response.results?.length || 0} magasins chargés depuis API`);
       
-      // Transformer les données API (imbriquées) en données frontend (plates)
-      const transformedStores: Store[] = (response.results || []).map((apiStore: ApiStore) => {
-        const address = apiStore.address_details || {};
-        
-        return {
-          id: apiStore.id,
-          name: apiStore.name,
-          slug: apiStore.slug,
-          store_type: apiStore.store_type,
-          store_type_details: apiStore.store_type_details,
-          network: apiStore.network,
-          network_details: apiStore.network_details,
-          // ✅ Extraire les champs de address_details
-          address_line1: address.address_line1 || null,
-          address_line2: address.address_line2 || null,
-          city: address.city || null,
-          state: address.state || null,
-          postal_code: address.postal_code || null,
-          country: address.country || null,
-          latitude: address.latitude || null,
-          longitude: address.longitude || null,
-          phone: apiStore.phone || null,
-          email: apiStore.email || null,
-          opening_hours: apiStore.opening_hours || {},
-          is_active: apiStore.is_active !== false,
-          logo: apiStore.logo || null,
-          banner: apiStore.banner || null,
-          slogan: apiStore.slogan || '',
-          configuration: apiStore.configuration || {
-            currency: 'EUR',
-            timezone: 'Europe/Paris',
-            tax_rate: 20.0
-          },
-          created_at: apiStore.created_at,
-          updated_at: apiStore.updated_at,
-          total_employees: apiStore.total_employees || 0,
-          total_products: apiStore.total_products || 0
-        };
-      });
+      // ✅ Plus besoin de transformation complexe - structure directe
+      const storesData: Store[] = (response.results || []).map((apiStore: ApiStore) => ({
+        id: apiStore.id,
+        name: apiStore.name,
+        phone: apiStore.phone,
+        email: apiStore.email,
+        slogan: apiStore.slogan,
+        store_type: apiStore.store_type,
+        network: apiStore.network,
+        is_active: apiStore.is_active,
+        configuration: apiStore.configuration || {},
+        opening_hours: apiStore.opening_hours || {},
+        address_line1: apiStore.address_line1 || '',
+        address_line2: apiStore.address_line2 || '',
+        city: apiStore.city || '',
+        state: apiStore.state || '',
+        postal_code: apiStore.postal_code || '',
+        country: apiStore.country || '',
+        latitude: apiStore.latitude || '',
+        longitude: apiStore.longitude || '',
+        created_at: apiStore.created_at,
+        updated_at: apiStore.updated_at
+      }));
       
-      console.log(`✅ ${transformedStores.length} magasins transformés pour le frontend`);
-      setStores(transformedStores);
+      console.log(`✅ ${storesData.length} magasins prêts pour le frontend`);
+      setStores(storesData);
       
     } catch (err: any) {
       console.error('❌ Erreur API stores:', err);
@@ -315,33 +263,31 @@ export const useStores = (): UseStoresReturn => {
       setLoading(prev => ({ ...prev, warehouses: true }));
       console.log('📦 Chargement des entrepôts depuis API...');
       
-      let warehousesData: any[] = [];
-      
       try {
         const paginatedResponse = await api.getPaginated<any>('/warehouses/', {
           page_size: 50,
           ordering: 'name'
         });
-        warehousesData = paginatedResponse.results || [];
+        const warehousesData = paginatedResponse.results || [];
         console.log(`✅ ${warehousesData.length} entrepôts chargés`);
+        
+        const formattedWarehouses: Warehouse[] = warehousesData.map((wh: any) => ({
+          id: wh.id,
+          name: wh.name || `Entrepôt ${wh.id}`,
+          code: wh.code || `WH-${wh.id}`,
+          location: wh.location || wh.city || 'Non spécifié',
+          store: wh.store,
+          store_name: wh.store_name,
+          is_active: wh.is_active !== false,
+          created_at: wh.created_at || new Date().toISOString(),
+          updated_at: wh.updated_at || new Date().toISOString()
+        }));
+        
+        setWarehouses(formattedWarehouses);
       } catch (warehouseErr) {
         console.log('⚠️ Endpoint /warehouses/ non disponible');
-        warehousesData = [];
+        setWarehouses([]);
       }
-      
-      const formattedWarehouses: Warehouse[] = warehousesData.map((wh, index) => ({
-        id: wh.id || index + 1,
-        name: wh.name || `Entrepôt ${wh.id || index + 1}`,
-        code: wh.code || `WH-${wh.id || index + 1}`,
-        location: wh.location || wh.city || 'Non spécifié',
-        store: wh.store,
-        store_name: wh.store_name || wh.store_details?.name,
-        is_active: wh.is_active !== false,
-        created_at: wh.created_at || new Date().toISOString(),
-        updated_at: wh.updated_at || new Date().toISOString()
-      }));
-      
-      setWarehouses(formattedWarehouses);
       
     } catch (err: any) {
       console.error('❌ Erreur chargement entrepôts:', err);
@@ -399,11 +345,9 @@ export const useStores = (): UseStoresReturn => {
       .map(store => ({
         id: store.id,
         name: store.name,
-        type: store.store_type_details?.name,
-        address: getFullAddress(store),
-        phone: store.phone,
         city: store.city,
-        country: store.country
+        country: store.country,
+        phone: store.phone
       }));
   };
 
@@ -425,8 +369,7 @@ export const useStores = (): UseStoresReturn => {
 
   // Récupérer le nom complet d'un magasin
   const getStoreDisplayName = (store: Store): string => {
-    const type = store.store_type_details?.name;
-    return type ? `${store.name} (${type})` : store.name;
+    return store.name;
   };
 
   // Récupérer les entrepôts d'un magasin spécifique
@@ -463,7 +406,7 @@ export const useStores = (): UseStoresReturn => {
   // ==================== RETURN ====================
 
   return {
-    // Données brutes de l'API
+    // Données brutes
     stores: stores.filter(store => store.is_active),
     allStores: stores,
     storeTypes,

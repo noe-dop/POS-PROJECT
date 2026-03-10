@@ -86,17 +86,17 @@ const navigationConfig: NavigationItem[] = [
     href: '/inventory', 
     icon: ClipboardList 
   },
-  { 
-    name: 'Analytiques', 
-    href: '/analytics', 
-    icon: Activity 
-  },
-  { 
-    name: 'Abonnements', 
-    href: '/subscriptions', 
-    icon: Bell,
-    premium: true
-  },
+  // { 
+  //   name: 'Analytiques', 
+  //   href: '/analytics', 
+  //   icon: Activity 
+  // },
+  // { 
+  //   name: 'Abonnements', 
+  //   href: '/subscriptions', 
+  //   icon: Bell,
+  //   premium: true
+  // },
   { 
     name: 'Approvisionnement', 
     href: '/supply', 
