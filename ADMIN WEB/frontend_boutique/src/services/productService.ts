@@ -9,20 +9,16 @@ import {
   Supplier,
   ProductVariant,
   Stock,
+  ProductVariantFormData,
   ImportResult,
-  PaginatedResponse,
-  Store,
-  StoreProduct
+  PaginatedResponse
 } from '../types/product';
 import { api } from './api';
 
 class ProductService {
-  // === MÉTHODES DE BASE POUR LES PRODUITS ===
-
   // Récupérer tous les produits avec filtres optionnels
   async getAllProducts(filters?: ProductFilter): Promise<Product[]> {
     try {
-      console.log('🔄 Chargement des produits...');
       const params: Record<string, any> = {};
       
       if (filters?.search) params.search = filters.search;
@@ -30,369 +26,41 @@ class ProductService {
       if (filters?.brand && filters.brand !== 'all') params.brand = filters.brand;
       if (filters?.status && filters.status !== 'all') params.status = filters.status;
       if (filters?.low_stock) params.low_stock = true;
-      if (filters?.store) params.store = filters.store;
       if (filters?.page) params.page = filters.page;
       if (filters?.page_size) params.page_size = filters.page_size;
       if (filters?.ordering) params.ordering = filters.ordering;
 
-      const response = await api.getFullResponse<Product[] | PaginatedResponse<Product>>('/products/', { params });
+      const response = await api.getFullResponse<PaginatedResponse<Product>>('/products/', params);
       
-      console.log('📊 Réponse API produits:', {
-        status: response.status,
-        dataType: typeof response.data,
-        data: response.data
-      });
-
-      // Gestion des différents formats de réponse
-      let products: Product[] = [];
-      
-      if (response.data) {
-        if (Array.isArray(response.data)) {
-          // Format simple : tableau direct
-          products = response.data;
-          console.log(`✅ ${products.length} produits chargés (format tableau)`);
-        } else if (response.data.results && Array.isArray(response.data.results)) {
-          // Format paginé Django
-          products = response.data.results;
-          console.log(`✅ ${products.length} produits chargés (format paginé)`);
-        } else if (typeof response.data === 'object') {
-          // Autre format d'objet
-          products = [response.data as unknown as Product];
-          console.log(`✅ 1 produit chargé (format objet)`);
-        }
+      if (response?.data?.results) {
+        return response.data.results;
       }
-
-      // Normaliser les données
-      const normalizedProducts = products.map(product => this.normalizeProduct(product));
       
-      console.log('📋 Premier produit normalisé:', normalizedProducts[0]);
-      console.log('📋 Catégorie du premier produit:', normalizedProducts[0]?.category);
-      console.log('📋 Marque du premier produit:', normalizedProducts[0]?.brand);
-      console.log('📋 Fournisseur du premier produit:', normalizedProducts[0]?.supplier);
-      
-      return normalizedProducts;
-      
-    } catch (error) {
-      console.error('❌ Erreur lors du chargement des produits:', error);
       return [];
+    } catch (error) {
+      console.error('Erreur lors du chargement des produits:', error);
+      throw new Error('Impossible de charger les produits');
     }
-  }
-
-  // Normaliser un produit pour garantir la structure
-  private normalizeProduct(product: any): Product {
-    return {
-      id: product.id || 0,
-      name: product.name || '',
-      sku: product.sku || '',
-      description: product.description || '',
-      cost_price: product.cost_price ? parseFloat(product.cost_price) : 0,
-      base_price: product.base_price ? parseFloat(product.base_price) : 0,
-      compare_at_price: product.compare_at_price ? parseFloat(product.compare_at_price) : 0,
-      qt_item: product.qt_item || 0,
-      jour_ecart: product.jour_ecart || 0,
-      status: product.status || (product.is_active ? 'active' : 'draft'),
-      type: product.type || 'simple',
-      photo: product.photo || null,
-      created_at: product.created_at || '',
-      updated_at: product.updated_at || '',
-      is_active: product.is_active !== undefined ? product.is_active : true,
-      
-      // Normaliser la catégorie
-      category: product.category ? {
-        id: product.category.id || product.category,
-        name: product.category.name || 'Catégorie',
-        description: product.category.description || '',
-        is_active: product.category.is_active !== undefined ? product.category.is_active : true
-      } : null,
-      
-      // Normaliser la marque
-      brand: product.brand ? {
-        id: product.brand.id || product.brand,
-        name: product.brand.name || 'Marque',
-        description: product.brand.description || '',
-        is_active: product.brand.is_active !== undefined ? product.brand.is_active : true
-      } : null,
-      
-      // Normaliser le fournisseur
-      supplier: product.supplier ? {
-        id: product.supplier.id || product.supplier,
-        name: product.supplier.name || 'Fournisseur',
-        store_name: product.supplier.store_name || '',
-        email: product.supplier.email || '',
-        phone: product.supplier.phone || '',
-        is_active: product.supplier.is_active !== undefined ? product.supplier.is_active : true
-      } : null,
-      
-      // Normaliser les produits par boutique
-      store_products: product.store_products ? 
-        (Array.isArray(product.store_products) ? 
-          product.store_products.map((sp: any) => this.normalizeStoreProduct(sp)) : 
-          [this.normalizeStoreProduct(product.store_products)]) : 
-        []
-    };
-  }
-
-  // Normaliser un produit de boutique
-  private normalizeStoreProduct(storeProduct: any): StoreProduct {
-    return {
-      id: storeProduct.id || 0,
-      store: storeProduct.store ? {
-        id: storeProduct.store.id || storeProduct.store,
-        name: storeProduct.store.name || 'Boutique',
-        email: storeProduct.store.email || '',
-        phone: storeProduct.store.phone || '',
-        address: storeProduct.store.address || '',
-        is_active: storeProduct.store.is_active !== undefined ? storeProduct.store.is_active : true
-      } : { id: 0, name: 'Boutique', email: '', phone: '', address: '', is_active: true },
-      
-      store_base_price: storeProduct.store_base_price ? parseFloat(storeProduct.store_base_price) : 0,
-      store_cost_price: storeProduct.store_cost_price ? parseFloat(storeProduct.store_cost_price) : 0,
-      store_compare_at_price: storeProduct.store_compare_at_price ? parseFloat(storeProduct.store_compare_at_price) : 0,
-      qt_item: storeProduct.qt_item || storeProduct.quantity || 0,
-      min_stock_threshold: storeProduct.min_stock_threshold || 10,
-      reorder_quantity: storeProduct.reorder_quantity || 100,
-      jour_ecart: storeProduct.jour_ecart || 0,
-      status: storeProduct.status || 'draft',
-      is_active: storeProduct.is_active !== undefined ? storeProduct.is_active : true,
-      display_order: storeProduct.display_order || 0,
-      dlv: storeProduct.dlv || '',
-      dlc: storeProduct.dlc || '',
-      dcr: storeProduct.dcr || '',
-      created_at: storeProduct.created_at || '',
-      updated_at: storeProduct.updated_at || ''
-    };
   }
 
   // Récupérer un produit par son ID
   async getProductById(id: number): Promise<Product | null> {
     try {
-      console.log(`🔄 Chargement du produit ${id}...`);
       const product = await api.get<Product>(`/products/${id}/`);
-      console.log(`✅ Produit ${id} chargé:`, product);
-      return this.normalizeProduct(product);
+      return product;
     } catch (error) {
-      console.error(`❌ Erreur lors du chargement du produit ${id}:`, error);
+      console.error(`Erreur lors du chargement du produit ${id}:`, error);
       return null;
     }
   }
 
-  // Créer un nouveau produit
-  async createProduct(productData: any): Promise<Product> {
-    try {
-      console.log('🔄 Création produit - Type:', productData instanceof FormData ? 'FormData' : 'Object');
-      
-      let dataToSend: any;
-      
-      if (productData instanceof FormData) {
-        dataToSend = productData;
-      } else {
-        const formData = productData as ProductFormData;
-        
-        console.log('📋 Données produit brutes:', formData);
-        
-        // Validation
-        if (!formData.name?.trim()) {
-          throw new Error('Le nom du produit est requis');
-        }
-        if (!formData.category) {
-          throw new Error('La catégorie est requise');
-        }
-        
-        // Construction des données selon le format de votre API
-        dataToSend = {
-          name: formData.name,
-          sku: formData.sku || '',
-          description: formData.description || '',
-          category: formData.category,
-          cost_price: formData.cost_price?.toString() || '0',
-          base_price: formData.base_price?.toString() || '0',
-          compare_at_price: formData.compare_at_price?.toString() || '0',
-          qt_item: formData.qt_item || 0,
-          jour_ecart: formData.jour_ecart || 0,
-          status: formData.status || 'draft',
-          is_active: formData.is_active !== undefined ? formData.is_active : false,
-          metadata: formData.metadata || {},
-          additional_images: formData.additional_images || {},
-          search_vector: ''
-        };
-        
-        // Champs optionnels
-        if (formData.brand && formData.brand > 0) {
-          dataToSend.brand = formData.brand;
-        }
-        
-        // Gestion du fournisseur
-        if (formData.supplier && formData.supplier > 0) {
-          dataToSend.supplier = formData.supplier;
-        }
-        
-        // Type de produit
-        if (formData.type) {
-          dataToSend.type = formData.type;
-        }
-        
-        // Gestion des produits par boutique
-        if (formData.store_products && formData.store_products.length > 0) {
-          dataToSend.store_products = formData.store_products.map(sp => ({
-            store: sp.store,
-            store_base_price: (sp.store_base_price || 0).toString(),
-            store_cost_price: (sp.store_cost_price || 0).toString(),
-            store_compare_at_price: (sp.store_compare_at_price || 0).toString(),
-            qt_item: sp.qt_item || 0,
-            min_stock_threshold: sp.min_stock_threshold || 10,
-            reorder_quantity: sp.reorder_quantity || 100,
-            jour_ecart: sp.jour_ecart || 0,
-            status: sp.status || 'draft',
-            is_active: sp.is_active !== undefined ? sp.is_active : true,
-            display_order: sp.display_order || 0,
-            dlv: sp.dlv || new Date().toISOString().split('T')[0],
-            dlc: sp.dlc || new Date().toISOString().split('T')[0],
-            dcr: sp.dcr || new Date().toISOString().split('T')[0]
-          }));
-        }
-        
-        console.log('📤 Données finales pour API:', dataToSend);
-      }
-      
-      const product = await api.post<Product>('/products/', dataToSend);
-      console.log('✅ Produit créé avec succès:', product);
-      return this.normalizeProduct(product);
-      
-    } catch (error: any) {
-      console.error('❌ Erreur lors de la création du produit:', error);
-      
-      if (error.response?.data) {
-        console.error('📋 Détails erreur API:', error.response.data);
-        const errorMessage = this.extractErrorMessage(error.response.data);
-        throw new Error(errorMessage);
-      }
-      
-      throw new Error(error.message || 'Impossible de créer le produit');
-    }
-  }
-
-  // Mettre à jour un produit
-  async updateProduct(productId: number, productData: any): Promise<Product> {
-    try {
-      console.log(`🔄 Mise à jour produit ${productId}`);
-      
-      let dataToSend: any;
-      
-      if (productData instanceof FormData) {
-        dataToSend = productData;
-      } else {
-        const formData = productData as ProductFormData;
-        
-        dataToSend = {};
-        
-        // Champs obligatoires et optionnels
-        if (formData.name !== undefined) dataToSend.name = formData.name;
-        if (formData.description !== undefined) dataToSend.description = formData.description;
-        if (formData.sku !== undefined) dataToSend.sku = formData.sku;
-        if (formData.category !== undefined) dataToSend.category = formData.category;
-        
-        if (formData.cost_price !== undefined) dataToSend.cost_price = formData.cost_price.toString();
-        if (formData.base_price !== undefined) dataToSend.base_price = formData.base_price.toString();
-        if (formData.compare_at_price !== undefined) dataToSend.compare_at_price = formData.compare_at_price.toString();
-        
-        if (formData.qt_item !== undefined) dataToSend.qt_item = formData.qt_item;
-        if (formData.jour_ecart !== undefined) dataToSend.jour_ecart = formData.jour_ecart;
-        if (formData.status !== undefined) dataToSend.status = formData.status;
-        if (formData.type !== undefined) dataToSend.type = formData.type;
-        if (formData.is_active !== undefined) dataToSend.is_active = formData.is_active;
-        
-        if (formData.brand !== undefined) {
-          dataToSend.brand = formData.brand > 0 ? formData.brand : null;
-        }
-        
-        // Gestion du fournisseur
-        if (formData.supplier !== undefined) {
-          dataToSend.supplier = formData.supplier > 0 ? formData.supplier : null;
-        }
-        
-        // Métadata et images
-        if (formData.metadata !== undefined) dataToSend.metadata = formData.metadata;
-        if (formData.additional_images !== undefined) dataToSend.additional_images = formData.additional_images;
-        
-        // Gestion des produits par boutique
-        if (formData.store_products !== undefined) {
-          dataToSend.store_products = formData.store_products.map(sp => ({
-            store: sp.store,
-            store_base_price: (sp.store_base_price || 0).toString(),
-            store_cost_price: (sp.store_cost_price || 0).toString(),
-            store_compare_at_price: (sp.store_compare_at_price || 0).toString(),
-            qt_item: sp.qt_item || 0,
-            min_stock_threshold: sp.min_stock_threshold || 10,
-            reorder_quantity: sp.reorder_quantity || 100,
-            jour_ecart: sp.jour_ecart || 0,
-            status: sp.status || 'draft',
-            is_active: sp.is_active !== undefined ? sp.is_active : true,
-            display_order: sp.display_order || 0,
-            dlv: sp.dlv || new Date().toISOString().split('T')[0],
-            dlc: sp.dlc || new Date().toISOString().split('T')[0],
-            dcr: sp.dcr || new Date().toISOString().split('T')[0]
-          }));
-        }
-        
-        console.log('📤 Données de mise à jour:', dataToSend);
-      }
-      
-      const product = await api.patch<Product>(`/products/${productId}/`, dataToSend);
-      console.log('✅ Produit mis à jour:', product);
-      return this.normalizeProduct(product);
-      
-    } catch (error: any) {
-      console.error(`❌ Erreur lors de la mise à jour du produit ${productId}:`, error);
-      
-      if (error.response?.data) {
-        console.error('📋 Détails erreur API:', error.response.data);
-        const errorMessage = this.extractErrorMessage(error.response.data);
-        throw new Error(errorMessage);
-      }
-      
-      throw new Error(error.message || 'Impossible de mettre à jour le produit');
-    }
-  }
-
-  // Supprimer un produit
-  async deleteProduct(productId: number): Promise<void> {
-    try {
-      await api.delete(`/products/${productId}/`);
-      console.log(`✅ Produit ${productId} supprimé`);
-    } catch (error) {
-      console.error(`❌ Erreur lors de la suppression du produit ${productId}:`, error);
-      throw new Error('Impossible de supprimer le produit');
-    }
-  }
-
-  // === CATÉGORIES, MARQUES ET FOURNISSEURS ===
-
   // Récupérer toutes les catégories
   async getAllCategories(): Promise<ProductCategory[]> {
     try {
-      console.log('🔄 Chargement des catégories...');
-      const response = await api.getFullResponse<ProductCategory[] | PaginatedResponse<ProductCategory>>('/categories/');
-      
-      let categories: ProductCategory[] = [];
-      
-      if (response.data) {
-        if (Array.isArray(response.data)) {
-          categories = response.data;
-        } else if (response.data.results && Array.isArray(response.data.results)) {
-          categories = response.data.results;
-        }
-      }
-      
-      console.log(`✅ ${categories.length} catégories chargées`);
-      return categories.map(category => ({
-        id: category.id || 0,
-        name: category.name || 'Catégorie',
-        description: category.description || '',
-        is_active: category.is_active !== undefined ? category.is_active : true
-      }));
-      
+      const categories = await api.get<ProductCategory[]>('/categories/');
+      return categories;
     } catch (error) {
-      console.error('❌ Erreur lors du chargement des catégories:', error);
+      console.error('Erreur lors du chargement des catégories:', error);
       return [];
     }
   }
@@ -400,29 +68,10 @@ class ProductService {
   // Récupérer toutes les marques
   async getAllBrands(): Promise<ProductBrand[]> {
     try {
-      console.log('🔄 Chargement des marques...');
-      const response = await api.getFullResponse<ProductBrand[] | PaginatedResponse<ProductBrand>>('/product-brands/');
-      
-      let brands: ProductBrand[] = [];
-      
-      if (response.data) {
-        if (Array.isArray(response.data)) {
-          brands = response.data;
-        } else if (response.data.results && Array.isArray(response.data.results)) {
-          brands = response.data.results;
-        }
-      }
-      
-      console.log(`✅ ${brands.length} marques chargées`);
-      return brands.map(brand => ({
-        id: brand.id || 0,
-        name: brand.name || 'Marque',
-        description: brand.description || '',
-        is_active: brand.is_active !== undefined ? brand.is_active : true
-      }));
-      
+      const brands = await api.get<ProductBrand[]>('/product-brands/');
+      return brands;
     } catch (error) {
-      console.error('❌ Erreur lors du chargement des marques:', error);
+      console.error('Erreur lors du chargement des marques:', error);
       return [];
     }
   }
@@ -430,363 +79,247 @@ class ProductService {
   // Récupérer tous les fournisseurs
   async getAllSuppliers(): Promise<Supplier[]> {
     try {
-      console.log('🔄 Chargement des fournisseurs...');
-      const response = await api.getFullResponse<Supplier[] | PaginatedResponse<Supplier>>('/suppliers/');
-      
-      let suppliers: Supplier[] = [];
-      
-      if (response.data) {
-        if (Array.isArray(response.data)) {
-          suppliers = response.data;
-        } else if (response.data.results && Array.isArray(response.data.results)) {
-          suppliers = response.data.results;
-        }
-      }
-      
-      console.log(`✅ ${suppliers.length} fournisseurs chargés`);
-      return suppliers.map(supplier => ({
-        id: supplier.id || 0,
-        name: supplier.name || 'Fournisseur',
-        store_name: supplier.store_name || '',
-        email: supplier.email || '',
-        phone: supplier.phone || '',
-        is_active: supplier.is_active !== undefined ? supplier.is_active : true
-      }));
-      
+      const suppliers = await api.get<Supplier[]>('/suppliers/');
+      return suppliers;
     } catch (error) {
-      console.error('❌ Erreur lors du chargement des fournisseurs:', error);
+      console.error('Erreur lors du chargement des fournisseurs:', error);
       return [];
     }
   }
 
-  // === BOUTIQUES ===
-
-  // Récupérer toutes les boutiques
-  async getAllStores(): Promise<Store[]> {
-    try {
-      console.log('🔄 Chargement des boutiques...');
-      const response = await api.getFullResponse<Store[] | PaginatedResponse<Store>>('/stores/');
-      
-      let stores: Store[] = [];
-      
-      if (response.data) {
-        if (Array.isArray(response.data)) {
-          stores = response.data;
-        } else if (response.data.results && Array.isArray(response.data.results)) {
-          stores = response.data.results;
-        }
-      }
-      
-      console.log(`✅ ${stores.length} boutiques chargées`);
-      return stores.map(store => ({
-        id: store.id || 0,
-        name: store.name || 'Boutique',
-        email: store.email || '',
-        phone: store.phone || '',
-        address: store.address || '',
-        is_active: store.is_active !== undefined ? store.is_active : true
-      }));
-      
-    } catch (error) {
-      console.error('❌ Erreur lors du chargement des boutiques:', error);
-      return [];
-    }
-  }
-
-  // === VARIANTES ===
-
-  // Récupérer les variantes d'un produit
-  async getProductVariants(productId: number): Promise<ProductVariant[]> {
-    try {
-      console.log(`🔄 Chargement des variantes du produit ${productId}...`);
-      const response = await api.getFullResponse<ProductVariant[] | PaginatedResponse<ProductVariant>>('/product-variants/', {
-        params: { product: productId }
-      });
-      
-      let variants: ProductVariant[] = [];
-      
-      if (response.data) {
-        if (Array.isArray(response.data)) {
-          variants = response.data;
-        } else if (response.data.results && Array.isArray(response.data.results)) {
-          variants = response.data.results;
-        }
-      }
-      
-      console.log(`✅ ${variants.length} variantes chargées`);
-      return variants;
-      
-    } catch (error) {
-      console.error(`❌ Erreur lors du chargement des variantes du produit ${productId}:`, error);
-      return [];
-    }
-  }
-
-  // === AUTRES FONCTIONNALITÉS ===
-
-  // Créer un produit avec prix par boutique
-  async createProductWithStorePrices(productData: any): Promise<Product> {
-    try {
-      console.log('🔄 Création produit avec boutiques...');
-      return await this.createProduct(productData);
-    } catch (error) {
-      console.error('❌ Erreur lors de la création du produit avec boutiques:', error);
-      throw error;
-    }
-  }
-
-  // Mettre à jour un produit avec prix par boutique
-  async updateProductWithStorePrices(id: number, productData: any): Promise<Product> {
-    try {
-      console.log(`🔄 Mise à jour produit ${id} avec boutiques...`);
-      return await this.updateProduct(id, productData);
-    } catch (error) {
-      console.error(`❌ Erreur lors de la mise à jour du produit ${id} avec boutiques:`, error);
-      throw error;
-    }
-  }
-
-  // === MÉTHODES UTILITAIRES ===
-
-  // Extraire un message d'erreur lisible de la réponse API
-  private extractErrorMessage(errorData: any): string {
-    if (typeof errorData === 'string') {
-      return errorData;
-    }
-    
-    if (errorData.detail) {
-      return errorData.detail;
-    }
-    
-    if (errorData.message) {
-      return errorData.message;
-    }
-    
-    if (typeof errorData === 'object') {
-      // Afficher les erreurs de validation
-      const errors: string[] = [];
-      
-      Object.entries(errorData).forEach(([field, fieldErrors]) => {
-        if (Array.isArray(fieldErrors)) {
-          errors.push(`${field}: ${fieldErrors.join(', ')}`);
-        } else if (typeof fieldErrors === 'string') {
-          errors.push(`${field}: ${fieldErrors}`);
-        } else {
-          errors.push(`${field}: ${JSON.stringify(fieldErrors)}`);
-        }
-      });
-      
-      if (errors.length > 0) {
-        return `Erreurs de validation:\n${errors.join('\n')}`;
-      }
-    }
-    
-    return 'Erreur inconnue';
-  }
-
-  // === MÉTHODES SPÉCIFIQUES POUR LES STORES ===
-
-  async getProductsByStore(storeId: number): Promise<Product[]> {
-    try {
-      const products = await api.get<Product[]>(`/stores/${storeId}/products/`);
-      return products.map(product => this.normalizeProduct(product));
-    } catch (error) {
-      console.error(`❌ Erreur lors du chargement des produits de la boutique ${storeId}:`, error);
-      return [];
-    }
-  }
-
-  async addProductToStore(
-    productId: number,
-    storeId: number,
-    storeProductData: {
-      store_base_price?: number;
-      store_cost_price?: number;
-      store_compare_at_price?: number;
-      min_stock_threshold?: number;
-      reorder_quantity?: number;
-      is_active?: boolean;
-      display_order?: number;
-    }
-  ): Promise<StoreProduct> {
-    try {
-      const data = {
-        product: productId,
-        store: storeId,
-        store_base_price: storeProductData.store_base_price?.toString() || '0',
-        store_cost_price: storeProductData.store_cost_price?.toString() || '0',
-        store_compare_at_price: storeProductData.store_compare_at_price?.toString() || '0',
-        min_stock_threshold: storeProductData.min_stock_threshold || 10,
-        reorder_quantity: storeProductData.reorder_quantity || 100,
-        is_active: storeProductData.is_active !== undefined ? storeProductData.is_active : true,
-        display_order: storeProductData.display_order || 0
-      };
-      
-      const response = await api.post<StoreProduct>('/store-products/', data);
-      return this.normalizeStoreProduct(response);
-    } catch (error) {
-      console.error(`❌ Erreur lors de l'ajout du produit ${productId} à la boutique ${storeId}:`, error);
-      throw new Error('Impossible d\'ajouter le produit à la boutique');
-    }
-  }
-
-  async updateProductInStore(
-    productId: number,
-    storeId: number,
-    storeProductData: any
-  ): Promise<StoreProduct> {
-    try {
-      const storeProducts = await api.get<StoreProduct[]>('/store-products/', {
-        params: { product: productId, store: storeId }
-      });
-      
-      if (storeProducts.length === 0) {
-        throw new Error('Produit non trouvé dans cette boutique');
-      }
-      
-      const storeProductId = storeProducts[0].id;
-      
-      // Convertir les prix en strings si nécessaire
-      const dataToSend: any = {};
-      Object.keys(storeProductData).forEach(key => {
-        if (key.includes('_price') && typeof storeProductData[key] === 'number') {
-          dataToSend[key] = storeProductData[key].toString();
-        } else {
-          dataToSend[key] = storeProductData[key];
-        }
-      });
-      
-      const response = await api.patch<StoreProduct>(
-        `/store-products/${storeProductId}/`,
-        dataToSend
-      );
-      return this.normalizeStoreProduct(response);
-    } catch (error) {
-      console.error(`❌ Erreur lors de la mise à jour du produit ${productId} dans la boutique ${storeId}:`, error);
-      throw new Error('Impossible de mettre à jour le produit dans la boutique');
-    }
-  }
-
-  async getStoreProducts(productId: number): Promise<StoreProduct[]> {
-    try {
-      const response = await api.get<StoreProduct[]>(
-        '/store-products/',
-        { params: { product: productId } }
-      );
-      return response.map(sp => this.normalizeStoreProduct(sp));
-    } catch (error) {
-      console.error(`❌ Erreur lors du chargement des produits du magasin pour ${productId}:`, error);
-      return [];
-    }
-  }
-
-  async removeProductFromStore(productId: number, storeId: number): Promise<void> {
-    try {
-      const storeProducts = await api.get<StoreProduct[]>('/store-products/', {
-        params: { product: productId, store: storeId }
-      });
-      
-      if (storeProducts.length === 0) {
-        throw new Error('Produit non trouvé dans cette boutique');
-      }
-      
-      const storeProductId = storeProducts[0].id;
-      await api.delete(`/store-products/${storeProductId}/`);
-      console.log(`✅ Produit ${productId} retiré de la boutique ${storeId}`);
-    } catch (error) {
-      console.error(`❌ Erreur lors de la suppression du produit ${productId} de la boutique ${storeId}:`, error);
-      throw new Error('Impossible de supprimer le produit de la boutique');
-    }
-  }
-
+  // Récupérer les statistiques des produits
   async getProductStats(): Promise<ProductStats> {
     try {
-      const stats = await api.get<ProductStats>('/analytics/');
-      return stats;
-    } catch {
-      const products = await this.getAllProducts();
-      
+      try {
+        const stats = await api.get<ProductStats>('/analytics/');
+        return stats;
+      } catch {
+        const products = await this.getAllProducts();
+        const total_products = products.length;
+        const active_products = products.filter(p => p.status === 'active').length;
+        
+        const low_stock_products = products.filter(p => {
+          const stock = p.stocks?.[0];
+          return stock && stock.quantity_available <= stock.min_stock_threshold;
+        }).length;
+        
+        const out_of_stock_products = products.filter(p => {
+          const stock = p.stocks?.[0];
+          return stock && stock.quantity_available === 0;
+        }).length;
+        
+        const total_margin = products.reduce((sum, p) => {
+          if (p.cost_price && p.cost_price > 0 && p.base_price) {
+            return sum + ((p.base_price - p.cost_price) / p.cost_price) * 100;
+          }
+          return sum;
+        }, 0);
+        
+        const average_margin = total_products > 0 ? total_margin / total_products : 0;
+        
+        const total_inventory_value = products.reduce((sum, p) => {
+          const stock = p.stocks?.[0];
+          const quantity = stock?.quantity_available || 0;
+          return sum + ((p.cost_price || 0) * quantity);
+        }, 0);
+
+        return {
+          total_products,
+          active_products,
+          low_stock_products,
+          out_of_stock_products,
+          average_margin,
+          total_inventory_value
+        };
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des statistiques:', error);
       return {
-        total_products: products.length,
-        active_products: products.filter(p => p.status === 'active').length,
-        low_stock_products: products.filter(p => (p.qt_item || 0) <= 10).length,
-        out_of_stock_products: products.filter(p => (p.qt_item || 0) === 0).length,
+        total_products: 0,
+        active_products: 0,
+        low_stock_products: 0,
+        out_of_stock_products: 0,
         average_margin: 0,
         total_inventory_value: 0
       };
     }
   }
 
+  // Créer un nouveau produit
+  async createProduct(productData: ProductFormData): Promise<Product> {
+    try {
+      const data: Record<string, any> = {
+        name: productData.name,
+        description: productData.description || '',
+        category: productData.category_id,
+        supplier: productData.supplier_id,
+        cost_price: productData.cost_price,
+        base_price: productData.base_price,
+        status: productData.status || 'draft'
+      };
+
+      if (productData.brand_id && productData.brand_id > 0) {
+        data.brand = productData.brand_id;
+      }
+
+      if (productData.sku) data.sku = productData.sku;
+      if (productData.compare_at_price) data.compare_at_price = productData.compare_at_price;
+      if (productData.qt_item) data.qt_item = productData.qt_item;
+      if (productData.jour_ecart) data.jour_ecart = productData.jour_ecart;
+      if (productData.type) data.type = productData.type;
+
+      if (productData.photo instanceof File) {
+        const formData = new FormData();
+        
+        Object.keys(data).forEach(key => {
+          if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+            formData.append(key, data[key].toString());
+          }
+        });
+        
+        formData.append('photo', productData.photo);
+        
+        const product = await api.post<Product>('/products/', formData);
+        return product;
+      } else {
+        const product = await api.post<Product>('/products/', data);
+        return product;
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création du produit:', error);
+      throw new Error('Impossible de créer le produit');
+    }
+  }
+
+  // Mettre à jour un produit
+  async updateProduct(productId: number, productData: Partial<ProductFormData>): Promise<Product> {
+    try {
+      const data: Record<string, any> = {};
+      
+      if (productData.name) data.name = productData.name;
+      if (productData.description !== undefined) data.description = productData.description;
+      if (productData.category_id) data.category = productData.category_id;
+      if (productData.supplier_id) data.supplier = productData.supplier_id;
+      if (productData.cost_price !== undefined) data.cost_price = productData.cost_price;
+      if (productData.base_price !== undefined) data.base_price = productData.base_price;
+      
+      if (productData.brand_id !== undefined) {
+        if (productData.brand_id > 0) {
+          data.brand = productData.brand_id;
+        } else {
+          data.brand = null;
+        }
+      }
+      
+      if (productData.compare_at_price !== undefined) data.compare_at_price = productData.compare_at_price;
+      if (productData.qt_item !== undefined) data.qt_item = productData.qt_item;
+      if (productData.jour_ecart !== undefined) data.jour_ecart = productData.jour_ecart;
+      if (productData.status) data.status = productData.status;
+      if (productData.sku !== undefined) data.sku = productData.sku;
+      if (productData.type !== undefined) data.type = productData.type;
+
+      if (productData.photo !== undefined) {
+        const formData = new FormData();
+        
+        Object.keys(data).forEach(key => {
+          if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+            formData.append(key, data[key].toString());
+          }
+        });
+        
+        if (productData.photo instanceof File) {
+          formData.append('photo', productData.photo);
+        } else if (productData.photo === null) {
+          formData.append('photo', '');
+        }
+        
+        const product = await api.patch<Product>(`/products/${productId}/`, formData);
+        return product;
+      } else {
+        const product = await api.patch<Product>(`/products/${productId}/`, data);
+        return product;
+      }
+    } catch (error) {
+      console.error(`Erreur lors de la mise à jour du produit ${productId}:`, error);
+      throw new Error('Impossible de mettre à jour le produit');
+    }
+  }
+
+  // Supprimer un produit
+  async deleteProduct(productId: number): Promise<void> {
+    try {
+      await api.delete(`/products/${productId}/`);
+    } catch (error) {
+      console.error(`Erreur lors de la suppression du produit ${productId}:`, error);
+      throw new Error('Impossible de supprimer le produit');
+    }
+  }
+
+  // Exporter les produits
   async exportProducts(filters?: ProductFilter): Promise<Blob> {
     try {
-      const products = await this.getAllProducts(filters);
-      
-      const headers = [
-        'ID', 'Nom', 'SKU', 'Description', 
-        'Catégorie', 'Marque', 'Fournisseur',
-        'Prix d\'achat', 'Prix de vente', 'Prix comparé',
-        'Quantité', 'Statut', 'Actif'
-      ];
-      
-      const rows = products.map(product => [
-        product.id,
-        product.name,
-        product.sku || '',
-        product.description || '',
-        product.category?.name || '',
-        product.brand?.name || '',
-        product.supplier?.name || '',
-        product.cost_price || 0,
-        product.base_price || 0,
-        product.compare_at_price || 0,
-        product.qt_item || 0,
-        product.status,
-        product.is_active ? 'Oui' : 'Non'
-      ]);
-      
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => 
-          `"${String(cell).replace(/"/g, '""')}"`
-        ).join(','))
-      ].join('\n');
-      
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      return blob;
-      
+      const params: Record<string, any> = {};
+      if (filters?.search) params.search = filters.search;
+      if (filters?.category && filters.category !== 'all') params.category = filters.category;
+      if (filters?.brand && filters.brand !== 'all') params.brand = filters.brand;
+      if (filters?.status && filters.status !== 'all') params.status = filters.status;
+      if (filters?.low_stock) params.low_stock = true;
+
+      try {
+        const response = await api.getFullResponse<Blob>('/exports/products/', {
+          params,
+          responseType: 'blob'
+        });
+        
+        return response.data;
+      } catch {
+        const products = await this.getAllProducts(filters);
+        const blob = new Blob([JSON.stringify(products, null, 2)], { type: 'application/json' });
+        return blob;
+      }
     } catch (error) {
-      console.error('❌ Erreur lors de l\'export des produits:', error);
+      console.error('Erreur lors de l\'export des produits:', error);
       throw new Error('Impossible d\'exporter les produits');
     }
   }
 
+  // Rechercher des produits
   async searchProducts(query: string): Promise<Product[]> {
     try {
-      const products = await api.get<Product[]>('/products/', { 
-        params: { search: query } 
-      });
-      return products.map(product => this.normalizeProduct(product));
+      const products = await api.get<Product[]>('/products/', { search: query });
+      return products;
     } catch (error) {
-      console.error('❌ Erreur lors de la recherche des produits:', error);
+      console.error('Erreur lors de la recherche des produits:', error);
+      throw new Error('Impossible de rechercher les produits');
+    }
+  }
+
+  // Récupérer les variantes d'un produit
+  async getProductVariants(productId: number): Promise<ProductVariant[]> {
+    try {
+      const variants = await api.get<ProductVariant[]>('/product-variants/', {
+        params: { product: productId }
+      });
+      return variants;
+    } catch (error) {
+      console.error(`Erreur lors du chargement des variantes du produit ${productId}:`, error);
       return [];
     }
   }
 
-  async updateProductStatus(productId: number, status: string): Promise<Product> {
+  // Mettre à jour le statut d'un produit
+  async updateProductStatus(productId: number, status: 'draft' | 'active' | 'archived'): Promise<Product> {
     try {
-      const is_active = status === 'active';
-      const product = await api.patch<Product>(`/products/${productId}/`, { 
-        status, 
-        is_active 
-      });
-      return this.normalizeProduct(product);
+      const product = await api.patch<Product>(`/products/${productId}/`, { status });
+      return product;
     } catch (error) {
-      console.error(`❌ Erreur lors de la mise à jour du statut du produit ${productId}:`, error);
+      console.error(`Erreur lors de la mise à jour du statut du produit ${productId}:`, error);
       throw new Error('Impossible de mettre à jour le statut');
     }
   }
 
-  async adjustStock(productId: number, quantity: number, movementType: string, notes?: string): Promise<Stock> {
+  // Ajuster le stock d'un produit
+  async adjustStock(productId: number, quantity: number, movementType: 'inbound' | 'outbound' | 'adjustment', notes?: string): Promise<Stock> {
     try {
       const stock = await api.post<Stock>(`/products/${productId}/adjust-stock/`, {
         quantity,
@@ -796,53 +329,8 @@ class ProductService {
       
       return stock;
     } catch (error) {
-      console.error(`❌ Erreur lors de l'ajustement du stock pour le produit ${productId}:`, error);
+      console.error(`Erreur lors de l'ajustement du stock pour le produit ${productId}:`, error);
       throw new Error('Impossible d\'ajuster le stock');
-    }
-  }
-
-  async getLowStockProducts(threshold: number = 10): Promise<Product[]> {
-    try {
-      const products = await this.getAllProducts();
-      return products.filter(p => (p.qt_item || 0) <= threshold && (p.qt_item || 0) > 0);
-    } catch (error) {
-      console.error('❌ Erreur lors du chargement des produits en stock faible:', error);
-      return [];
-    }
-  }
-
-  async getOutOfStockProducts(): Promise<Product[]> {
-    try {
-      const products = await this.getAllProducts();
-      return products.filter(p => (p.qt_item || 0) === 0);
-    } catch (error) {
-      console.error('❌ Erreur lors du chargement des produits en rupture de stock:', error);
-      return [];
-    }
-  }
-
-  async createSupplier(supplierData: {
-    name: string;
-    store_name?: string;
-  }): Promise<Supplier> {
-    try {
-      const data = {
-        name: supplierData.name,
-        store_name: supplierData.store_name || '',
-        contact_person: '',
-        payment_terms: '',
-        status: 'active'
-      };
-      
-      console.log('🔄 Création fournisseur:', data);
-      
-      const supplier = await api.post<Supplier>('/suppliers/', data);
-      console.log('✅ Fournisseur créé:', supplier);
-      return supplier;
-      
-    } catch (error: any) {
-      console.error('❌ Erreur création fournisseur:', error);
-      throw new Error('Impossible de créer le fournisseur');
     }
   }
 }

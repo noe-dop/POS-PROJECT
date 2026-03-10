@@ -1,0 +1,1618 @@
+ERROR 2026-03-05 09:25:31,152 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column api_boutique_core_product.group_id does not exist
+LINE 1: ...UTER JOIN "api_boutique_core_productcategory" ON ("api_bouti...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\mixins.py", line 40, in list
+    page = self.paginate_queryset(queryset)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\generics.py", line 175, in paginate_queryset
+    return self.paginator.paginate_queryset(queryset, self.request, view=self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\pagination.py", line 401, in paginate_queryset
+    return list(queryset[self.offset:self.offset + self.limit])
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 390, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1624, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column api_boutique_core_product.group_id does not exist
+LINE 1: ...UTER JOIN "api_boutique_core_productcategory" ON ("api_bouti...
+                                                             ^
+
+ERROR 2026-03-05 09:25:31,159 log "GET /api/products/ HTTP/1.1" 500 33530
+ERROR 2026-03-05 09:32:09,791 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column api_boutique_core_product.product_type_id does not exist
+LINE 1: ...es", "api_boutique_core_product"."search_vector", "api_bouti...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\mixins.py", line 40, in list
+    page = self.paginate_queryset(queryset)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\generics.py", line 175, in paginate_queryset
+    return self.paginator.paginate_queryset(queryset, self.request, view=self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\pagination.py", line 401, in paginate_queryset
+    return list(queryset[self.offset:self.offset + self.limit])
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 390, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1624, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column api_boutique_core_product.product_type_id does not exist
+LINE 1: ...es", "api_boutique_core_product"."search_vector", "api_bouti...
+                                                             ^
+
+ERROR 2026-03-05 09:32:09,800 log "GET /api/products/ HTTP/1.1" 500 33551
+ERROR 2026-03-05 09:32:23,607 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column api_boutique_core_product.product_type_id does not exist
+LINE 1: ...es", "api_boutique_core_product"."search_vector", "api_bouti...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\mixins.py", line 40, in list
+    page = self.paginate_queryset(queryset)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\generics.py", line 175, in paginate_queryset
+    return self.paginator.paginate_queryset(queryset, self.request, view=self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\pagination.py", line 401, in paginate_queryset
+    return list(queryset[self.offset:self.offset + self.limit])
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 390, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1624, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column api_boutique_core_product.product_type_id does not exist
+LINE 1: ...es", "api_boutique_core_product"."search_vector", "api_bouti...
+                                                             ^
+
+ERROR 2026-03-05 09:32:23,612 log "GET /api/products/ HTTP/1.1" 500 33551
+ERROR 2026-03-05 09:32:45,925 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column api_boutique_core_product.product_type_id does not exist
+LINE 1: ...es", "api_boutique_core_product"."search_vector", "api_bouti...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\mixins.py", line 40, in list
+    page = self.paginate_queryset(queryset)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\generics.py", line 175, in paginate_queryset
+    return self.paginator.paginate_queryset(queryset, self.request, view=self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\pagination.py", line 401, in paginate_queryset
+    return list(queryset[self.offset:self.offset + self.limit])
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 390, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1624, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column api_boutique_core_product.product_type_id does not exist
+LINE 1: ...es", "api_boutique_core_product"."search_vector", "api_bouti...
+                                                             ^
+
+ERROR 2026-03-05 09:32:45,929 log "GET /api/products/ HTTP/1.1" 500 33551
+ERROR 2026-03-05 09:33:30,255 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column api_boutique_core_product.product_type_id does not exist
+LINE 1: ...es", "api_boutique_core_product"."search_vector", "api_bouti...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\mixins.py", line 40, in list
+    page = self.paginate_queryset(queryset)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\generics.py", line 175, in paginate_queryset
+    return self.paginator.paginate_queryset(queryset, self.request, view=self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\pagination.py", line 401, in paginate_queryset
+    return list(queryset[self.offset:self.offset + self.limit])
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 390, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1624, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column api_boutique_core_product.product_type_id does not exist
+LINE 1: ...es", "api_boutique_core_product"."search_vector", "api_bouti...
+                                                             ^
+
+ERROR 2026-03-05 09:33:30,260 log "GET /api/products/ HTTP/1.1" 500 33551
+ERROR 2026-03-05 09:35:24,599 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column api_boutique_core_product.nombre_item does not exist
+LINE 1: ...", "api_boutique_core_product"."product_type_id", "api_bouti...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\mixins.py", line 40, in list
+    page = self.paginate_queryset(queryset)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\generics.py", line 175, in paginate_queryset
+    return self.paginator.paginate_queryset(queryset, self.request, view=self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\pagination.py", line 401, in paginate_queryset
+    return list(queryset[self.offset:self.offset + self.limit])
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 390, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1624, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column api_boutique_core_product.nombre_item does not exist
+LINE 1: ...", "api_boutique_core_product"."product_type_id", "api_bouti...
+                                                             ^
+
+ERROR 2026-03-05 09:35:24,606 log "GET /api/products/ HTTP/1.1" 500 33539
+ERROR 2026-03-05 09:39:09,003 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column api_boutique_core_product.base_price does not exist
+LINE 1: ...e_id", "api_boutique_core_product"."nombre_item", "api_bouti...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\mixins.py", line 40, in list
+    page = self.paginate_queryset(queryset)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\generics.py", line 175, in paginate_queryset
+    return self.paginator.paginate_queryset(queryset, self.request, view=self)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\pagination.py", line 401, in paginate_queryset
+    return list(queryset[self.offset:self.offset + self.limit])
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 390, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1624, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column api_boutique_core_product.base_price does not exist
+LINE 1: ...e_id", "api_boutique_core_product"."nombre_item", "api_bouti...
+                                                             ^
+
+ERROR 2026-03-05 09:39:09,010 log "GET /api/products/ HTTP/1.1" 500 33536
+ERROR 2026-03-05 13:59:14,563 log Internal Server Error: /api/stores/1/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\mixins.py", line 82, in partial_update
+    return self.update(request, *args, **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\mixins.py", line 68, in update
+    self.perform_update(serializer)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\mixins.py", line 78, in perform_update
+    serializer.save()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\serializers.py", line 205, in save
+    self.instance = self.update(self.instance, validated_data)
+                    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\POS-PROJECT\ADMIN WEB\api_boutique_core\serializers.py", line 665, in update
+    store_type_value = validated_data.pop('store_type')
+KeyError: 'store_type'
+ERROR 2026-03-05 13:59:14,583 log "PATCH /api/stores/1/ HTTP/1.1" 500 30796
+ERROR 2026-03-05 20:50:21,039 log Internal Server Error: /api/product-brands/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 635, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 372, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1622, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-03-05 20:50:21,049 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 635, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 372, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1622, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-03-05 20:50:21,055 log Internal Server Error: /api/stores/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 635, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 372, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1622, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-03-05 20:50:21,070 log Internal Server Error: /api/suppliers/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 635, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 372, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1622, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-03-05 20:50:21,077 log Internal Server Error: /api/categories/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 635, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 372, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1622, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-03-05 20:50:21,119 log "GET /api/product-brands/ HTTP/1.1" 500 36642
+ERROR 2026-03-05 20:50:21,126 log "GET /api/products/ HTTP/1.1" 500 36613
+ERROR 2026-03-05 20:50:21,132 log "GET /api/stores/ HTTP/1.1" 500 36603
+ERROR 2026-03-05 20:50:21,139 log "GET /api/suppliers/ HTTP/1.1" 500 36618
+ERROR 2026-03-05 20:50:21,142 log "GET /api/categories/ HTTP/1.1" 500 36629
+ERROR 2026-03-05 21:34:48,956 log Internal Server Error: /api/suppliers/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 635, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 372, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1622, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-03-05 21:34:48,973 log Internal Server Error: /api/products/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 635, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 372, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1622, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-03-05 21:34:48,990 log Internal Server Error: /api/stores/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 635, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 372, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1622, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-03-05 21:34:49,003 log Internal Server Error: /api/categories/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 635, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 372, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1622, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-03-05 21:34:49,020 log Internal Server Error: /api/product-brands/
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\core\handlers\base.py", line 198, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\viewsets.py", line 125, in view
+    return self.dispatch(request, *args, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 132, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 635, in get
+    num = len(clone)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 372, in __len__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 2000, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\query.py", line 95, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\models\sql\compiler.py", line 1622, in execute_sql
+    cursor = self.connection.cursor()
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\utils.py", line 94, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\django\db\backends\postgresql\base.py", line 333, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+  File "C:\Users\donan\Desktop\todolist-api-crud\api-app\env\Lib\site-packages\psycopg2\__init__.py", line 135, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+django.db.utils.OperationalError: could not translate host name "aws-1-eu-west-1.pooler.supabase.com" to address: Name or service not known
+
+ERROR 2026-03-05 21:34:49,045 log "GET /api/suppliers/ HTTP/1.1" 500 36618
+ERROR 2026-03-05 21:34:49,052 log "GET /api/products/ HTTP/1.1" 500 36613
+ERROR 2026-03-05 21:34:49,060 log "GET /api/stores/ HTTP/1.1" 500 36603
+ERROR 2026-03-05 21:34:49,068 log "GET /api/categories/ HTTP/1.1" 500 36629
+ERROR 2026-03-05 21:34:49,072 log "GET /api/product-brands/ HTTP/1.1" 500 36642

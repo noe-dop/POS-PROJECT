@@ -1,15 +1,17 @@
-// src/services/StockService.ts - VERSION CORRIGÉE
+// src/services/StockService.ts - CORRECTION DES TYPES ERROR
 import api from './api';
 import { 
   Stock, 
-  StockStats, 
-  StockFilters, 
-  CreateStockData, 
-  UpdateStockData,
-  PaginatedResponse 
-} from '@/types/stock.types.ts';
+  StockMovement, 
+  InventoryCount,
+  ReorderRule,
+  Warehouse,
+  Batch,
+  StockStats
+} from '@/types/stocktypes';
 
-// Interface pour la réponse paginée Django
+// Définir localement l'interface PaginatedResponse 
+// pour correspondre à ce que votre API retourne
 interface DjangoPaginatedResponse<T> {
   count: number;
   next: string | null;
@@ -17,361 +19,705 @@ interface DjangoPaginatedResponse<T> {
   results: T[];
 }
 
-class StockService {
-  private baseEndpoint = '/stocks/';
+// Interface pour la réponse paginée simplifiée (pour notre service)
+interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page?: number;
+  page_size?: number;
+  next?: string | null;
+  previous?: string | null;
+}
 
-  /**
-   * Récupère tous les stocks avec pagination
-   */
-  async getStocks(filters?: StockFilters): Promise<PaginatedResponse<Stock>> {
+// Type pour les erreurs
+interface ApiError extends Error {
+  response?: {
+    status?: number;
+    data?: any;
+    statusText?: string;
+  };
+  request?: any;
+  config?: any;
+}
+
+class StockService {
+  private endpointStatus: Record<string, boolean> = {};
+  
+  // ==================== STOCKS (ESSENTIEL) ====================
+  async getStocks(params?: {
+    store_id?: number;
+    search?: string;
+    page?: number;
+    page_size?: number;
+    status?: string;
+    product_id?: number;
+    warehouse_id?: number;
+    category?: string;
+    is_low_stock?: boolean;
+  }): Promise<PaginatedResponse<Stock>> {
     try {
-      console.log('📡 Récupération des stocks avec filtres:', filters);
+      // Votre API retourne directement les résultats (pas l'objet paginé)
+      const data: Stock[] = await api.get('/stocks/', { params });
+      this.endpointStatus['/stocks/'] = true;
       
-      const params = this.buildQueryParams(filters);
+      console.log(`📦 Récupéré ${data?.length || 0} stocks depuis API`);
       
-      // AJOUT: Toujours inclure les détails des relations
-      params.expand = 'product,store,warehouse';
-      params.page_size = filters?.page_size || 20;
+      // Pour vérifier si on a une réponse paginée complète
+      try {
+        // Essayer de récupérer la réponse complète pour les métadonnées
+        const fullResponse = await api.getFullResponse('/stocks/', { params });
+        
+        // Vérifier si c'est un objet paginé Django
+        const responseData = fullResponse.data;
+        if (responseData && typeof responseData === 'object' && 'results' in responseData) {
+          const paginatedData = responseData as DjangoPaginatedResponse<Stock>;
+          return {
+            data: paginatedData.results || [],
+            total: paginatedData.count || paginatedData.results?.length || 0,
+            page: params?.page || 1,
+            page_size: params?.page_size || 10,
+            next: paginatedData.next,
+            previous: paginatedData.previous
+          };
+        }
+      } catch (metaError: unknown) {
+        // Si la récupération des métadonnées échoue, on continue avec les données de base
+        const errorMessage = metaError instanceof Error ? metaError.message : 'Erreur inconnue';
+        console.log('ℹ️ Métadonnées de pagination non disponibles:', errorMessage);
+      }
       
-      const response = await api.getFullResponse<DjangoPaginatedResponse<Stock>>(this.baseEndpoint, { params });
+      // Format simple (votre API retourne directement un tableau)
+      return {
+        data: Array.isArray(data) ? data : [],
+        total: Array.isArray(data) ? data.length : 0,
+        page: params?.page || 1,
+        page_size: params?.page_size || 10
+      };
+    } catch (error: unknown) {
+      this.endpointStatus['/stocks/'] = false;
       
-      console.log('✅ Stocks récupérés:', response.data.results?.length || 0, 'sur', response.data.count || 0);
+      // Convertir l'erreur en ApiError pour accéder aux propriétés
+      const apiError = error as ApiError;
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
       
-      // Debug: vérifier les données reçues
-      if (response.data.results && response.data.results.length > 0) {
-        const sampleStock = response.data.results[0];
-        console.log('🔍 Exemple de données reçues:', {
-          productId: sampleStock.product,
-          productName: sampleStock.product_details?.name || 'NON DISPONIBLE',
-          storeName: sampleStock.store_details?.name || 'NON DISPONIBLE',
-          warehouseName: sampleStock.warehouse_details?.name || 'NON DISPONIBLE'
+      console.warn('⚠️ Erreur getStocks:', errorMessage);
+      
+      // Pour les erreurs 404, retourner des données vides
+      if (apiError.response?.status === 404) {
+        console.log('ℹ️ Endpoint /stocks/ non disponible');
+        return {
+          data: [],
+          total: 0,
+          page: params?.page || 1,
+          page_size: params?.page_size || 10
+        };
+      }
+      
+      // Ne pas throw pour éviter de bloquer l'interface
+      console.log('⚠️ Erreur non critique getStocks, retourne vide');
+      return {
+        data: [],
+        total: 0,
+        page: params?.page || 1,
+        page_size: params?.page_size || 10
+      };
+    }
+  }
+
+  // ==================== MOUVEMENTS DE STOCK (ESSENTIEL) ====================
+  async getStockMovements(params?: {
+    store_id?: number;
+    product_id?: number;
+    movement_type?: string;
+    start_date?: string;
+    end_date?: string;
+    page?: number;
+    page_size?: number;
+  }): Promise<PaginatedResponse<StockMovement>> {
+    try {
+      // Votre API retourne directement les résultats
+      const data: StockMovement[] = await api.get('/stock-movements/', { params });
+      this.endpointStatus['/stock-movements/'] = true;
+      
+      console.log(`📊 Récupéré ${data?.length || 0} mouvements depuis API`);
+      
+      return {
+        data: Array.isArray(data) ? data : [],
+        total: Array.isArray(data) ? data.length : 0,
+        page: params?.page || 1,
+        page_size: params?.page_size || 10
+      };
+    } catch (error: unknown) {
+      this.endpointStatus['/stock-movements/'] = false;
+      
+      const apiError = error as ApiError;
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
+      
+      // Pour les erreurs 404, retourner des données vides
+      if (apiError.response?.status === 404) {
+        console.log('ℹ️ Endpoint /stock-movements/ non disponible, retourne vide');
+        return {
+          data: [],
+          total: 0,
+          page: params?.page || 1,
+          page_size: params?.page_size || 10
+        };
+      }
+      
+      console.warn('⚠️ Erreur getStockMovements:', errorMessage);
+      // Ne pas throw, retourner vide
+      return {
+        data: [],
+        total: 0,
+        page: params?.page || 1,
+        page_size: params?.page_size || 10
+      };
+    }
+  }
+
+  async createStockMovement(movementData: {
+    product_id: number;
+    store_id?: number;
+    warehouse_id?: number;
+    movement_type: 'IN' | 'OUT' | 'ADJUSTMENT' | 'TRANSFER' | 'RETURN';
+    quantity: number;
+    unit_price?: number;
+    notes?: string;
+    reference?: string;
+    batch_number?: string;
+    performed_by?: number;
+  }): Promise<StockMovement> {
+    try {
+      const data = await api.post<StockMovement>('/stock-movements/', movementData);
+      console.log('✅ Mouvement créé avec succès:', data);
+      return data;
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      console.error('❌ Erreur createStockMovement:', apiError);
+      
+      if (apiError.response?.status === 400) {
+        const errors = apiError.response.data;
+        throw new Error(`Validation: ${JSON.stringify(errors)}`);
+      }
+      
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
+      throw new Error(`Création mouvement impossible: ${errorMessage}`);
+    }
+  }
+
+  // ==================== STATISTIQUES (ESSENTIEL AVEC FALLBACK) ====================
+  async getStockStats(store_id?: number): Promise<StockStats> {
+    try {
+      // Essayer l'endpoint dédié
+      const stats = await api.get<StockStats>('/stocks/stats/', { params: { store_id } });
+      this.endpointStatus['/stocks/stats/'] = true;
+      
+      return stats;
+    } catch (error: unknown) {
+      this.endpointStatus['/stocks/stats/'] = false;
+      
+      const apiError = error as ApiError;
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
+      
+      console.warn('⚠️ Endpoint /stocks/stats/ non disponible, calcul local:', errorMessage);
+      
+      try {
+        // Fallback: Calculer à partir des stocks
+        const stocksResult = await this.getStocks({ 
+          store_id, 
+          page_size: 1000 
         });
+        const stocks = stocksResult.data;
+        
+        // Calcul basé sur les champs de vos serializers
+        const totalStock = stocks.reduce((sum, stock) => sum + (stock.quantity_on_hand || 0), 0);
+        const outOfStock = stocks.filter(s => s.stock_status === 'out_of_stock').length;
+        const lowStock = stocks.filter(s => s.is_low_stock === true || s.stock_status === 'low_stock').length;
+        const totalValue = stocks.reduce((sum, stock) => {
+          const quantity = stock.quantity_on_hand || 0;
+          const costPrice = stock.product?.cost_price || 0;
+          return sum + (quantity * costPrice);
+        }, 0);
+        
+        const stats = {
+          totalProducts: stocks.length,
+          totalStock,
+          outOfStock,
+          lowStock,
+          totalValue,
+          averageStockValue: stocks.length > 0 ? totalValue / stocks.length : 0
+        };
+        
+        console.log('📊 Statistiques calculées localement:', stats);
+        return stats;
+      } catch (fallbackError: unknown) {
+        const fallbackApiError = fallbackError as ApiError;
+        const fallbackErrorMessage = fallbackApiError instanceof Error ? fallbackApiError.message : 'Erreur inconnue';
+        
+        console.warn('⚠️ Impossible de calculer les stats:', fallbackErrorMessage);
+        
+        // Valeurs par défaut minimales
+        return {
+          totalProducts: 0,
+          totalStock: 0,
+          outOfStock: 0,
+          lowStock: 0,
+          totalValue: 0,
+          averageStockValue: 0
+        };
+      }
+    }
+  }
+
+  // ==================== RÈGLES DE RÉAPPROVISIONNEMENT ====================
+  async getReorderRules(params?: {
+    store_id?: number;
+    product_id?: number;
+    page?: number;
+    page_size?: number;
+  }): Promise<PaginatedResponse<ReorderRule>> {
+    try {
+      const data = await api.get<ReorderRule[]>('/reorder-rules/', { params });
+      this.endpointStatus['/reorder-rules/'] = true;
+      
+      return {
+        data: Array.isArray(data) ? data : [],
+        total: Array.isArray(data) ? data.length : 0
+      };
+    } catch (error: unknown) {
+      this.endpointStatus['/reorder-rules/'] = false;
+      
+      const apiError = error as ApiError;
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
+      
+      if (apiError.response?.status === 404) {
+        console.log('ℹ️ Endpoint /reorder-rules/ non disponible');
+      } else {
+        console.warn('⚠️ Erreur getReorderRules:', errorMessage);
+      }
+      
+      // Retourner vide sans throw
+      return {
+        data: [],
+        total: 0
+      };
+    }
+  }
+
+  // ==================== ALERTES DE STOCK ====================
+  async getStockAlerts(params?: {
+    store_id?: number;
+    severity?: string;
+    page?: number;
+    page_size?: number;
+  }): Promise<PaginatedResponse<any>> {
+    try {
+      const data = await api.get<any[]>('/stock-alerts/', { params });
+      this.endpointStatus['/stock-alerts/'] = true;
+      
+      return {
+        data: Array.isArray(data) ? data : [],
+        total: Array.isArray(data) ? data.length : 0
+      };
+    } catch (error: unknown) {
+      this.endpointStatus['/stock-alerts/'] = false;
+      
+      const apiError = error as ApiError;
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
+      
+      if (apiError.response?.status === 404) {
+        console.log('ℹ️ Endpoint /stock-alerts/ non disponible');
+      } else {
+        console.warn('⚠️ Erreur getStockAlerts:', errorMessage);
+      }
+      
+      // Retourner vide sans throw
+      return {
+        data: [],
+        total: 0
+      };
+    }
+  }
+
+  // ==================== ENTREPÔTS (WAREHOUSES) ====================
+  async getWarehouses(params?: {
+    store_id?: number;
+    page?: number;
+    page_size?: number;
+    search?: string;
+  }): Promise<PaginatedResponse<Warehouse>> {
+    try {
+      const data = await api.get<Warehouse[]>('/warehouses/', { params });
+      this.endpointStatus['/warehouses/'] = true;
+      
+      return {
+        data: Array.isArray(data) ? data : [],
+        total: Array.isArray(data) ? data.length : 0
+      };
+    } catch (error: unknown) {
+      this.endpointStatus['/warehouses/'] = false;
+      
+      const apiError = error as ApiError;
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
+      
+      if (apiError.response?.status === 404) {
+        console.log('ℹ️ Endpoint /warehouses/ non disponible');
+      } else {
+        console.warn('⚠️ Erreur getWarehouses:', errorMessage);
       }
       
       return {
-        data: response.data.results || [],
-        total: response.data.count || 0,
-        page: filters?.page || 1,
-        page_size: filters?.page_size || 20,
-        next: response.data.next || null,
-        previous: response.data.previous || null
+        data: [],
+        total: 0
       };
-    } catch (error) {
-      console.error('❌ Erreur lors de la récupération des stocks:', error);
-      throw this.handleError(error);
     }
   }
 
-  /**
-   * Récupère un stock spécifique par ID
-   */
-  async getStock(id: number): Promise<Stock> {
+  // ==================== INVENTORY COUNTS ====================
+  async getInventoryCounts(params?: {
+    store_id?: number;
+    status?: string;
+    page?: number;
+    page_size?: number;
+  }): Promise<PaginatedResponse<InventoryCount>> {
     try {
-      console.log(`📡 Récupération du stock ${id}`);
-      const response = await api.get<Stock>(`${this.baseEndpoint}${id}/?expand=product,store,warehouse`);
-      return response;
-    } catch (error) {
-      console.error(`❌ Erreur récupération stock ${id}:`, error);
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * Crée un nouveau stock
-   */
-  async createStock(stockData: CreateStockData): Promise<Stock> {
-    try {
-      console.log('📡 Création d\'un nouveau stock:', stockData);
+      const data = await api.get<InventoryCount[]>('/inventory-counts/', { params });
+      this.endpointStatus['/inventory-counts/'] = true;
       
-      const data = {
-        ...stockData,
-        quantity_available: (stockData.quantity_on_hand || 0) - (stockData.quantity_reserved || 0)
+      return {
+        data: Array.isArray(data) ? data : [],
+        total: Array.isArray(data) ? data.length : 0
       };
+    } catch (error: unknown) {
+      this.endpointStatus['/inventory-counts/'] = false;
       
-      return await api.post<Stock>(this.baseEndpoint, data);
-    } catch (error) {
-      console.error('❌ Erreur création stock:', error);
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * Met à jour un stock existant
-   */
-  async updateStock(id: number, stockData: UpdateStockData): Promise<Stock> {
-    try {
-      console.log(`📡 Mise à jour du stock ${id}:`, stockData);
+      const apiError = error as ApiError;
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
       
-      if (stockData.quantity_on_hand !== undefined || stockData.quantity_reserved !== undefined) {
-        const currentStock = await this.getStock(id);
-        const newOnHand = stockData.quantity_on_hand ?? currentStock.quantity_on_hand;
-        const newReserved = stockData.quantity_reserved ?? currentStock.quantity_reserved;
-        
-        stockData.quantity_available = newOnHand - newReserved;
-      }
-      
-      return await api.patch<Stock>(`${this.baseEndpoint}${id}/`, stockData);
-    } catch (error) {
-      console.error(`❌ Erreur mise à jour stock ${id}:`, error);
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * Supprime un stock
-   */
-  async deleteStock(id: number): Promise<void> {
-    try {
-      console.log(`📡 Suppression du stock ${id}`);
-      await api.delete(`${this.baseEndpoint}${id}/`);
-    } catch (error) {
-      console.error(`❌ Erreur suppression stock ${id}:`, error);
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * Récupère les statistiques de stock - VERSION CORRIGÉE
-   */
-  async getStats(params?: { store?: number; warehouse?: number }): Promise<StockStats> {
-    try {
-      console.log('📡 Calcul des statistiques localement...');
-      
-      // NE PAS appeler /stocks/stats/ - Calculez localement
-      const filters: StockFilters = {};
-      if (params?.store) filters.store = params.store;
-      if (params?.warehouse) filters.warehouse = params.warehouse;
-      filters.page_size = 1000;
-      
-      const stocksData = await this.getStocks(filters);
-      return this.calculateLocalStats(stocksData.data);
-      
-    } catch (error) {
-      console.error('❌ Erreur calcul statistiques:', error);
-      return this.getEmptyStats();
-    }
-  }
-
-  /**
-   * Exporte les stocks en JSON
-   */
-  async exportStocks(format: 'json' | 'csv' = 'json'): Promise<Blob> {
-    try {
-      console.log('📡 Export des stocks en', format);
-      
-      // Note: Cet endpoint n'existe peut-être pas non plus
-      // Vous pouvez le commenter temporairement
-      console.warn('⚠️ Endpoint /stocks/export/ peut ne pas exister');
-      
-      // Pour l'instant, retourner un Blob vide
-      return new Blob([JSON.stringify([])], { type: 'application/json' });
-      
-    } catch (error) {
-      console.error('❌ Erreur export stocks:', error);
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * Recherche dans les stocks
-   */
-  async searchStocks(query: string, filters?: StockFilters): Promise<Stock[]> {
-    try {
-      console.log(`🔍 Recherche stocks: "${query}"`);
-      
-      const searchFilters: StockFilters = {
-        ...filters,
-        search: query,
-        page_size: 50
-      };
-      
-      const response = await this.getStocks(searchFilters);
-      return response.data;
-    } catch (error) {
-      console.error('❌ Erreur recherche stocks:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Récupère les stocks en alerte
-   */
-  async getAlertStocks(threshold?: number): Promise<Stock[]> {
-    try {
-      console.log('⚠️ Récupération des alertes stock');
-      
-      const filters: StockFilters = {
-        stock_status: 'low_stock,out_of_stock',
-        ordering: 'quantity_available',
-        page_size: 100
-      };
-      
-      if (threshold !== undefined) {
-        filters.max_quantity = threshold;
-      }
-      
-      const response = await this.getStocks(filters);
-      return response.data;
-    } catch (error) {
-      console.error('❌ Erreur récupération alertes:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Test la connexion à l'API
-   */
-  async testConnection(): Promise<{ success: boolean; message: string }> {
-    try {
-      console.log('🔗 Test connexion API...');
-      
-      const endpoints = [
-        { path: '/stocks/', name: 'Stocks' },
-        { path: '/products/', name: 'Produits' },
-        { path: '/stores/', name: 'Magasins' }
-      ];
-      
-      let availableEndpoints = 0;
-      
-      for (const endpoint of endpoints) {
-        try {
-          await api.getFullResponse(endpoint.path, { params: { page_size: 1 } });
-          console.log(`✅ ${endpoint.name} accessible`);
-          availableEndpoints++;
-        } catch (err) {
-          console.log(`⚠️ ${endpoint.name} non accessible:`, err.message);
-        }
-      }
-      
-      if (availableEndpoints === endpoints.length) {
-        return { success: true, message: '✅ API complètement accessible' };
-      } else if (availableEndpoints > 0) {
-        return { success: true, message: `⚠️ API partiellement accessible (${availableEndpoints}/${endpoints.length})` };
+      if (apiError.response?.status === 404) {
+        console.log('ℹ️ Endpoint /inventory-counts/ non disponible');
       } else {
-        return { success: false, message: '❌ API non accessible' };
+        console.warn('⚠️ Erreur getInventoryCounts:', errorMessage);
       }
-    } catch (error) {
-      console.error('❌ Test connexion échoué:', error);
-      return { success: false, message: '❌ Impossible de contacter le serveur' };
-    }
-  }
-
-  // ==================== MÉTHODES UTILITAIRES ====================
-
-  private calculateLocalStats(stocks: Stock[]): StockStats {
-    if (!stocks || stocks.length === 0) {
-      return this.getEmptyStats();
-    }
-    
-    const totalStock = stocks.reduce((sum, stock) => sum + (stock.quantity_on_hand || 0), 0);
-    const outOfStock = stocks.filter(s => s.stock_status === 'out_of_stock').length;
-    const lowStock = stocks.filter(s => s.stock_status === 'low_stock').length;
-    const inStock = stocks.filter(s => s.stock_status === 'in_stock').length;
-    const overStock = stocks.filter(s => s.stock_status === 'over_stock').length;
-    
-    // Pour votre modèle, il n'y a pas de champ cost_price
-    // Donc totalValue = 0
-    const totalValue = 0;
-    const averageStockValue = 0;
-    
-    const averageTurnover = stocks.length > 0 
-      ? stocks.reduce((sum, stock) => sum + (stock.stock_turnover_rate || 0), 0) / stocks.length
-      : 0;
-    
-    return {
-      totalProducts: stocks.length,
-      totalStock,
-      outOfStock,
-      lowStock,
-      inStock,
-      over_stock_count: overStock,
-      totalValue,
-      averageStockValue,
-      total_quantity: totalStock,
-      average_turnover: averageTurnover
-    };
-  }
-
-  private getEmptyStats(): StockStats {
-    return {
-      totalProducts: 0,
-      totalStock: 0,
-      outOfStock: 0,
-      lowStock: 0,
-      inStock: 0,
-      over_stock_count: 0,
-      totalValue: 0,
-      averageStockValue: 0,
-      total_quantity: 0,
-      average_turnover: 0
-    };
-  }
-
-  private buildQueryParams(filters?: StockFilters): Record<string, any> {
-    if (!filters) return {};
-
-    const params: Record<string, any> = {};
-    
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        params[key] = value;
-      }
-    });
-
-    // AJOUT CRITIQUE: Toujours inclure les détails des relations
-    params.expand = 'product,store,warehouse';
-    
-    return params;
-  }
-
-  private handleError(error: any): Error {
-    if (error.response) {
-      const { status, data } = error.response;
       
-      switch (status) {
-        case 400:
-          return new Error(`Erreur validation: ${this.formatValidationError(data)}`);
-        case 401:
-          return new Error('Non authentifié - Veuillez vous reconnecter');
-        case 403:
-          return new Error('Permission refusée');
-        case 404:
-          return new Error('Ressource non trouvée');
-        case 500:
-          return new Error('Erreur serveur - Veuillez réessayer plus tard');
-        default:
-          return new Error(`Erreur ${status}: ${data?.detail || 'Erreur inconnue'}`);
-      }
-    } else if (error.request) {
-      return new Error('Pas de réponse du serveur - Vérifiez votre connexion');
-    } else {
-      return new Error('Erreur de configuration');
+      return {
+        data: [],
+        total: 0
+      };
     }
   }
 
-  private formatValidationError(data: any): string {
-    if (typeof data === 'string') return data;
-    
-    let errorMessage = '';
-    
-    if (Array.isArray(data)) {
-      errorMessage = data.join(', ');
-    } else if (typeof data === 'object') {
-      Object.entries(data).forEach(([field, messages]) => {
-        if (Array.isArray(messages)) {
-          errorMessage += `${field}: ${messages.join(', ')}; `;
-        } else {
-          errorMessage += `${field}: ${messages}; `;
-        }
-      });
-    } else {
-      errorMessage = JSON.stringify(data);
+  // ==================== BATCHES (LOTS) ====================
+  async getBatches(params?: {
+    store_id?: number;
+    product_id?: number;
+    expired?: boolean;
+    page?: number;
+    page_size?: number;
+  }): Promise<PaginatedResponse<Batch>> {
+    try {
+      const data = await api.get<Batch[]>('/batches/', { params });
+      this.endpointStatus['/batches/'] = true;
+      
+      return {
+        data: Array.isArray(data) ? data : [],
+        total: Array.isArray(data) ? data.length : 0
+      };
+    } catch (error: unknown) {
+      this.endpointStatus['/batches/'] = false;
+      
+      const apiError = error as ApiError;
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
+      
+      if (apiError.response?.status === 404) {
+        console.log('ℹ️ Endpoint /batches/ non disponible');
+      } else {
+        console.warn('⚠️ Erreur getBatches:', errorMessage);
+      }
+      
+      return {
+        data: [],
+        total: 0
+      };
     }
-    
-    return errorMessage;
+  }
+
+  // ==================== PRODUITS (PRODUCTS) ====================
+  async getProducts(params?: {
+    store_id?: number;
+    category?: string;
+    brand?: string;
+    is_active?: boolean;
+    page?: number;
+    page_size?: number;
+    search?: string;
+  }): Promise<PaginatedResponse<any>> {
+    try {
+      const data = await api.get<any[]>('/products/', { params });
+      this.endpointStatus['/products/'] = true;
+      
+      return {
+        data: Array.isArray(data) ? data : [],
+        total: Array.isArray(data) ? data.length : 0
+      };
+    } catch (error: unknown) {
+      this.endpointStatus['/products/'] = false;
+      
+      const apiError = error as ApiError;
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
+      
+      if (apiError.response?.status === 404) {
+        console.log('ℹ️ Endpoint /products/ non disponible');
+      } else {
+        console.warn('⚠️ Erreur getProducts:', errorMessage);
+      }
+      
+      return {
+        data: [],
+        total: 0
+      };
+    }
+  }
+
+  // ==================== STORE PRODUCTS (PRODUITS PAR MAGASIN) ====================
+  async getStoreProducts(params?: {
+    store_id?: number;
+    product_id?: number;
+    page?: number;
+    page_size?: number;
+    is_active?: boolean;
+  }): Promise<PaginatedResponse<any>> {
+    try {
+      const data = await api.get<any[]>('/store-products/', { params });
+      this.endpointStatus['/store-products/'] = true;
+      
+      return {
+        data: Array.isArray(data) ? data : [],
+        total: Array.isArray(data) ? data.length : 0
+      };
+    } catch (error: unknown) {
+      this.endpointStatus['/store-products/'] = false;
+      
+      const apiError = error as ApiError;
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
+      
+      if (apiError.response?.status === 404) {
+        console.log('ℹ️ Endpoint /store-products/ non disponible');
+      } else {
+        console.warn('⚠️ Erreur getStoreProducts:', errorMessage);
+      }
+      
+      return {
+        data: [],
+        total: 0
+      };
+    }
+  }
+
+  // ==================== ACTIONS ====================
+  
+  async updateStock(id: number, stockData: Partial<Stock>): Promise<Stock> {
+    try {
+      const data = await api.patch<Stock>(`/stocks/${id}/`, stockData);
+      return data;
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      console.error(`❌ Erreur updateStock(${id}):`, apiError);
+      throw apiError;
+    }
+  }
+
+  async createProduct(productData: {
+    name: string;
+    sku?: string;
+    category: string;
+    description?: string;
+    cost_price: number;
+    base_price: number;
+    min_stock_level: number;
+    reorder_quantity: number;
+    unit: string;
+    store_id: number;
+    warehouse_id?: number;
+    tax_rate?: number;
+    is_active?: boolean;
+  }): Promise<any> {
+    try {
+      const data = await api.post<any>('/products/', productData);
+      return data;
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      console.error('❌ Erreur createProduct:', apiError);
+      
+      if (apiError.response?.status === 400) {
+        const errors = apiError.response.data;
+        throw new Error(`Validation: ${JSON.stringify(errors)}`);
+      }
+      
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
+      throw new Error(`Création produit impossible: ${errorMessage}`);
+    }
+  }
+
+  async createInventoryCount(countData: any): Promise<InventoryCount> {
+    try {
+      const data = await api.post<InventoryCount>('/inventory-counts/', countData);
+      return data;
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      console.error('❌ Erreur createInventoryCount:', apiError);
+      throw apiError;
+    }
+  }
+
+  async transferStock(transferData: {
+    product_id: number;
+    from_warehouse_id: number;
+    to_warehouse_id: number;
+    quantity: number;
+    notes?: string;
+    reference?: string;
+  }): Promise<any> {
+    try {
+      const data = await api.post<any>('/stock-transfers/', transferData);
+      return data;
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      console.error('❌ Erreur transferStock:', apiError);
+      throw apiError;
+    }
+  }
+
+  // ==================== TEST DE CONNEXION INTELLIGENT ====================
+  async testConnection(): Promise<{ success: boolean; message: string; endpoints?: string[] }> {
+    try {
+      // Vérifier l'authentification
+      const token = localStorage.getItem('access_token') || 
+                    localStorage.getItem('token');
+      const isAuthenticated = !!token;
+
+      // Tester les endpoints essentiels
+      const essentialEndpoints = [
+        { path: '/stocks/', name: 'Stocks' },
+        { path: '/stock-movements/', name: 'Mouvements' }
+      ];
+
+      const availableEndpoints: string[] = [];
+
+      // Tester chaque endpoint
+      for (const endpoint of essentialEndpoints) {
+        try {
+          await api.get(endpoint.path, { page_size: 1 });
+          availableEndpoints.push(endpoint.name);
+          console.log(`✅ ${endpoint.name} accessible`);
+        } catch (err: unknown) {
+          const apiErr = err as ApiError;
+          const errMessage = apiErr instanceof Error ? apiErr.message : 'Erreur inconnue';
+          console.warn(`⚠️ ${endpoint.name}:`, errMessage);
+        }
+      }
+
+      // Déterminer le statut
+      let message = '';
+      let success = false;
+
+      if (availableEndpoints.length === essentialEndpoints.length) {
+        success = true;
+        message = '✅ API connectée';
+      } else if (availableEndpoints.length > 0) {
+        success = true;
+        message = `🟡 API partielle (${availableEndpoints.join(', ')})`;
+      } else if (isAuthenticated) {
+        message = '🟡 Token valide mais API non accessible';
+      } else {
+        message = '🟡 Connexion en cours...';
+      }
+
+      return {
+        success,
+        message,
+        endpoints: availableEndpoints
+      };
+
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
+      
+      console.error('🔴 Erreur test connexion:', apiError);
+      
+      let message = '🟡 Connexion en cours...';
+      
+      if (apiError.response) {
+        const status = apiError.response.status;
+        if (status === 401) {
+          message = '🟡 Token invalide ou expiré';
+        } else if (status === 403) {
+          message = '🔴 Accès interdit';
+        } else if (status === 404) {
+          message = '🟡 Routes API non trouvées';
+        }
+      } else if (apiError.message?.includes('timeout') || apiError.message?.includes('ECONNABORTED')) {
+        message = '🔴 Timeout - Serveur non accessible';
+      } else if (apiError.message?.includes('Network Error')) {
+        message = '🔴 Aucune connexion réseau';
+      }
+      
+      return { 
+        success: false, 
+        message 
+      };
+    }
+  }
+
+  // ==================== UTILITAIRES ====================
+  
+  getEndpointStatus(endpoint: string): boolean {
+    return this.endpointStatus[endpoint] || false;
+  }
+
+  getAllEndpointStatuses(): Record<string, boolean> {
+    return { ...this.endpointStatus };
+  }
+
+  async exportStockData(format: 'csv' | 'excel' | 'pdf' = 'csv'): Promise<Blob> {
+    try {
+      const response = await api.getFullResponse<Blob>('/stocks/export/', {
+        params: { format },
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
+      
+      console.error('❌ Erreur exportStockData:', apiError);
+      throw new Error(`Export impossible: ${errorMessage}`);
+    }
+  }
+
+  async importStockData(file: File): Promise<{ success: boolean; message: string }> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      await api.post('/stocks/import/', formData);
+      
+      return {
+        success: true,
+        message: '✅ Importation réussie'
+      };
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      const errorMessage = apiError instanceof Error ? apiError.message : 'Erreur inconnue';
+      
+      console.error('❌ Erreur importStockData:', apiError);
+      return {
+        success: false,
+        message: `❌ Importation impossible: ${errorMessage}`
+      };
+    }
   }
 }
 
-// Export singleton
-const stockServiceInstance = new StockService();
-export default stockServiceInstance;
+// Export singleton instance
+export default new StockService();

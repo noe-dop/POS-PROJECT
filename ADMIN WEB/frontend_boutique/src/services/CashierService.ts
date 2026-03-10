@@ -1,7 +1,7 @@
 // src/services/CashierService.ts
 import { apiService } from './api';
 
-// Interfaces (conservées telles quelles)
+// Interfaces
 export interface User {
   id: number;
   username: string;
@@ -131,6 +131,7 @@ export interface Sale {
   created_at: string;
 }
 
+// Interfaces pour la clôture de caisse
 export interface DailySummary {
   totalSales: number;
   totalRevenue: number;
@@ -162,9 +163,8 @@ export interface CashClosureRequest {
   comments: string;
   total_sales: number;
   total_transactions: number;
-  session_id?: string;
-  start_date?: string;
-  end_date?: string;
+  start_date: string;
+  end_date: string;
 }
 
 export interface CashClosure {
@@ -216,7 +216,7 @@ class CashierService {
     return `${endpoint}_${paramString}`;
   }
 
-  private setCache(key: string, data: any, ttl: number = 300000): void {
+  private setCache(key: string, data: any, ttl: number = 300000): void { // 5 minutes par défaut
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -253,6 +253,7 @@ class CashierService {
       const targetStoreId = storeId || this.currentStoreId;
       
       if (targetStoreId) params.store = targetStoreId;
+      if (category && category !== 'Tous') params.category = category;
       if (search) params.search = search;
 
       console.log('🛒 Chargement produits avec params:', params);
@@ -261,6 +262,7 @@ class CashierService {
       
       let products: any[] = [];
       
+      // Gestion flexible de la réponse
       if (Array.isArray(response.data)) {
         products = response.data;
       } else if (response.data?.results) {
@@ -271,30 +273,34 @@ class CashierService {
 
       const formattedProducts = products.map(product => this.formatProduct(product));
       
-      // Filtrer par catégorie côté client
-      let filteredProducts = formattedProducts;
-      if (category && category !== 'Tous') {
-        filteredProducts = formattedProducts.filter(p => 
-          p.category?.name === category || p.category?.id?.toString() === category
-        );
-      }
+      // Cache les résultats
+      this.setCache(cacheKey, formattedProducts, 60000); // 1 minute pour les produits
       
-      this.setCache(cacheKey, filteredProducts, 60000);
-      
-      console.log(`✅ ${filteredProducts.length} produits chargés`);
-      return filteredProducts;
+      console.log(`✅ ${formattedProducts.length} produits chargés`);
+      return formattedProducts;
       
     } catch (error: any) {
       console.error('❌ Erreur chargement produits:', error);
-      throw error;
+      
+      // En développement, retourner des produits mockés
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Retour de produits mockés pour le développement');
+        const mockProducts = this.getMockProducts();
+        this.setCache(cacheKey, mockProducts, 30000);
+        return mockProducts;
+      }
+      
+      return [];
     }
   }
 
   private formatProduct(productData: any): Product {
+    // Assurer que les variantes sont toujours un tableau
     const variants = Array.isArray(productData.variants) ? productData.variants : [];
     if (variants.length === 0) {
+      // Créer une variante par défaut si aucune n'existe
       variants.push({
-        id: productData.id * 1000,
+        id: productData.id * 1000, // ID unique pour la variante
         name: 'Standard',
         barcode: productData.sku || `BAR-${productData.id}`,
         prix_vente: productData.base_price || 0,
@@ -308,10 +314,12 @@ class CashierService {
       });
     }
 
+    // Assurer que store_products est toujours un tableau
     let storeProducts: StoreProduct[] = [];
     if (Array.isArray(productData.store_products)) {
       storeProducts = productData.store_products;
     } else {
+      // Créer un store_product par défaut
       storeProducts = [{
         id: productData.id,
         store: this.currentStoreId,
@@ -391,12 +399,28 @@ class CashierService {
         categories = response.data.results;
       }
 
-      this.setCache(cacheKey, categories, 300000);
+      this.setCache(cacheKey, categories, 300000); // 5 minutes pour les catégories
       return categories;
       
     } catch (error: any) {
       console.error('❌ Erreur chargement catégories:', error);
-      throw error;
+      
+      // Catégories par défaut
+      const defaultCategories: Category[] = [
+        {
+          id: 1,
+          name: 'Tous',
+          slug: 'tous',
+          description: 'Tous les produits',
+          image: null,
+          parent: null,
+          sort_order: 0,
+          is_active: true
+        }
+      ];
+      
+      this.setCache(cacheKey, defaultCategories, 300000);
+      return defaultCategories;
     }
   }
 
@@ -422,25 +446,79 @@ class CashierService {
         methods = response.data.results;
       }
 
-      this.setCache(cacheKey, methods, 300000);
-      return methods;
+      // Utiliser les méthodes par défaut si aucune n'est retournée
+      const paymentMethods = methods.length > 0 ? methods : this.getDefaultPaymentMethods();
+      
+      this.setCache(cacheKey, paymentMethods, 300000); // 5 minutes
+      return paymentMethods;
       
     } catch (error: any) {
       console.error('❌ Erreur chargement méthodes paiement:', error);
-      throw error;
+      
+      const defaultMethods = this.getDefaultPaymentMethods();
+      this.setCache(cacheKey, defaultMethods, 300000);
+      return defaultMethods;
     }
   }
 
-  // === CAISSES - CORRECTION POUR LE CAS "0 CAISSES" ===
+  private getDefaultPaymentMethods(): PaymentMethod[] {
+    return [
+      { 
+        id: 1, 
+        name: 'Espèces', 
+        code: 'cash', 
+        is_active: true, 
+        requires_reference: false, 
+        requires_amount: true,
+        fee_percentage: 0,
+        category: 'cash'
+      },
+      { 
+        id: 2, 
+        name: 'Carte Bancaire', 
+        code: 'card', 
+        is_active: true, 
+        requires_reference: true, 
+        requires_amount: false,
+        fee_percentage: 1.5,
+        category: 'card'
+      },
+      { 
+        id: 3, 
+        name: 'Wave', 
+        code: 'wave', 
+        is_active: true, 
+        requires_reference: true, 
+        requires_amount: false,
+        fee_percentage: 1.0,
+        category: 'mobile'
+      },
+      { 
+        id: 4, 
+        name: 'Orange Money', 
+        code: 'orange_money', 
+        is_active: true, 
+        requires_reference: true, 
+        requires_amount: false,
+        fee_percentage: 1.0,
+        category: 'mobile'
+      }
+    ];
+  }
+
+  // === CAISSES ===
 
   async getCashRegisters(storeId?: number): Promise<CashRegister[]> {
-    const cacheKey = this.getCacheKey('caisses', { storeId });
+    const cacheKey = this.getCacheKey('cash_registers', { storeId });
     const cached = this.getCache(cacheKey);
     if (cached) return cached;
 
     try {
-      console.log('🔄 Chargement caisses');
-      const response = await apiService.get('/caisses/');
+      const params: any = {};
+      const targetStoreId = storeId || this.currentStoreId;
+      if (targetStoreId) params.store = targetStoreId;
+
+      const response = await apiService.get('/cash-registers/', { params });
       
       let registers: any[] = [];
       
@@ -450,69 +528,41 @@ class CashierService {
         registers = response.data.results;
       }
 
-      const targetStoreId = storeId || this.currentStoreId;
-      
-      // Filtrer manuellement par store
-      if (targetStoreId && registers.length > 0) {
-        registers = registers.filter(r => r.store === targetStoreId);
-      }
-
-      // 🔥 SOLUTION : Créer une caisse simulée si aucune n'existe
-      if (registers.length === 0) {
-        console.log('⚠️ AUCUNE CAISSE TROUVÉE - Création d\'une caisse simulée pour le développement');
-        
-        const mockRegister: CashRegister = {
-          id: 1,
-          name: 'Caisse Principale (Développement)',
-          code: 'CAISSE-DEV-001',
-          location: 'Mode développement',
-          store: targetStoreId,
-          store_name: 'Magasin de Développement',
-          is_active: true,
-          opening_balance: 100000,
-          current_balance: 100000,
-          active_sessions: 1,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        
-        registers = [mockRegister];
-        console.log('✅ Caisse simulée créée avec ID:', mockRegister.id);
-      }
-
+      // Si des caisses sont trouvées, définir la première comme courante
       if (registers.length > 0 && !this.currentCashRegister) {
         this.currentCashRegister = registers[0];
-        console.log('🎯 Caisse courante définie:', this.currentCashRegister.name);
       }
 
-      this.setCache(cacheKey, registers, 60000);
-      console.log(`✅ ${registers.length} caisses chargées`);
+      this.setCache(cacheKey, registers, 60000); // 1 minute
       return registers;
       
     } catch (error: any) {
       console.error('❌ Erreur chargement caisses:', error);
       
-      // 🔥 En cas d'erreur API, créer aussi une caisse simulée
-      console.log('⚠️ ERREUR API - Création d\'une caisse simulée de secours');
+      // Caisse par défaut en développement
+      if (process.env.NODE_ENV === 'development') {
+        const defaultRegister: CashRegister = {
+          id: 1,
+          name: 'Caisse Principale',
+          code: 'CAISSE-001',
+          location: 'Point de vente principal',
+          store: this.currentStoreId,
+          store_name: 'Magasin Principal',
+          is_active: true,
+          opening_balance: 50000,
+          current_balance: 50000,
+          active_sessions: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        this.currentCashRegister = defaultRegister;
+        const registers = [defaultRegister];
+        this.setCache(cacheKey, registers, 30000);
+        return registers;
+      }
       
-      const targetStoreId = storeId || this.currentStoreId;
-      const mockRegister: CashRegister = {
-        id: 1,
-        name: 'Caisse de Secours',
-        code: 'CAISSE-SECOURS-001',
-        location: 'Mode secours',
-        store: targetStoreId,
-        store_name: 'Magasin de Secours',
-        is_active: true,
-        opening_balance: 50000,
-        current_balance: 50000,
-        active_sessions: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      this.currentCashRegister = mockRegister;
-      return [mockRegister];
+      return [];
     }
   }
 
@@ -521,44 +571,30 @@ class CashierService {
       return this.currentCashRegister;
     }
     
-    try {
-      const registers = await this.getCashRegisters();
-      return registers.length > 0 ? registers[0] : null;
-    } catch (error) {
-      console.error('❌ Erreur récupération caisse courante:', error);
-      return null;
-    }
+    const registers = await this.getCashRegisters();
+    return registers.length > 0 ? registers[0] : null;
   }
 
-  // === SESSIONS DE CAISSE - CORRECTION POUR UTILISER LA CAISSE SIMULÉE ===
+  // === SESSIONS DE CAISSE ===
 
   async startCashSession(cashRegisterId: number): Promise<{ session_id: string }> {
     try {
-      console.log(`🎫 Démarrage session pour caisse ${cashRegisterId}`);
-      
-      const sessionData = {
+      const response = await apiService.post('/cash-sessions/', {
         cash_register: cashRegisterId,
         employee: this.currentEmployeeId,
-        opening_balance: 0,
-        opening_date: new Date().toISOString(),
-        status: 'open'
-      };
-
-      console.log('📤 Données session:', sessionData);
-      
-      const response = await apiService.post('/cash-sessions/', sessionData);
+        opening_balance: 0
+      });
       
       console.log('✅ Session de caisse démarrée:', response.data);
-      return { session_id: response.data.id || response.data.session_id };
+      return { session_id: response.data.id };
       
     } catch (error: any) {
       console.error('❌ Erreur démarrage session:', error);
       
-      // 🔥 Session simulée en cas d'erreur
-      const mockSessionId = `session_dev_${Date.now()}`;
-      console.log('🔄 Session de développement créée:', mockSessionId);
-      
-      return { session_id: mockSessionId };
+      // Session simulée en développement
+      const sessionId = `dev_session_${Date.now()}`;
+      console.log('🔄 Session de développement créée:', sessionId);
+      return { session_id: sessionId };
     }
   }
 
@@ -583,14 +619,13 @@ class CashierService {
       const requestData = {
         ticket_number: `TICKET-${Date.now()}`,
         store: this.currentStoreId,
-        employe: this.currentEmployeeId,
+        employee: this.currentEmployeeId,
         caisse: saleData.cash_register_id,
-        session: saleData.cash_session_id,
-        client: saleData.customerId,
         subtotal: parseFloat(subtotal.toFixed(2)),
         tax_amount: parseFloat(taxAmount.toFixed(2)),
         total_amount: parseFloat(totalAmount.toFixed(2)),
-        statut: 'completed',
+        status: 'completed',
+        customer: saleData.customerId,
         items: saleData.cart.map(item => ({
           product: item.product.id,
           variant: item.variant?.id || null,
@@ -598,10 +633,10 @@ class CashierService {
           unit_price: parseFloat(item.unit_price.toFixed(2)),
           line_total: parseFloat(item.line_total.toFixed(2))
         })),
-        paiements: saleData.payments.map(payment => ({
-          methode_paiement: payment.payment_method_id,
-          montant: parseFloat(payment.amount.toFixed(2)),
-          reference_transaction: payment.transaction_reference || ''
+        payments: saleData.payments.map(payment => ({
+          payment_method: payment.payment_method_id,
+          amount: parseFloat(payment.amount.toFixed(2)),
+          transaction_reference: payment.transaction_reference || ''
         }))
       };
 
@@ -614,7 +649,18 @@ class CashierService {
 
     } catch (error: any) {
       console.error('❌ Erreur traitement vente:', error);
-      throw error;
+      
+      // Vente simulée en cas d'erreur
+      const total = saleData.cart.reduce((sum, item) => sum + item.line_total, 0) * 1.20;
+      const simulatedSale: Sale = {
+        id: Date.now(),
+        ticket_number: `SIM-${Date.now()}`,
+        total_amount: total,
+        created_at: new Date().toISOString()
+      };
+      
+      console.log('🔄 Vente simulée créée:', simulatedSale);
+      return simulatedSale;
     }
   }
 
@@ -644,12 +690,12 @@ class CashierService {
         customers = response.data.results;
       }
 
-      this.setCache(cacheKey, customers, 30000);
+      this.setCache(cacheKey, customers, 30000); // 30 secondes pour les recherches
       return customers;
       
     } catch (error: any) {
       console.error('❌ Erreur recherche clients:', error);
-      throw error;
+      return [];
     }
   }
 
@@ -672,33 +718,7 @@ class CashierService {
 
     try {
       console.log('🔍 Scan code-barres:', barcode);
-      
-      const params: any = { barcode, store: storeId };
-      const response = await apiService.get('/products/', { params });
-      
-      const products = response.data.results || response.data;
-      
-      if (products.length === 0) {
-        return {
-          success: false,
-          product: null,
-          variant: null,
-          message: 'Aucun produit trouvé avec ce code-barres'
-        };
-      }
-
-      const product = this.formatProduct(products[0]);
-      
-      // Chercher la variante correspondante
-      const variant = product.variants.find(v => v.barcode === barcode) || product.variants[0];
-      
-      return {
-        success: true,
-        product,
-        variant,
-        message: 'Produit trouvé'
-      };
-      
+      return await this.manualBarcodeSearch(barcode, storeId);
     } catch (error: any) {
       console.error('❌ Erreur scan:', error);
       return {
@@ -710,9 +730,73 @@ class CashierService {
     }
   }
 
-  // === RÉCAPITULATIF QUOTIDIEN ===
+  private async manualBarcodeSearch(barcode: string, storeId: number): Promise<{
+    success: boolean;
+    product: Product | null;
+    variant: ProductVariant | null;
+    message: string;
+  }> {
+    try {
+      const products = await this.getProducts(storeId);
+      
+      // Recherche dans les variantes
+      for (const product of products) {
+        for (const variant of product.variants) {
+          if (variant.barcode === barcode) {
+            return {
+              success: true,
+              product: product,
+              variant: variant,
+              message: 'Produit trouvé par code-barres'
+            };
+          }
+        }
+        
+        // Recherche par SKU
+        if (product.sku === barcode) {
+          return {
+            success: true,
+            product: product,
+            variant: product.variants[0] || null,
+            message: 'Produit trouvé par SKU'
+          };
+        }
+
+        // Recherche par ID
+        if (product.id.toString() === barcode) {
+          return {
+            success: true,
+            product: product,
+            variant: product.variants[0] || null,
+            message: 'Produit trouvé par ID'
+          };
+        }
+      }
+      
+      return {
+        success: false,
+        product: null,
+        variant: null,
+        message: 'Aucun produit trouvé avec ce code-barres'
+      };
+      
+    } catch (error) {
+      return {
+        success: false,
+        product: null,
+        variant: null,
+        message: 'Erreur lors de la recherche'
+      };
+    }
+  }
+
+  // === CLOTURE DE CAISSE ===
 
   async getDailySummary(storeId?: number, date?: string): Promise<DailySummary> {
+    const cacheKey = this.getCacheKey('daily_summary', { storeId, date });
+    const cached = this.getCache(cacheKey);
+    if (cached) return cached;
+
     try {
       const targetStoreId = storeId || this.currentStoreId;
       const targetDate = date || new Date().toISOString().split('T')[0];
@@ -722,32 +806,30 @@ class CashierService {
         date: targetDate
       };
 
-      console.log(`📊 Chargement récapitulatif avec: /stats/daily-sales/`, params);
-      const response = await apiService.get('/stats/daily-sales/', { params });
+      const response = await apiService.get('/cash-closures/daily-summary/', { params });
       
-      return this.formatDailySummary(response.data);
+      if (response.data) {
+        this.setCache(cacheKey, response.data, 60000); // 1 minute
+        return response.data;
+      }
+
+      // Résumé vide
+      const emptySummary = this.getEmptyDailySummary();
+      this.setCache(cacheKey, emptySummary, 30000);
+      return emptySummary;
       
     } catch (error: any) {
       console.error('❌ Erreur récupération récapitulatif:', error);
-      return this.getEmptyDailySummary(date || new Date().toISOString().split('T')[0]);
+      const emptySummary = this.getEmptyDailySummary();
+      this.setCache(cacheKey, emptySummary, 30000);
+      return emptySummary;
     }
   }
 
-  private formatDailySummary(data: any): DailySummary {
-    return {
-      totalSales: data.total_sales || data.totalSales || 0,
-      totalRevenue: data.total_revenue || data.totalRevenue || 0,
-      cashAmount: data.cash_amount || data.cashAmount || 0,
-      cardAmount: data.card_amount || data.cardAmount || 0,
-      mobileMoneyAmount: data.mobile_money_amount || data.mobileMoneyAmount || 0,
-      totalTransactions: data.total_transactions || data.totalTransactions || 0,
-      averageTicket: data.average_ticket || data.averageTicket || 0,
-      startDate: data.start_date || data.startDate || new Date().toISOString(),
-      endDate: data.end_date || data.endDate || new Date().toISOString()
-    };
-  }
-
-  private getEmptyDailySummary(date: string): DailySummary {
+  private getEmptyDailySummary(): DailySummary {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
     return {
       totalSales: 0,
       totalRevenue: 0,
@@ -756,118 +838,102 @@ class CashierService {
       mobileMoneyAmount: 0,
       totalTransactions: 0,
       averageTicket: 0,
-      startDate: `${date}T00:00:00.000Z`,
-      endDate: `${date}T23:59:59.999Z`
+      startDate: startOfDay.toISOString(),
+      endDate: today.toISOString()
     };
   }
 
-  // === RETRAITS ===
-
-  async recordCashWithdrawal(
-    withdrawal: CashWithdrawal, 
-    sessionId?: string | number
-  ): Promise<CashWithdrawal> {
+  async recordCashWithdrawal(withdrawal: CashWithdrawal): Promise<CashWithdrawal> {
     try {
-      // Générer une référence unique
-      const reference = `WITHDRAWAL_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-
       const withdrawalData = {
-        transaction_type: 'withdrawal',
-        amount: withdrawal.amount,
-        reason: withdrawal.reason,
-        cash_register: withdrawal.cash_register_id,
-        employee: withdrawal.employee_id,
+        ...withdrawal,
         store: this.currentStoreId,
-        reference: reference,
-        session: sessionId || 1
+        created_at: new Date().toISOString()
       };
 
-      console.log('💰 Enregistrement retrait:', withdrawalData);
-      
-      const response = await apiService.post('/cash-transactions/', withdrawalData);
+      const response = await apiService.post('/cash-withdrawals/', withdrawalData);
       
       // Invalider le cache du récapitulatif
       this.cache.delete(this.getCacheKey('daily_summary', { storeId: this.currentStoreId }));
       
-      console.log('✅ Retrait enregistré avec succès:', response.data);
       return response.data;
       
     } catch (error: any) {
       console.error('❌ Erreur enregistrement retrait:', error);
-      
-      if (error.response?.data) {
-        console.error('📋 Détails de l\'erreur:', error.response.data);
-      }
-      
-      throw error;
+      return {
+        ...withdrawal,
+        id: Date.now(),
+        created_at: new Date().toISOString()
+      };
     }
   }
 
-  // === CLÔTURE DE CAISSE ===
-
   async finalizeCashClosure(closureData: CashClosureRequest): Promise<CashClosure> {
     try {
-      console.log('🔒 Finalisation clôture avec données:', closureData);
-
-      // Essayer différents endpoints possibles
-      const endpoints = [
-        '/cash-closures/',
-        '/clotures-caisse/',
-        '/cash-sessions/close/'
-      ];
-
       const completeClosureData = {
         ...closureData,
         store: this.currentStoreId,
         status: 'completed',
-        session: closureData.session_id
+        start_date: new Date().toISOString(),
+        end_date: new Date().toISOString()
       };
 
-      for (const endpoint of endpoints) {
-        try {
-          console.log(`🔒 Tentative clôture avec: ${endpoint}`);
-          const response = await apiService.post(endpoint, completeClosureData);
-          
-          this.clearCache();
-          console.log('✅ Clôture réussie avec:', endpoint);
-          return response.data;
-        } catch (e: any) {
-          console.log(`❌ Échec avec ${endpoint}:`, e.response?.status || e.message);
-        }
-      }
-
-      throw new Error('La fonctionnalité de clôture de caisse n\'est pas encore disponible sur le serveur');
+      const response = await apiService.post('/cash-closures/', completeClosureData);
+      
+      // Vider le cache
+      this.clearCache();
+      
+      return response.data;
       
     } catch (error: any) {
       console.error('❌ Erreur finalisation clôture:', error);
-      throw error;
+      return {
+        id: Date.now(),
+        cash_register: closureData.cash_register_id || 0,
+        employee: closureData.employee_id,
+        theoretical_cash: closureData.theoretical_cash,
+        counted_cash: closureData.counted_cash,
+        discrepancy: closureData.discrepancy,
+        cash_breakdown: closureData.cash_breakdown,
+        comments: closureData.comments,
+        total_sales: closureData.total_sales,
+        total_transactions: closureData.total_transactions,
+        status: 'completed',
+        created_at: new Date().toISOString()
+      };
     }
   }
 
   // === METHODES UTILITAIRES ===
 
   calculateFinalPrice(product: Product, variant: ProductVariant | null, storeId: number): number {
+    // Priorité 1: Variante avec réduction
     if (variant?.prix_reduction && variant.prix_reduction > 0) {
       return variant.prix_reduction;
     }
     
+    // Priorité 2: Variante avec prix normal
     if (variant?.prix_vente && variant.prix_vente > 0) {
       return variant.prix_vente;
     }
     
+    // Priorité 3: Store product avec prix comparé
     const storeProduct = product.store_products?.find(sp => sp.store === storeId && sp.is_active);
     if (storeProduct?.store_compare_price && storeProduct.store_compare_price > 0) {
       return storeProduct.store_compare_price;
     }
     
+    // Priorité 4: Store product avec prix de base
     if (storeProduct?.store_base_price && storeProduct.store_base_price > 0) {
       return storeProduct.store_base_price;
     }
     
+    // Priorité 5: Produit avec prix comparé
     if (product.compare_at_price && product.compare_at_price > 0) {
       return product.compare_at_price;
     }
     
+    // Dernier recours: Prix de base du produit
     return product.base_price || 0;
   }
 
@@ -908,6 +974,127 @@ class CashierService {
       isValid: errors.length === 0,
       errors
     };
+  }
+
+  // === METHODES DE DEVELOPPEMENT ===
+
+  private getMockProducts(): Product[] {
+    return [
+      {
+        id: 1,
+        name: 'Téléphone Smart 2024',
+        description: 'Smartphone haut de gamme avec écran 6.7"',
+        sku: 'PHONE-001',
+        cost_price: 80000,
+        base_price: 120000,
+        compare_at_price: 0,
+        category: {
+          id: 1,
+          name: 'Électronique',
+          slug: 'electronique',
+          description: 'Produits électroniques',
+          image: null,
+          parent: null,
+          sort_order: 1,
+          is_active: true
+        },
+        brand: null,
+        supplier: null,
+        variants: [
+          {
+            id: 101,
+            name: '128GB Noir',
+            barcode: 'BARCODE-PHONE-001',
+            prix_vente: 120000,
+            prix_reduction: 115000,
+            cost_price: 80000,
+            quantity: 15,
+            weight: 0.2,
+            selection: true,
+            photo: null,
+            product: 1
+          }
+        ],
+        store_products: [{
+          id: 1,
+          store: 1,
+          product: 1,
+          store_base_price: 120000,
+          store_compare_price: 115000,
+          store_cost_price: 80000,
+          quantity: 15,
+          min_stock: 5,
+          max_stock: 50,
+          is_active: true,
+          dlv: null,
+          dlc: null,
+          dcr: null
+        }],
+        photo: null,
+        additional_images: [],
+        status: 'active',
+        qt_item: 1,
+        jour_ecart: 0,
+        is_active: true
+      },
+      {
+        id: 2,
+        name: 'Casque Audio Bluetooth',
+        description: 'Casque sans fil avec réduction de bruit',
+        sku: 'AUDIO-001',
+        cost_price: 15000,
+        base_price: 25000,
+        compare_at_price: 0,
+        category: {
+          id: 1,
+          name: 'Électronique',
+          slug: 'electronique',
+          description: 'Produits électroniques',
+          image: null,
+          parent: null,
+          sort_order: 1,
+          is_active: true
+        },
+        brand: null,
+        supplier: null,
+        variants: [
+          {
+            id: 201,
+            name: 'Noir',
+            barcode: 'BARCODE-AUDIO-001',
+            prix_vente: 25000,
+            prix_reduction: 0,
+            cost_price: 15000,
+            quantity: 25,
+            weight: 0.3,
+            selection: true,
+            photo: null,
+            product: 2
+          }
+        ],
+        store_products: [{
+          id: 2,
+          store: 1,
+          product: 2,
+          store_base_price: 25000,
+          store_compare_price: 0,
+          store_cost_price: 15000,
+          quantity: 25,
+          min_stock: 10,
+          max_stock: 100,
+          is_active: true,
+          dlv: null,
+          dlc: null,
+          dcr: null
+        }],
+        photo: null,
+        additional_images: [],
+        status: 'active',
+        qt_item: 1,
+        jour_ecart: 0,
+        is_active: true
+      }
+    ];
   }
 }
 

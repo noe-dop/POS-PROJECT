@@ -14,8 +14,7 @@ import Inventory from '@pages/Inventory';
 import Supply from '@pages/Supply';
 import Subscriptions from '@pages/Subscriptions';
 import TypesProduits from '@pages/TypesProduits';
-import Stock from '@pages/Stock';
-import Profile from '@pages/Profile'; // Page de profil
+import Stock from '@pages/Stock'; // AJOUTEZ CET IMPORT
 import { ROUTES } from '@constants/routes';
 
 // Composants de pages temporaires (à développer)
@@ -73,7 +72,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 function AppRoutes() {
   return (
     <Routes>
-      {/* ==================== ROUTES PUBLIQUES ==================== */}
+      {/* Routes publiques */}
       <Route 
         path={ROUTES.LOGIN} 
         element={
@@ -101,7 +100,7 @@ function AppRoutes() {
         } 
       />
       
-      {/* ==================== ROUTES PROTÉGÉES ==================== */}
+      {/* Routes protégées */}
       <Route
         path={ROUTES.DASHBOARD}
         element={
@@ -122,51 +121,32 @@ function AppRoutes() {
         <Route path={ROUTES.SUPPLY.replace('/', '')} element={<Supply />} />
         <Route path={ROUTES.STATISTICS.replace('/', '')} element={<TemporaryPage title="Statistiques" />} />
         <Route path={ROUTES.SUBSCRIPTIONS.replace('/', '')} element={<Subscriptions />} />
-        <Route path={ROUTES.STOCK.replace('/', '')} element={<Stock />} />
+        <Route path={ROUTES.STOCK.replace('/', '')} element={<Stock />} /> {/* MODIFIEZ ICI */}
         <Route path={ROUTES.TYPES_PRODUITS.replace('/', '')} element={<TypesProduits />} />
         
-        {/* ==================== ROUTES DES PARAMÈTRES ==================== */}
+        {/* Routes des paramètres */}
         <Route path={ROUTES.SETTINGS.replace('/', '')}>
           <Route index element={<Navigate to={ROUTES.SETTINGS_PROFILE} replace />} />
-          <Route path={ROUTES.SETTINGS_PROFILE.replace('/settings/', '')} element={<Profile />} />
+          <Route path={ROUTES.SETTINGS_PROFILE.replace('/settings/', '')} element={<TemporaryPage title="Profil Utilisateur" />} />
           <Route path={ROUTES.SETTINGS_ACCOUNT.replace('/settings/', '')} element={<TemporaryPage title="Paramètres du Compte" />} />
           <Route path={ROUTES.SETTINGS_PAYMENTS.replace('/settings/', '')} element={<TemporaryPage title="Paiements et Facturation" />} />
           <Route path={ROUTES.SETTINGS_SECURITY.replace('/settings/', '')} element={<TemporaryPage title="Sécurité et Confidentialité" />} />
         </Route>
 
-        {/* ==================== ROUTE DIRECTE POUR LE PROFIL ==================== */}
-        {/* SOLUTION : Route directe pour /profile qui affiche la page de profil */}
-        <Route path="profile" element={<Profile />} />
-        
-        {/* Route alternative pour mon-profil (si utilisée) */}
-        <Route path="mon-profil" element={<Navigate to="/profile" replace />} />
-
-        {/* ==================== ROUTES DE COMPATIBILITÉ AVEC REDIRECTIONS ==================== */}
+        {/* Routes de compatibilité avec redirections */}
         <Route path={ROUTES.SALES.replace('/', '')} element={<Navigate to={ROUTES.CASHIER} replace />} />
         <Route path={ROUTES.CUSTOMERS.replace('/', '')} element={<Navigate to={ROUTES.DASHBOARD} replace />} />
         <Route path={ROUTES.SUPPLIERS.replace('/', '')} element={<Navigate to={ROUTES.SUPPLY} replace />} />
         <Route path={ROUTES.REPORTS.replace('/', '')} element={<Navigate to={ROUTES.STATISTICS} replace />} />
-        
-        {/* REDIRECTION CORRIGÉE : /profile → /profile (supprimée ou modifiée) */}
-        {/* Ancienne redirection commentée pour référence 
         <Route path={ROUTES.PROFILE.replace('/', '')} element={<Navigate to={ROUTES.SETTINGS_PROFILE} replace />} />
-        */}
-        
-        {/* Nouvelle redirection si ROUTES.PROFILE existe (pour compatibilité) */}
-        {ROUTES.PROFILE && ROUTES.PROFILE !== '/profile' && (
-          <Route path={ROUTES.PROFILE.replace('/', '')} element={<Navigate to="/profile" replace />} />
-        )}
         
         {/* Ancienne route settings redirigée vers le profil */}
-        <Route path="settings-old" element={<Navigate to="/profile" replace />} />
+        <Route path="settings-old" element={<Navigate to={ROUTES.SETTINGS_PROFILE} replace />} />
       </Route>
 
-      {/* ==================== REDIRECTIONS GLOBALES ==================== */}
+      {/* Redirections globales */}
       <Route path="/" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       <Route path="/dashboard" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
-      
-      {/* Redirection de l'ancienne route /profile vers la nouvelle */}
-      <Route path="/profile" element={<Navigate to="/profile" replace />} />
       
       {/* Catch-all route - redirection vers le dashboard */}
       <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
