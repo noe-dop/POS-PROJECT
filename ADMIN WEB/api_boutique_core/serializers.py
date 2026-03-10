@@ -1729,7 +1729,7 @@ class StoreProductVariantSerializer(BaseAuditSerializer):
         return obj.get_effective_price()
     
 # =============================================================================
-# GESTION DES STOCKS - VERSION CORRIGÉE
+# GESTION DES STOCKS
 # =============================================================================
 
 
@@ -1737,7 +1737,7 @@ class WarehouseSerializer(serializers.ModelSerializer):
     store_name = serializers.CharField(source="store.name", read_only=True)
     address_details = AddressSerializer(source="address", read_only=True)
     current_usage = serializers.SerializerMethodField()
-
+    
     class Meta:
         model = Warehouse
         fields = "__all__"

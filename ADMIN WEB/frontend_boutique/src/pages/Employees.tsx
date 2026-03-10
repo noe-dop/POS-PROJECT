@@ -1,4 +1,4 @@
-// src/pages/Employees.tsx - VERSION CORRIGÉE
+// src/pages/Employees.tsx - VERSION RESPECTANT LE DESIGN DE L'IMAGE
 import React, { useState, useEffect, useCallback } from 'react';
 import { employeesService, Employee, CreateEmployeeWithUserData } from '@services/EmployeesService';
 
@@ -12,6 +12,7 @@ interface UserFormData {
   address: string;
   password: string;
   password_confirm: string;
+  user_type: number;
 }
 
 interface EmployeeFormData {
@@ -21,10 +22,17 @@ interface EmployeeFormData {
   emergency_contact: string;
   store: number;
   role: number;
-  department?: number;  // ✅ Optionnel comme dans le JSON
+  department?: number;
 }
 
-// Types pour les données de l'API
+interface ApiError {
+  response?: {
+    data?: any;
+    status?: number;
+  };
+  message?: string;
+}
+
 interface Store {
   id: number;
   name: string;
@@ -44,28 +52,7 @@ interface Role {
   permissions?: Record<string, any>;
 }
 
-interface Department {
-  id: number;
-  name: string;
-  code?: string;
-  description?: string;
-}
-
-interface CurrencyRate {
-  currency: string;
-  rate: number;
-  updated_at: string;
-}
-
-// Types pour les réponses API paginées
-interface PaginatedResponse<T> {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: T[];
-}
-
-// Icônes (inchangées)
+// Icônes
 const SearchIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -119,7 +106,6 @@ const Avatar: React.FC<{
   };
 
   const getInitials = () => {
-    if (!firstName && !lastName) return '?';
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
@@ -146,6 +132,8 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     switch(status.toLowerCase()) {
       case 'actif':
         return 'bg-green-100 text-green-800';
+      case 'en congé':
+        return 'bg-yellow-100 text-yellow-800';
       case 'inactif':
         return 'bg-red-100 text-red-800';
       default:
@@ -163,9 +151,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 // Composant Badge pour le rôle
 const RoleBadge: React.FC<{ role: string }> = ({ role }) => {
   const getRoleColor = () => {
-    if (!role) return 'bg-gray-100 text-gray-800';
-    
-    const roleLower = role.toLowerCase();
+    const roleLower = role?.toLowerCase();
     
     if (roleLower.includes('directeur') || roleLower.includes('administrateur')) {
       return 'bg-purple-100 text-purple-800';
@@ -180,15 +166,37 @@ const RoleBadge: React.FC<{ role: string }> = ({ role }) => {
       return 'bg-indigo-100 text-indigo-800';
     }
     if (roleLower.includes('caissier') || roleLower.includes('vendeur') || 
-        roleLower.includes('hôte') || roleLower.includes('agent')) {
+        roleLower.includes('hôte') || roleLower.includes('agent d\'accueil')) {
       return 'bg-green-100 text-green-800';
     }
+    if (roleLower.includes('magasinier') || roleLower.includes('cariste') || 
+        roleLower.includes('préparateur') || roleLower.includes('livreur')) {
+      return 'bg-amber-100 text-amber-800';
+    }
+    if (roleLower.includes('entretien') || roleLower.includes('maintenance') || 
+        roleLower.includes('technicien') || roleLower.includes('informaticien')) {
+      return 'bg-gray-100 text-gray-800';
+    }
+    if (roleLower.includes('comptable') || roleLower.includes('rh') || 
+        roleLower.includes('secrétaire') || roleLower.includes('administratif')) {
+      return 'bg-teal-100 text-teal-800';
+    }
+    if (roleLower.includes('marketing') || roleLower.includes('promoteur')) {
+      return 'bg-pink-100 text-pink-800';
+    }
+    if (roleLower.includes('sécurité') || roleLower.includes('agent de sécurité')) {
+      return 'bg-red-100 text-red-800';
+    }
+    if (roleLower.includes('stagiaire') || roleLower.includes('apprenti')) {
+      return 'bg-yellow-100 text-yellow-800';
+    }
+    
     return 'bg-gray-100 text-gray-800';
   };
 
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor()}`}>
-      {role || 'Non défini'}
+      {role}
     </span>
   );
 };
@@ -199,8 +207,6 @@ const EmployeeCard: React.FC<{
   isSelected: boolean;
   onClick: () => void;
 }> = ({ employee, isSelected, onClick }) => {
-  if (!employee?.user) return null;
-  
   return (
     <div
       className={`p-3 rounded-lg border cursor-pointer transition-all flex items-start gap-3 ${
@@ -303,13 +309,13 @@ const Employees: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [currencyRate, setCurrencyRate] = useState<CurrencyRate | null>(null);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // État pour le filtre par boutique
   const [selectedStore, setSelectedStore] = useState<string>('all');
   
   const [showForm, setShowForm] = useState(false);
@@ -320,7 +326,6 @@ const Employees: React.FC = () => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
-  // ✅ État du formulaire basé sur le JSON fourni
   const [userFormData, setUserFormData] = useState<UserFormData>({
     username: '',
     email: '',
@@ -331,19 +336,18 @@ const Employees: React.FC = () => {
     address: '',
     password: '',
     password_confirm: '',
+    user_type: 4
   });
   
   const [employeeFormData, setEmployeeFormData] = useState<EmployeeFormData>({
     user_id: 0,
-    hire_date: new Date().toISOString().split('T')[0],  // Date du jour
+    hire_date: new Date().toISOString().split('T')[0],
     salary: '',
     emergency_contact: '',
-    store: 0,    // ✅ Valeur par défaut 0 (pas de boutique sélectionnée)
-    role: 0,     // ✅ Valeur par défaut 0 (pas de rôle sélectionné)
-    department: undefined  // ✅ Optionnel
+    store: 1,
+    role: 0
   });
 
-  // ✅ État pour la mise à jour partielle de l'utilisateur (modification)
   const [userUpdateData, setUserUpdateData] = useState({
     first_name: '',
     last_name: '',
@@ -352,33 +356,35 @@ const Employees: React.FC = () => {
     address: ''
   });
 
-  // ✅ Fonction pour formater les montants en FCFA
+  // Fonction pour formater les montants en FCFA
   const formatCFA = (amount: string | number): string => {
     if (!amount && amount !== 0) return 'Non spécifié';
+    
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     if (isNaN(num)) return '0 FCFA';
+    
+    // Formater avec séparateurs de milliers
     return num.toLocaleString('fr-FR') + ' FCFA';
   };
 
-  // ✅ Fonction pour convertir en Euro
+  // Fonction pour convertir FCFA en Euros (affichage optionnel)
   const convertToEuro = (amount: string | number): string => {
     if (!amount && amount !== 0) return '';
-    if (!currencyRate) return '';
     
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     if (isNaN(num)) return '';
     
-    const euroAmount = num / currencyRate.rate;
+    const euroAmount = num / 656; // 1 € = 656 FCFA
     return euroAmount.toLocaleString('fr-FR', { 
       minimumFractionDigits: 2, 
       maximumFractionDigits: 2 
     }) + ' €';
   };
 
-  // ✅ Gestion des erreurs API
-  const handleApiError = (error: any, defaultMessage: string): string => {
+  const handleApiError = (error: ApiError, defaultMessage: string): string => {
     if (error.response?.data) {
       const errorData = error.response.data;
+      
       if (typeof errorData === 'object') {
         return Object.entries(errorData)
           .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
@@ -389,7 +395,6 @@ const Employees: React.FC = () => {
     return error.message || defaultMessage;
   };
 
-  // ✅ Formatage de date pour input
   const formatDateForInput = (dateString: string): string => {
     try {
       const date = new Date(dateString);
@@ -399,16 +404,24 @@ const Employees: React.FC = () => {
     }
   };
 
-  // ✅ Fonctions de fetch
   const fetchStores = async (): Promise<Store[]> => {
     try {
       const response = await fetch('http://localhost:8000/api/stores/');
-      if (!response.ok) throw new Error(`Erreur ${response.status}`);
+      
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
       
-      if (Array.isArray(data)) return data;
-      if (data.results && Array.isArray(data.results)) return data.results;
-      return [];
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data.results && Array.isArray(data.results)) {
+        return data.results;
+      } else {
+        console.warn('Format de réponse inattendu pour les boutiques:', data);
+        return [];
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des boutiques:', error);
       return [];
@@ -418,7 +431,11 @@ const Employees: React.FC = () => {
   const fetchRoles = async (): Promise<Role[]> => {
     try {
       const response = await fetch('http://localhost:8000/api/employee-roles/');
-      if (!response.ok) throw new Error(`Erreur ${response.status}`);
+      
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
       
       if (Array.isArray(data)) {
@@ -429,120 +446,79 @@ const Employees: React.FC = () => {
           description: role.description || role.name,
           permissions: role.permissions || {}
         }));
-      }
-      if (data.results && Array.isArray(data.results)) {
-        return data.results.map((role: any) => ({
+      } else if (data.results && Array.isArray(data.results)) {
+        return data.results.map((role: { id: any; name: string; code: any; description: any; permissions: any; }) => ({
           id: role.id,
           name: role.name,
           code: role.code || role.name.toUpperCase().replace(/\s+/g, '_'),
           description: role.description || role.name,
           permissions: role.permissions || {}
         }));
+      } else {
+        console.warn('Format de réponse inattendu pour les rôles:', data);
+        return [];
       }
-      return [];
     } catch (error) {
       console.error('Erreur lors du chargement des rôles:', error);
       return [];
     }
   };
 
-  const fetchDepartments = async (): Promise<Department[]> => {
-    try {
-      const response = await fetch('http://localhost:8000/api/departments/');
-      if (!response.ok) throw new Error(`Erreur ${response.status}`);
-      const data = await response.json();
-      
-      if (Array.isArray(data)) {
-        return data.map(dept => ({
-          id: dept.id,
-          name: dept.name,
-          code: dept.code,
-          description: dept.description
-        }));
-      }
-      if (data.results && Array.isArray(data.results)) {
-        return data.results.map((dept: any) => ({
-          id: dept.id,
-          name: dept.name,
-          code: dept.code,
-          description: dept.description
-        }));
-      }
-      return [];
-    } catch (error) {
-      console.error('Erreur lors du chargement des départements:', error);
-      return [];
-    }
-  };
-
-  const fetchCurrencyRate = async (): Promise<CurrencyRate | null> => {
-    try {
-      const response = await fetch('http://localhost:8000/api/currencies/XOF/');
-      if (!response.ok) return null;
-      const data = await response.json();
-      return {
-        currency: data.code || 'XOF',
-        rate: data.rate_to_euro || 656,
-        updated_at: data.updated_at
-      };
-    } catch (error) {
-      console.error('Erreur lors du chargement du taux de change:', error);
-      return null;
-    }
-  };
-
-  // ✅ Chargement des données
   const fetchEmployeesData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const [storesData, employeesData, rolesData, departmentsData, currencyRateData] = await Promise.all([
+      const [storesData, employeesData, rolesData] = await Promise.all([
         fetchStores(),
         employeesService.getEmployees(),
-        fetchRoles(),
-        fetchDepartments(),
-        fetchCurrencyRate()
+        fetchRoles()
       ]);
       
       setStores(storesData);
       setEmployees(employeesData);
       setRoles(rolesData);
-      setDepartments(departmentsData);
-      setCurrencyRate(currencyRateData);
       setFilteredEmployees(employeesData);
       
       if (employeesData.length > 0 && !selectedEmployee) {
         setSelectedEmployee(employeesData[0]);
       }
 
+      if (rolesData.length > 0 && employeeFormData.role === 0) {
+        setEmployeeFormData(prev => ({
+          ...prev,
+          role: rolesData[0].id
+        }));
+      }
+
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
-      const errorMessage = handleApiError(error, 'Impossible de charger les données depuis l\'API.');
+      const errorMessage = handleApiError(error as ApiError, 'Impossible de charger les données depuis l\'API.');
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedEmployee, employeeFormData.role]);
 
-  useEffect(() => {
-    fetchEmployeesData();
-  }, [fetchEmployeesData]);
-
-  // ✅ Filtrage des employés
+  // Filtrer les employés selon les critères de recherche et de boutique
   useEffect(() => {
     let filtered = employees;
 
+    // Filtre par recherche textuelle
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(employee =>
+        employee.full_name?.toLowerCase().includes(term) ||
+        employee.user?.full_name?.toLowerCase().includes(term) ||
         employee.user?.first_name?.toLowerCase().includes(term) ||
         employee.user?.last_name?.toLowerCase().includes(term) ||
         employee.role_name?.toLowerCase().includes(term) ||
-        employee.user?.email?.toLowerCase().includes(term)
+        employee.user?.email?.toLowerCase().includes(term) ||
+        employee.user?.username?.toLowerCase().includes(term)
       );
     }
 
+    // Filtre par boutique sélectionnée
     if (selectedStore !== 'all') {
       const storeId = parseInt(selectedStore);
       filtered = filtered.filter(employee => employee.store === storeId);
@@ -550,6 +526,7 @@ const Employees: React.FC = () => {
 
     setFilteredEmployees(filtered);
     
+    // Mettre à jour l'employé sélectionné si nécessaire
     if (selectedEmployee && !filtered.find(e => e.id === selectedEmployee.id) && filtered.length > 0) {
       setSelectedEmployee(filtered[0]);
     } else if (!selectedEmployee && filtered.length > 0) {
@@ -557,53 +534,47 @@ const Employees: React.FC = () => {
     } else if (filtered.length === 0) {
       setSelectedEmployee(null);
     }
-  }, [searchTerm, employees, selectedStore, selectedEmployee]);
+  }, [searchTerm, employees, selectedEmployee, selectedStore]);
 
-  // ✅ Gestionnaires
+  useEffect(() => {
+    fetchEmployeesData();
+  }, [fetchEmployeesData]);
+
+  // Gérer la sélection de boutique depuis la liste déroulante
   const handleStoreFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedStore(e.target.value);
   };
 
+  // Obtenir le nom de la boutique
   const getStoreName = (storeId: number | string): string => {
     if (storeId === 'all') return 'Toutes les boutiques';
     const store = stores.find(s => s.id === parseInt(storeId as string));
     return store ? store.name : `Boutique #${storeId}`;
   };
 
+  // Calculer le nombre d'employés par boutique
+  const getEmployeeCountByStore = (storeId: number): number => {
+    return employees.filter(employee => employee.store === storeId).length;
+  };
+
+  // Fonction pour obtenir le nom de la boutique d'un employé
   const getEmployeeStoreName = (employee: Employee): string => {
     const store = stores.find(s => s.id === employee.store);
     return store ? store.name : `Boutique #${employee.store}`;
   };
 
+  // Fonction pour obtenir les détails de la boutique
   const getStoreDetails = (storeId: number): string => {
     const store = stores.find(s => s.id === storeId);
     if (!store) return '';
+    
     const details = [];
     if (store.address) details.push(store.address);
     if (store.phone) details.push(`Tél: ${store.phone}`);
+    
     return details.join(' • ');
   };
 
-  const getEmployeeFullName = (employee: Employee) => {
-    return `${employee.user?.first_name || ''} ${employee.user?.last_name || ''}`.trim() || 'Nom non défini';
-  };
-
-  const getEmployeeStatus = (employee: Employee) => {
-    return employee.user?.is_active ? 'Actif' : 'Inactif';
-  };
-
-  const getDepartmentName = (employee: Employee): string => {
-    if (employee.department_name) {
-      return employee.department_name;
-    }
-    if (employee.department) {
-      const department = departments.find(d => d.id === employee.department);
-      return department?.name || `Département #${employee.department}`;
-    }
-    return 'Non défini';
-  };
-
-  // ✅ Création d'employé
   const handleCreateEmployee = () => {
     setFormMode('create');
     setEditingEmployee(null);
@@ -617,15 +588,15 @@ const Employees: React.FC = () => {
       address: '',
       password: '',
       password_confirm: '',
+      user_type: 4
     });
     setEmployeeFormData({
       user_id: 0,
       hire_date: new Date().toISOString().split('T')[0],
       salary: '',
       emergency_contact: '',
-      store: 0,
-      role: 0,
-      department: undefined
+      store: stores[0]?.id || 1,
+      role: roles[0]?.id || 0
     });
     setPhotoPreview(null);
     setPhotoFile(null);
@@ -633,7 +604,6 @@ const Employees: React.FC = () => {
     setShowForm(true);
   };
 
-  // ✅ Modification d'employé
   const handleEditEmployee = (employee: Employee) => {
     setFormMode('edit');
     setEditingEmployee(employee);
@@ -650,19 +620,22 @@ const Employees: React.FC = () => {
       user_id: employee.user.id,
       hire_date: formatDateForInput(employee.hire_date),
       salary: employee.salary,
-      emergency_contact: employee.emergency_contact || '',
+      emergency_contact: employee.emergency_contact,
       store: employee.store,
-      role: employee.role,
-      department: employee.department || undefined
+      role: employee.role
     });
     
-    setPhotoPreview(employee.photo || null);
+    if (employee.photo) {
+      setPhotoPreview(employee.photo);
+    } else {
+      setPhotoPreview(null);
+    }
     setPhotoFile(null);
+    
     setFormError(null);
     setShowForm(true);
   };
 
-  // ✅ Suppression d'employé
   const handleDeleteEmployee = async (employeeId: number) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer cet employé ?')) {
       try {
@@ -671,30 +644,33 @@ const Employees: React.FC = () => {
         alert('Employé supprimé avec succès');
       } catch (error) {
         console.error('Erreur suppression:', error);
-        const errorMessage = handleApiError(error, 'Erreur lors de la suppression');
+        const errorMessage = handleApiError(error as ApiError, 'Erreur lors de la suppression de l\'employé');
         alert(errorMessage);
       }
     }
   };
 
-  // ✅ Gestionnaires de formulaire
   const handleUserFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setUserFormData(prev => ({ ...prev, [name]: value }));
+    setUserFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleUserUpdateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setUserUpdateData(prev => ({ ...prev, [name]: value }));
+    setUserUpdateData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleEmployeeFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setEmployeeFormData(prev => ({
       ...prev,
-      [name]: name === 'store' || name === 'role' || name === 'department' 
-        ? (value ? parseInt(value) : 0) 
-        : value
+      [name]: name === 'store' || name === 'role' ? parseInt(value) : value
     }));
   };
 
@@ -707,15 +683,6 @@ const Employees: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleCancel = () => {
-    setShowForm(false);
-    setFormError(null);
-    setEditingEmployee(null);
-    setPhotoPreview(null);
-    setPhotoFile(null);
-  };
-
-  // ✅ Soumission du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -724,27 +691,8 @@ const Employees: React.FC = () => {
 
     try {
       if (formMode === 'create') {
-        // Validations
         if (!userFormData.password) {
-          setFormError('Le mot de passe est obligatoire');
-          setFormLoading(false);
-          return;
-        }
-
-        if (userFormData.password !== userFormData.password_confirm) {
-          setFormError('Les mots de passe ne correspondent pas');
-          setFormLoading(false);
-          return;
-        }
-
-        if (!employeeFormData.store || employeeFormData.store === 0) {
-          setFormError('Veuillez sélectionner une boutique');
-          setFormLoading(false);
-          return;
-        }
-
-        if (!employeeFormData.role || employeeFormData.role === 0) {
-          setFormError('Veuillez sélectionner un rôle');
+          setFormError('Le mot de passe est obligatoire pour la création');
           setFormLoading(false);
           return;
         }
@@ -752,24 +700,6 @@ const Employees: React.FC = () => {
         const salaryNumber = parseFloat(employeeFormData.salary);
         if (isNaN(salaryNumber) || salaryNumber < 50000) {
           setFormError('Le salaire doit être d\'au moins 50 000 FCFA');
-          setFormLoading(false);
-          return;
-        }
-
-        if (!employeeFormData.emergency_contact) {
-          setFormError('Le contact d\'urgence est obligatoire');
-          setFormLoading(false);
-          return;
-        }
-
-        if (employeeFormData.emergency_contact.length > 15) {
-          setFormError('Le contact d\'urgence ne doit pas dépasser 15 caractères');
-          setFormLoading(false);
-          return;
-        }
-
-        if (!/^\d+$/.test(employeeFormData.emergency_contact)) {
-          setFormError('Le contact d\'urgence ne doit contenir que des chiffres');
           setFormLoading(false);
           return;
         }
@@ -795,7 +725,8 @@ const Employees: React.FC = () => {
             phone2: userFormData.phone2 || '',
             address: userFormData.address,
             password: userFormData.password,
-            password_confirm: userFormData.password_confirm,
+            password_confirm: userFormData.password,
+            user_type: userFormData.user_type
           },
           employeeData: {
             hire_date: employeeFormData.hire_date,
@@ -803,18 +734,16 @@ const Employees: React.FC = () => {
             emergency_contact: employeeFormData.emergency_contact,
             store: employeeFormData.store,
             role: employeeFormData.role,
-            ...(employeeFormData.department && { department: employeeFormData.department }),
             ...(photoBase64 && { photo: photoBase64 })
           }
         };
 
         await employeesService.createEmployeeWithUser(createData);
+        
         await fetchEmployeesData();
         alert('Employé créé avec succès !');
-        setShowForm(false);
         
       } else {
-        // Mode modification
         if (!editingEmployee) return;
 
         const employeeUpdate: any = {};
@@ -837,10 +766,6 @@ const Employees: React.FC = () => {
         
         if (Number(employeeFormData.role) !== editingEmployee.role) {
           employeeUpdate.role = Number(employeeFormData.role);
-        }
-
-        if (employeeFormData.department !== editingEmployee.department) {
-          employeeUpdate.department = employeeFormData.department || null;
         }
 
         if (photoFile) {
@@ -881,15 +806,24 @@ const Employees: React.FC = () => {
 
         await fetchEmployeesData();
         alert('Employé modifié avec succès !');
-        setShowForm(false);
       }
+      
+      setShowForm(false);
       
     } catch (error: any) {
       console.error(`Erreur ${formMode} employé:`, error);
-      setFormError(handleApiError(error, `Erreur lors de ${formMode === 'create' ? 'la création' : 'la modification'}`));
+      setFormError(handleApiError(error, `Erreur lors de ${formMode === 'create' ? 'la création' : 'la modification'} de l'employé`));
     } finally {
       setFormLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setFormError(null);
+    setEditingEmployee(null);
+    setPhotoPreview(null);
+    setPhotoFile(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -909,6 +843,29 @@ const Employees: React.FC = () => {
       return phone.replace(/(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1 $2 $3 $4 $5');
     }
     return phone || 'Non spécifié';
+  };
+
+  const getEmployeeFullName = (employee: Employee) => {
+    return employee.full_name || `${employee.user.first_name} ${employee.user.last_name}`;
+  };
+
+  const getEmployeeStatus = (employee: Employee) => {
+    return employee.user.is_active ? 'Actif' : 'Inactif';
+  };
+
+  const getDepartmentName = (employee: Employee) => {
+    const roleId = employee.role;
+    
+    if (roleId <= 3) return 'Direction';
+    if (roleId >= 4 && roleId <= 7) return 'Logistique';
+    if (roleId >= 8 && roleId <= 12) return 'Service Client';
+    if (roleId >= 13 && roleId <= 19) return 'Rayons Spécialisés';
+    if (roleId >= 20 && roleId <= 22) return 'Maintenance';
+    if (roleId >= 23 && roleId <= 25) return 'Administration';
+    if (roleId >= 26 && roleId <= 27) return 'Livraisons';
+    if (roleId >= 28 && roleId <= 29) return 'Marketing';
+    
+    return 'Opérations';
   };
 
   if (loading) {
@@ -936,7 +893,7 @@ const Employees: React.FC = () => {
         </div>
       )}
 
-      {/* SECTION 2 : FILTRE PAR BOUTIQUE */}
+      {/* SECTION 2 : FILTRE PAR BOUTIQUE - SIMPLE ET DISCRET */}
       <div className="mb-4">
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-gray-700">Filtrer par boutique :</span>
@@ -955,7 +912,9 @@ const Employees: React.FC = () => {
             </select>
           </div>
           <span className="text-sm text-gray-500">
-            ({filteredEmployees.length} employés)
+            {selectedStore === 'all' 
+              ? `(${filteredEmployees.length} employés)` 
+              : `(${filteredEmployees.length} employés dans ${getStoreName(selectedStore)})`}
           </span>
         </div>
       </div>
@@ -988,7 +947,7 @@ const Employees: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+            <div className="space-y-3">
               {filteredEmployees.map((employee) => (
                 <EmployeeCard
                   key={employee.id}
@@ -1018,15 +977,15 @@ const Employees: React.FC = () => {
                 <div className="flex items-center gap-4 mb-6">
                   <Avatar
                     src={selectedEmployee.photo}
-                    firstName={selectedEmployee.user?.first_name}
-                    lastName={selectedEmployee.user?.last_name}
+                    firstName={selectedEmployee.user.first_name}
+                    lastName={selectedEmployee.user.last_name}
                     size="lg"
                   />
                   <div>
                     <h3 className="text-xl font-bold text-gray-900">
                       {getEmployeeFullName(selectedEmployee)}
                     </h3>
-                    <p className="text-gray-600">{selectedEmployee.user?.email}</p>
+                    <p className="text-gray-600">{selectedEmployee.user.email}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                         {getEmployeeStoreName(selectedEmployee)}
@@ -1035,7 +994,7 @@ const Employees: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mb-6 overflow-x-auto">
+                <div className="mb-6">
                   <table className="w-full">
                     <tbody>
                       <tr className="border-b border-gray-200">
@@ -1050,19 +1009,24 @@ const Employees: React.FC = () => {
                       </tr>
                       <tr className="border-b border-gray-200">
                         <td className="py-3 text-sm font-medium text-gray-500">Téléphone</td>
-                        <td className="py-3 text-gray-900">{formatPhoneNumber(selectedEmployee.user?.phone)}</td>
+                        <td className="py-3 text-gray-900">{formatPhoneNumber(selectedEmployee.user.phone)}</td>
                         <td className="py-3 text-sm font-medium text-gray-500">Date d'embauche</td>
                         <td className="py-3 text-gray-900">{formatDate(selectedEmployee.hire_date)}</td>
                       </tr>
                       <tr className="border-b border-gray-200">
                         <td className="py-3 text-sm font-medium text-gray-500">Adresse</td>
-                        <td className="py-3 text-gray-900">{selectedEmployee.user?.address || 'Non spécifiée'}</td>
-                        <td className="py-3 text-sm font-medium text-gray-500">Boutique</td>
+                        <td className="py-3 text-gray-900">{selectedEmployee.user.address || 'Non spécifiée'}</td>
+                        <td className="py-3 text-sm font-medium text-gray-500">Boutique affiliée</td>
                         <td className="py-3 text-gray-900">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-blue-600">
                               {getEmployeeStoreName(selectedEmployee)}
                             </span>
+                            {getStoreDetails(selectedEmployee.store) && (
+                              <span className="text-xs text-gray-500">
+                                ({getStoreDetails(selectedEmployee.store)})
+                              </span>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1077,11 +1041,9 @@ const Employees: React.FC = () => {
                         <td className="py-3 text-gray-900" colSpan={3}>
                           <div className="flex flex-col">
                             <span className="font-semibold">{formatCFA(selectedEmployee.salary)}</span>
-                            {currencyRate && (
-                              <span className="text-xs text-gray-500 mt-1">
-                                ≈ {convertToEuro(selectedEmployee.salary)}
-                              </span>
-                            )}
+                            <span className="text-xs text-gray-500 mt-1">
+                              ≈ {convertToEuro(selectedEmployee.salary)} (1 € = 656 FCFA)
+                            </span>
                           </div>
                         </td>
                       </tr>
@@ -1224,7 +1186,7 @@ const Employees: React.FC = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Téléphone secondaire
+                        Téléphone secondaire (optionnel)
                       </label>
                       <input
                         type="tel"
@@ -1310,11 +1272,23 @@ const Employees: React.FC = () => {
                         value={employeeFormData.salary}
                         onChange={handleEmployeeFormChange}
                         required
-                        min="50000"
-                        step="1000"
+                        min="0"
+                        step="100"
                         placeholder="Ex: 250000"
                         className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                       />
+                      <div className="mt-1 text-xs text-gray-500">
+                        {employeeFormData.salary ? (
+                          <span>
+                            ≈ {(parseFloat(employeeFormData.salary) / 656).toLocaleString('fr-FR', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2
+                            })} € (1 € = 656 FCFA)
+                          </span>
+                        ) : (
+                          <span>1 € = 656 FCFA</span>
+                        )}
+                      </div>
                     </div>
 
                     <div>
@@ -1357,25 +1331,6 @@ const Employees: React.FC = () => {
                       </select>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Département
-                      </label>
-                      <select
-                        name="department"
-                        value={employeeFormData.department || ''}
-                        onChange={handleEmployeeFormChange}
-                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="">Sélectionnez un département</option>
-                        {departments.map(dept => (
-                          <option key={dept.id} value={dept.id}>
-                            {dept.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Contact d'urgence *
@@ -1386,17 +1341,8 @@ const Employees: React.FC = () => {
                         value={employeeFormData.emergency_contact}
                         onChange={handleEmployeeFormChange}
                         required
-                        maxLength={15}
-                        pattern="\d*"
-                        title="Le contact d'urgence ne doit contenir que des chiffres (max 15)"
-                        placeholder="Ex: 0708091011"
                         className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                       />
-                      <div className="mt-1 flex justify-between items-center">
-                        <span className="text-xs text-gray-500">
-                          {employeeFormData.emergency_contact?.length || 0}/15 caractères
-                        </span>
-                      </div>
                     </div>
                   </div>
                 </div>

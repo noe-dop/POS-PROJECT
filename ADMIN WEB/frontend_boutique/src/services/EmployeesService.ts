@@ -1,4 +1,4 @@
-// src/services/EmployeesService.ts - VERSION FINALE CORRIGÉE
+// src/services/EmployeesService.ts - VERSION CORRIGÉE
 import { api } from './api';
 
 export interface User {
@@ -38,6 +38,7 @@ export interface Employee {
   photo: string | null;
 }
 
+// Interface pour la création d'employé
 export interface CreateEmployeeData {
   user_id: number;
   hire_date: string;
@@ -49,6 +50,7 @@ export interface CreateEmployeeData {
   photo?: string | null;
 }
 
+// Interface pour la création combinée utilisateur + employé
 export interface CreateEmployeeWithUserData {
   userData: {
     username: string;
@@ -65,6 +67,7 @@ export interface CreateEmployeeWithUserData {
   employeeData: Omit<CreateEmployeeData, 'user_id'>;
 }
 
+// Interface pour la mise à jour
 export interface UpdateEmployeeData {
   hire_date?: string;
   salary?: string;
@@ -117,10 +120,11 @@ class EmployeesService {
   }
 
   /**
-   * Créer un nouvel employé (déjà existant)
+   * Créer un nouvel employé
    */
   async createEmployee(employeeData: CreateEmployeeData): Promise<Employee> {
     try {
+      // Formater le salaire comme string (important!)
       const formattedData = {
         ...employeeData,
         salary: String(employeeData.salary)
@@ -130,24 +134,25 @@ class EmployeesService {
       return response;
     } catch (error: any) {
       console.error('Erreur lors de la création de l\'employé:', error);
+      if (error.response?.data) {
+        console.error('Détails de l\'erreur employé:', error.response.data);
+      }
       throw error;
     }
   }
 
   /**
-   * ✅ SOLUTION FINALE - UNE SEULE REQUÊTE !
-   * Le backend EmployeeCreateSerializer attend TOUT en une fois
+   * Créer un utilisateur puis un employé - VERSION SIMPLIFIÉE ET FONCTIONNELLE
    */
   async createEmployeeWithUser(data: CreateEmployeeWithUserData): Promise<Employee> {
     try {
-      console.log('🚀 Création employé avec utilisateur (une seule requête)');
+      console.log('🚀 Début création employé avec utilisateur');
       
+      // 1. Vérifier et formater les données utilisateur
       const username = data.userData.username.trim() || 
         `${data.userData.first_name.toLowerCase()}.${data.userData.last_name.toLowerCase()}`;
       
-      // ✅ TOUTES LES DONNÉES EN UNE SEULE REQUÊTE !
-      const registrationData = {
-        // Données utilisateur (RegisterSerializer)
+      const userData = {
         username: username,
         email: data.userData.email,
         password: data.userData.password,
@@ -155,44 +160,104 @@ class EmployeesService {
         first_name: data.userData.first_name,
         last_name: data.userData.last_name,
         phone: data.userData.phone || '',
-        phone2: data.userData.phone2 || '',
         address: data.userData.address || '',
+        user_type: Number(data.userData.user_type) || 4  // Toujours 4 pour employé
+      };
+
+      console.log('📤 Données utilisateur envoyées:', { ...userData, password: '***', password_confirm: '***' });
+      
+      // 2. Créer l'utilisateur
+      const userResponse = await api.post<any>('/auth/register/', userData);
+      console.log('✅ Réponse création utilisateur:', userResponse);
+      
+      // 3. DEBUG: Afficher la structure complète
+      console.log('🔍 Structure réponse complète:');
+      console.log('Type:', typeof userResponse);
+      console.log('Est objet?', typeof userResponse === 'object');
+      if (userResponse && typeof userResponse === 'object') {
+        console.log('Clés:', Object.keys(userResponse));
+        console.log('JSON stringify:', JSON.stringify(userResponse, null, 2));
+      }
+      
+      // 4. Extraire l'ID utilisateur - méthode robuste
+      let userId: number;
+      
+      // Fonction pour chercher récursivement un ID numérique
+      const findUserId = (obj: any): number | null => {
+        if (!obj || typeof obj !== 'object') return null;
         
-        // ✅ Données employé (EmployeeCreateSerializer)
-        store_id: Number(data.employeeData.store),     // ⚠️ store_id (pas store)
-        role_id: Number(data.employeeData.role),       // ⚠️ role_id (pas role)
+        // Chercher 'id' au niveau racine
+        if (obj.id !== undefined && typeof obj.id === 'number') {
+          return obj.id;
+        }
+        
+        // Chercher dans toutes les propriétés
+        for (const key in obj) {
+          const value = obj[key];
+          
+          // Si la propriété est 'id' et c'est un nombre
+          if (key.toLowerCase() === 'id' && typeof value === 'number') {
+            return value;
+          }
+          
+          // Si la valeur est un objet, chercher dedans
+          if (value && typeof value === 'object') {
+            const found = findUserId(value);
+            if (found !== null) return found;
+          }
+        }
+        
+        return null;
+      };
+      
+      const foundId = findUserId(userResponse);
+      
+      if (foundId !== null) {
+        userId = foundId;
+        console.log('✅ ID utilisateur trouvé:', userId);
+      } else {
+        // Si on ne trouve pas l'ID, chercher l'utilisateur par email
+        console.warn('⚠️ ID non trouvé dans la réponse, recherche par email...');
+        
+        try {
+          // Chercher l'utilisateur par email
+          const users = await api.get<any[]>('/users/');
+          const foundUser = users.find(u => u.email === data.userData.email);
+          
+          if (foundUser && foundUser.id) {
+            userId = foundUser.id;
+            console.log('✅ ID trouvé par recherche email:', userId);
+          } else {
+            throw new Error('ID utilisateur introuvable après création');
+          }
+        } catch (searchError) {
+          console.error('Erreur recherche utilisateur:', searchError);
+          throw new Error('Impossible de récupérer l\'ID utilisateur créé');
+        }
+      }
+      
+      // 5. Créer l'employé avec l'ID utilisateur
+      const employeePayload: CreateEmployeeData = {
+        user_id: userId,
         hire_date: data.employeeData.hire_date,
-        salary: String(data.employeeData.salary),
+        salary: String(data.employeeData.salary), // Convertir en string
         emergency_contact: data.employeeData.emergency_contact,
-        ...(data.employeeData.department && { department_id: Number(data.employeeData.department) }),
+        store: data.employeeData.store,
+        role: data.employeeData.role,
+        ...(data.employeeData.department && { department: data.employeeData.department }),
         ...(data.employeeData.photo && { photo: data.employeeData.photo })
       };
 
-      console.log('📤 Envoi à /employee/register/ (TOUTES les données):', {
-        ...registrationData,
-        password: '***',
-        password_confirm: '***'
-      });
+      console.log('📤 Données employé envoyées:', employeePayload);
       
-      // ✅ UN SEUL APPEL API !
-      const response = await api.post<any>('/employee/register/', registrationData);
+      // 6. Créer l'employé
+      const employeeResponse = await this.createEmployee(employeePayload);
       
-      console.log('✅ Réception:', response);
-      
-      // ✅ Le serializer retourne l'employé directement
-      if (response && response.id) {
-        return response as Employee;
-      } else if (response && response.employee) {
-        return response.employee as Employee;
-      } else if (response && response.data && response.data.employee) {
-        return response.data.employee as Employee;
-      } else {
-        console.warn('⚠️ Structure de réponse inattendue:', response);
-        throw new Error('Format de réponse inattendu du serveur');
-      }
+      console.log('🎉 Employé créé avec succès, ID:', employeeResponse.id);
+      return employeeResponse;
       
     } catch (error: any) {
-      console.error('💥 Erreur création employé:', error);
+      console.error('💥 Erreur création employé avec utilisateur:', error);
       
       if (error.response?.data) {
         console.error('📋 Détails erreur API:', {
@@ -200,6 +265,7 @@ class EmployeesService {
           data: error.response.data
         });
         
+        // Formater l'erreur pour l'utilisateur
         const errorData = error.response.data;
         let errorMessage = 'Erreur lors de la création: ';
         
@@ -224,12 +290,14 @@ class EmployeesService {
     }
   }
 
-  // ... (toutes les autres méthodes restent inchangées)
-  
+  /**
+   * Mettre à jour un employé
+   */
   async updateEmployee(id: number, employeeData: UpdateEmployeeData): Promise<Employee> {
     try {
       const dataToSend: any = {};
       
+      // Formater les données
       if (employeeData.salary !== undefined) {
         dataToSend.salary = String(employeeData.salary);
       }
@@ -242,6 +310,8 @@ class EmployeesService {
       if (employeeData.department !== undefined) {
         dataToSend.department = employeeData.department !== null ? Number(employeeData.department) : null;
       }
+      
+      // Autres champs
       if (employeeData.hire_date !== undefined) dataToSend.hire_date = employeeData.hire_date;
       if (employeeData.emergency_contact !== undefined) dataToSend.emergency_contact = employeeData.emergency_contact;
       if (employeeData.photo !== undefined) dataToSend.photo = employeeData.photo;
@@ -255,6 +325,9 @@ class EmployeesService {
     }
   }
 
+  /**
+   * Mettre à jour un utilisateur
+   */
   async updateUser(userId: number, userData: UpdateUserData): Promise<User> {
     try {
       const dataToSend: any = {};
@@ -273,6 +346,9 @@ class EmployeesService {
     }
   }
 
+  /**
+   * Mettre à jour un employé et son utilisateur
+   */
   async updateEmployeeWithUserInfo(
     employeeId: number, 
     employeeUpdate: UpdateEmployeeData, 
@@ -281,12 +357,14 @@ class EmployeesService {
     try {
       let updatedEmployee: Employee;
 
+      // 1. Mettre à jour l'utilisateur si nécessaire
       if (userUpdate && Object.keys(userUpdate).length > 0) {
         const employee = await this.getEmployeeById(employeeId);
         const userId = employee.user.id;
         await this.updateUser(userId, userUpdate);
       }
       
+      // 2. Mettre à jour l'employé si nécessaire
       if (employeeUpdate && Object.keys(employeeUpdate).length > 0) {
         updatedEmployee = await this.updateEmployee(employeeId, employeeUpdate);
       } else {
@@ -300,6 +378,9 @@ class EmployeesService {
     }
   }
 
+  /**
+   * Supprimer un employé
+   */
   async deleteEmployee(id: number): Promise<void> {
     try {
       await api.delete(`/employees/${id}/`);
@@ -309,6 +390,9 @@ class EmployeesService {
     }
   }
 
+  /**
+   * Récupérer les employés par boutique
+   */
   async getEmployeesByStore(storeId: number): Promise<Employee[]> {
     try {
       const response = await api.get<Employee[]>(`/employees/?store=${storeId}`);
@@ -319,6 +403,9 @@ class EmployeesService {
     }
   }
 
+  /**
+   * Rechercher des employés
+   */
   async searchEmployees(query: string): Promise<Employee[]> {
     try {
       const response = await api.get<Employee[]>(`/employees/?search=${encodeURIComponent(query)}`);
@@ -329,6 +416,9 @@ class EmployeesService {
     }
   }
 
+  /**
+   * Récupérer les rôles disponibles
+   */
   async getEmployeeRoles(): Promise<{id: number, name: string}[]> {
     try {
       const response = await api.get<any[]>('/employee-roles/');
@@ -342,6 +432,9 @@ class EmployeesService {
     }
   }
 
+  /**
+   * Activer/désactiver un employé
+   */
   async toggleEmployeeStatus(id: number, isActive: boolean): Promise<Employee> {
     try {
       const response = await api.patch<Employee>(`/employees/${id}/`, {
@@ -354,6 +447,9 @@ class EmployeesService {
     }
   }
 
+  /**
+   * Récupérer les boutiques disponibles
+   */
   async getStores(): Promise<{id: number, name: string}[]> {
     try {
       const response = await api.get<any[]>('/stores/');
