@@ -28,7 +28,6 @@ class _SelectExistingProductSheetState
     // Déclencher le chargement dès l'ouverture du bottom sheet
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<ProductProvider>(context, listen: false);
-      print("ID DU STORE DANS EXISTING PRODUCT ${widget.storeId}");
       provider.loadUnlinkedProducts(widget.storeId);
     });
   }
@@ -97,10 +96,10 @@ class _SelectExistingProductSheetState
                           height: 40,
                           color: Colors.grey[200],
                           child:
-                              product.imageUrl != null &&
-                                  product.imageUrl!.isNotEmpty
+                              product.imagesUrls != null &&
+                                  product.imagesUrls!.isNotEmpty
                               ? Image.network(
-                                  product.imageUrl![0],
+                                  product.imagesUrls![0],
                                   fit: BoxFit.cover,
                                 )
                               : const Icon(Icons.shopping_bag),

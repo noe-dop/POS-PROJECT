@@ -1,4 +1,6 @@
 // product_model.dart
+import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
+
 import 'variante_model.dart';
 
 class Product {
@@ -7,49 +9,43 @@ class Product {
   String? sku;
   String status;
   int? brand;
-  List<String>? imageUrl;
+  List<String>? imagesUrls;
   String description;
   double? price;
   double? cost;
-  int? nombreItem;
-  int? stock;
+  double? nombreItem;
   int? minStockThreshold;
-  String? location;
   List<Variant>? variants;
   int categorieId; // ID de la catégorie principale
   int groupeId; // ID du groupe (obligatoire ?)
   int? typeId; // ID du type (optionnel)
-  int storeId;
   List<String>? searchVector;
 
   Product({
     this.id,
     required this.name,
     this.sku,
-    required this.status,
-    required this.brand,
-    required this.imageUrl,
+    this.brand,
+    required this.imagesUrls,
     required this.description,
     required this.price,
     required this.cost,
     required this.nombreItem,
-    this.stock,
     this.minStockThreshold,
-    this.location,
     required this.variants,
     required this.categorieId,
     required this.groupeId,
     this.typeId,
-    required this.storeId,
     this.searchVector,
+    required this.status,
   });
 
-  factory Product.fromJson(Map<String, dynamic> json,int? storeId) {
+  factory Product.fromJson(Map<String, dynamic> json) {
     List<String>? imagesList = [];
     if (json['photo'] != null && json['photo'].toString().isNotEmpty) {
       imagesList.add(json['photo'].toString());
     }
-    if (json['additional_images_urls'] is List) {
+    if (json['additional_images_urls'] != null  && json["additional_images_urls"] is List) {
       imagesList.addAll(
         (json['additional_images_urls'] as List)
             .map((e) => e.toString())
@@ -57,7 +53,7 @@ class Product {
             .toList(),
       );
     }
-    if (json['images_urls'] is List) {
+    if (json['images_urls'] !=null && json["images_urls"] is List) {
       imagesList.addAll(
         (json['images_urls'] as List)
             .map((e) => e.toString())
@@ -67,27 +63,19 @@ class Product {
     }
     return Product(
       id: json['id'],
-      name: json['name'] ?? '',
-      sku: json['sku'] ?? '',
-      status: json['status'] ?? '',
+      name: json['name'],
+      sku: json['sku'],
+      status: json['status'],
       brand: json['brand'],
-      imageUrl: imagesList,
+      imagesUrls: imagesList,
       description: json['description'] ?? '',
-      price: double.tryParse(json['base_price'].toString()) ?? 0.0,
-      cost: double.tryParse(json['cost_price'].toString()) ?? 0.0,
-      nombreItem: int.tryParse(json["quantity_item"])?? 1,
-      stock: json['stock'] ?? 0,
-      // minStockThreshold: json["seuil"] int.tryParse(json["seuil_alerte"].toString()) ?? 1,
-      location: json['location'] ?? '',
-      variants:
-          (json['variants'] as List?)
-              ?.map((v) => Variant.fromJson(v))
-              .toList() ??
-          [],
+      price: FormatUtils.toDouble(json["base_price"]),
+      cost: FormatUtils.toDouble(json["cost_price"]),
+      nombreItem: FormatUtils.toDouble(json["nombre_item"]),
+      variants: (json['variants'] as List?)?.map((v) => Variant.fromJson(v)).toList() ?? [],
       categorieId: json['main_category_id'],
       groupeId: json['group'],
       typeId: json['product_type'],
-      storeId: json['store_id'] ?? storeId!,
       // searchVector: json()
     );
   }
@@ -99,19 +87,16 @@ class Product {
       'sku': sku,
       'status': status,
       'brand': brand,
-      'image_url': imageUrl,
+      'image_url': imagesUrls,
       'description': description,
       'price': price,
       'cost': cost,
-      'stock': stock,
       'qt_item':nombreItem,
       'min_stock_threshold': minStockThreshold,
-      'location': location,
       'variants': variants?.map((v) => v.toJson()).toList(),
       'categorie_id': categorieId,
       'groupe_id': groupeId,
       'type_id': typeId,
-      'store_id': storeId,
     };
   }
 }

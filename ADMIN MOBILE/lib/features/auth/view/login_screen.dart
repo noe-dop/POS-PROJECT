@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:nsp_pos_mobile/core/services/notifications.dart';
 import 'package:nsp_pos_mobile/features/auth/viewmodel/auth_viewmodel.dart';
-import 'package:nsp_pos_mobile/features/auth/widgets/auth_form.dart';
+import 'package:nsp_pos_mobile/features/auth/service/auth_form.dart';
 import 'package:provider/provider.dart';
 import '../../../localization/locale_keys.dart';
 

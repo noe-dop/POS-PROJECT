@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
+import 'package:nsp_pos_mobile/core/config/app_config.dart';
 import 'package:nsp_pos_mobile/core/services/storage_service.dart';
 import 'package:nsp_pos_mobile/core/utils/network_utils.dart';
 import 'package:nsp_pos_mobile/features/auth/viewmodel/auth_viewmodel.dart';
@@ -12,8 +13,7 @@ import 'package:nsp_pos_mobile/localization/locale_keys.dart';
 class AuthService extends ChangeNotifier {
   final StorageService _storageService = StorageService();
   final Dio _dio = Dio();
-  // final baseUrl = 'http://127.0.0.1:8000/api';
-  String baseUrl = 'https://eboutik-api.onrender.com/api/';
+  final baseUrl = ApiConfig.onlineBaseUrl;
   // État en mémoire uniquement
   Map<String, dynamic> _userData = {};
   String? _accessToken;
@@ -34,10 +34,7 @@ class AuthService extends ChangeNotifier {
       headers: {'Content-Type': 'application/json'},
       validateStatus: (status) => status != null,
     );
-    // Charger les données au démarrage
-    print("Debug: Loading stored user data...");
     _loadStoredData();
-    print("Debug: Stored user data loaded. at ${DateTime.now().toIso8601String()}");
 
   }
 

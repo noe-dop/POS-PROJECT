@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:nsp_pos_mobile/core/config/app_config.dart';
 import 'package:nsp_pos_mobile/core/services/storage_service.dart';
 import 'package:nsp_pos_mobile/core/utils/network_utils.dart';
 import 'package:nsp_pos_mobile/features/type_produits/viewmodel/type_produit_model.dart';
 
 class TypesProduitsViewModel extends ChangeNotifier {
-  // String baseUrl = 'http://127.0.0.1:8000/api/';
-  String baseUrl = 'https://eboutik-api.onrender.com/api/';
+  String baseUrl = ApiConfig.onlineBaseUrl;
   static final _dio = Dio();
   static final storage = StorageService();
 

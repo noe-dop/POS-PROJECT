@@ -24,6 +24,7 @@
   "common": {
     "cancel": "Annuler",
     "save": "Enregistrer",
+    "update": "Mettre à jour",
     "delete": "Supprimer",
     "edit": "Modifier",
     "search": "Recherche",

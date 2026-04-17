@@ -6,6 +6,7 @@ import 'package:nsp_pos_mobile/features/produits/view/product_detail_view.dart';
 import 'package:nsp_pos_mobile/features/produits/viewmodel/product_model.dart';
 import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_model.dart';
 import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
+import 'package:nsp_pos_mobile/features/produits/viewmodel/store_product_model.dart';
 import 'package:nsp_pos_mobile/features/produits/widgets/produit_form_widget.dart';
 import 'package:nsp_pos_mobile/features/produits/widgets/select_existing_product.dart';
 import 'package:nsp_pos_mobile/features/type_produits/provider/type_produit_provider.dart';
@@ -33,7 +34,7 @@ class _ProductsPageState extends State<ProductsPage> {
     super.dispose();
   }
 
-  void _ouvrirFormulaireProduit({Product? produit}) {
+  void _ouvrirFormulaireProduit({StoreProduct? produit}) {
     final isMobile = MediaQuery.of(context).size.width < 768;
     // Le formulaire sera construit avec les providers nécessaires (ProductProvider et TypeProduitsProvider)
     if (isMobile) {
@@ -266,7 +267,6 @@ class _ProductsPageState extends State<ProductsPage> {
                   itemCount: provider.filteredProducts.length,
                   itemBuilder: (context, index) {
                     final product = provider.filteredProducts[index];
-                    print(product);
                     return _buildProductItem(context, provider, product);
                   },
                 ),
@@ -278,7 +278,7 @@ class _ProductsPageState extends State<ProductsPage> {
   Widget _buildProductItem(
     BuildContext context,
     ProductProvider provider,
-    Product product,
+    StoreProduct product,
   ) {
     final isMobile = MediaQuery.of(context).size.width < 768;
     final bool isDraft = product.status.toLowerCase() == 'draft';
@@ -298,15 +298,15 @@ class _ProductsPageState extends State<ProductsPage> {
             color: Colors.grey[200],
             borderRadius: BorderRadius.circular(8),
           ),
-          child: product.imageUrl!.isNotEmpty
+          child: product.product.imagesUrls!.isNotEmpty
               ? ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(product.imageUrl![0], fit: BoxFit.cover),
+                  child: Image.network(product.product.imagesUrls![0], fit: BoxFit.cover),
                 )
               : Icon(Icons.shopping_bag, color: Colors.grey[600]),
         ),
         title: Text(
-          product.name,
+          product.product.name,
           style: const TextStyle(fontWeight: FontWeight.bold),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -347,7 +347,7 @@ class _ProductsPageState extends State<ProductsPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              product.sku!,
+              product.product.sku!,
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
@@ -361,7 +361,7 @@ class _ProductsPageState extends State<ProductsPage> {
             });
           }
         },
-        selected: provider.selectedProduct?.sku == product.sku,
+        selected: provider.selectedProduct?.product.sku == product.product.sku,
         selectedTileColor: Colors.blue[50],
       ),
     );
@@ -369,7 +369,7 @@ class _ProductsPageState extends State<ProductsPage> {
 
   Widget _buildProductDetail(
     BuildContext context,
-    Product product,
+    StoreProduct product,
     bool isMobile,
   ) {
     return ProductDetailView(
@@ -447,7 +447,7 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 
   /// Ouvre le formulaire de création d'un nouveau produit (comportement original)
-  void _openCreateProductForm({Product? produit}) {
+  void _openCreateProductForm({StoreProduct? produit}) {
     final isMobile = MediaQuery.of(context).size.width < 768;
     if (isMobile) {
       showModalBottomSheet(
@@ -495,12 +495,12 @@ class _ProductsPageState extends State<ProductsPage> {
     }
   }
 
-  void _confirmDelete(BuildContext context, Product product) {
+  void _confirmDelete(BuildContext context, StoreProduct product) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirmer la suppression'),
-        content: Text('Voulez-vous vraiment supprimer "${product.name}" ?'),
+        content: Text('Voulez-vous vraiment supprimer "${product.product.name}" ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

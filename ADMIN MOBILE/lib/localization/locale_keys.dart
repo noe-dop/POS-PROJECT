@@ -136,6 +136,7 @@ class LocaleKeys {
   static const commonCancel = "common.cancel";
   static const commonSave = "common.save";
   static const commonDelete = "common.delete";
+  static const commonUpdate = "common.update";
   static const commonEdit = "common.edit";
   static const commonSearch = "common.search";
   static const commonLoading = "common.loading";

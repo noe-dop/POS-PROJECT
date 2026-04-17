@@ -4,7 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/core/services/notifications.dart';
 import 'package:nsp_pos_mobile/features/auth/viewmodel/auth_viewmodel.dart';
-import 'package:nsp_pos_mobile/features/auth/widgets/auth_form.dart';
+import 'package:nsp_pos_mobile/features/auth/service/auth_form.dart';
 import 'package:nsp_pos_mobile/localization/locale_keys.dart';
 
 class RegisterScreen extends StatefulWidget {

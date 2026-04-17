@@ -1,6 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:nsp_pos_mobile/features/auth/widgets/auth_form.dart';
+import 'package:nsp_pos_mobile/features/auth/service/auth_form.dart';
 import 'package:nsp_pos_mobile/localization/locale_keys.dart';
 import 'package:provider/provider.dart';
 

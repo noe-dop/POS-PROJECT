@@ -4,7 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/core/constants/random_color.dart';
 import 'package:nsp_pos_mobile/core/services/notifications.dart';
-import 'package:nsp_pos_mobile/features/auth/widgets/auth_form.dart';
+import 'package:nsp_pos_mobile/features/auth/service/auth_form.dart';
 import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
 import 'package:nsp_pos_mobile/features/boutiques/view/detail_boutique_view.dart';
 import 'package:nsp_pos_mobile/features/boutiques/view/edit_boutique_view.dart';

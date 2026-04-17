@@ -45,15 +45,14 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
     }
   }
 
-  Future<void> _pickImage() async {
-    if (Platform.isWindows) {
-      await _pickImageWindows();
+  Future<void> pickImage() async {
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+      await _pickImageDesktop();
     } else {
       await _showImageSourceDialog();
     }
   }
 
-  // Dans _ImagePickerWidgetState, ajoutez cette méthode
   ImageProvider _getImageProvider(String path) {
     if (path.startsWith('http')) {
       return NetworkImage(path);
@@ -62,18 +61,44 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
     }
   }
 
-  Future<void> _pickImageWindows() async {
+  Future<void> _pickImageDesktop() async {
     const XTypeGroup typeGroup = XTypeGroup(
       label: 'Images',
       extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'],
     );
     final files = await openFiles(acceptedTypeGroups: [typeGroup]);
     if (files.isNotEmpty) {
+      final remainingSlots = widget.maxImages - _selectedImages.length;
+
+      if (remainingSlots <= 0) {
+        if (mounted) {
+          NotificationService.showWarning(
+            context,
+            "Vous avez déjà atteint la limite de ${widget.maxImages} image(s)",
+          );
+        }
+        return;
+      }
+
+      List<XFile> filesToAdd;
+      if (widget.allowMultiple) {
+        filesToAdd = files.take(remainingSlots).toList();
+
+        if (files.length > remainingSlots && mounted) {
+          NotificationService.showInfo(
+            context,
+            "Seulement $remainingSlots image(s) sur ${files.length} ont été ajoutées (limite: ${widget.maxImages})",
+          );
+        }
+      } else {
+        filesToAdd = files.take(1).toList();
+      }
+
       setState(() {
         if (widget.allowMultiple) {
-          _selectedImages.addAll(files);
+          _selectedImages.addAll(filesToAdd);
         } else {
-          _selectedImages = files.take(1).toList();
+          _selectedImages = filesToAdd;
         }
       });
       widget.onImagesSelected(_selectedImages);
@@ -81,7 +106,6 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
   }
 
   Future<void> _showImageSourceDialog() async {
-    // Vérification des permissions sur mobile
     if (Platform.isAndroid || Platform.isIOS) {
       final status = await Permission.photos.request();
       if (!status.isGranted) {
@@ -94,20 +118,39 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
 
     final ImagePicker picker = ImagePicker();
     if (widget.allowMultiple) {
-      // Sélection multiple depuis la galerie
       final pickedFiles = await picker.pickMultiImage(
         maxWidth: null,
         maxHeight: null,
         imageQuality: 85,
       );
       if (pickedFiles.isNotEmpty) {
+        // Vérifier la limite sur mobile aussi
+        final remainingSlots = widget.maxImages - _selectedImages.length;
+        if (remainingSlots <= 0) {
+          if (mounted) {
+            NotificationService.showWarning(
+              context,
+              "Vous avez déjà atteint la limite de ${widget.maxImages} image(s)",
+            );
+          }
+          return;
+        }
+
+        final filesToAdd = pickedFiles.take(remainingSlots).toList();
+
+        if (pickedFiles.length > remainingSlots && mounted) {
+          NotificationService.showInfo(
+            context,
+            "Seulement $remainingSlots image(s) sur ${pickedFiles.length} ont été ajoutées (limite: ${widget.maxImages})",
+          );
+        }
+
         setState(() {
-          _selectedImages.addAll(pickedFiles);
+          _selectedImages.addAll(filesToAdd);
         });
         widget.onImagesSelected(_selectedImages);
       }
     } else {
-      // Choix entre galerie et caméra
       showModalBottomSheet(
         context: context,
         builder: (context) {
@@ -171,22 +214,71 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
   Widget build(BuildContext context) {
     final canAddMore = _selectedImages.length < widget.maxImages;
 
+    // Dimensions responsives basées sur la plateforme et la taille de l'écran
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    final isDesktop =
+        Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+
+    // Ajuster les dimensions selon la plateforme
+    double imageSize;
+    double buttonHeight;
+    double iconSize;
+    double fontSize;
+    double closeIconSize;
+    EdgeInsetsGeometry padding;
+
+    if (isDesktop) {
+      imageSize = 120;
+      buttonHeight = 100;
+      iconSize = 40;
+      fontSize = 12;
+      closeIconSize = 16;
+      padding = const EdgeInsets.all(8);
+    } else if (isMobile) {
+      imageSize = 80; // Plus petit sur mobile
+      buttonHeight = 70;
+      iconSize = 32;
+      fontSize = 11;
+      closeIconSize = 12;
+      padding = const EdgeInsets.symmetric(vertical: 4);
+    } else {
+      imageSize = 100; // Tablette
+      buttonHeight = 85;
+      iconSize = 36;
+      fontSize = 12;
+      closeIconSize = 14;
+      padding = const EdgeInsets.all(6);
+    }
+
+    // Appliquer l'aspectRatio si défini
+    double imageHeight = imageSize;
+    double imageWidth = imageSize;
+
+    if (widget.aspectRatio != null) {
+      imageWidth = imageSize;
+      imageHeight = imageSize / widget.aspectRatio!;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize:
+          MainAxisSize.min, // IMPORTANT : permet au parent de scroller
       children: [
         if (_selectedImages.isNotEmpty)
           SizedBox(
-            height: 120,
+            height: imageHeight + 20,
             child: ListView.builder(
               scrollDirection: widget.scrollDirection,
               itemCount: _selectedImages.length,
+              padding: padding,
               itemBuilder: (context, index) {
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
                     Container(
-                      width: 120,
-                      height: 120,
+                      width: imageWidth,
+                      height: imageHeight,
                       margin: const EdgeInsets.only(right: 8),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.shade300),
@@ -209,9 +301,9 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
                               color: Colors.red,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.close,
-                              size: 16,
+                              size: closeIconSize,
                               color: Colors.white,
                             ),
                           ),
@@ -224,33 +316,37 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
           ),
         const SizedBox(height: 8),
         if (canAddMore)
-          widget.customAddButton ??
-              GestureDetector(
-                onTap: _pickImage,
-                child: Container(
-                  width: double.infinity,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.add_photo_alternate,
-                        color: Theme.of(context).primaryColor,
-                        size: 40,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Ajouter une image (${_selectedImages.length}/${widget.maxImages})',
-                        style: TextStyle(color: Theme.of(context).primaryColor),
-                      ),
-                    ],
+          widget.customAddButton != null
+              ? GestureDetector(onTap: pickImage, child: widget.customAddButton)
+              : GestureDetector(
+                  onTap: pickImage,
+                  child: Container(
+                    width: double.infinity,
+                    height: buttonHeight,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.add_photo_alternate,
+                          color: Theme.of(context).primaryColor,
+                          size: iconSize,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Ajouter une image (${_selectedImages.length}/${widget.maxImages})',
+                          style: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                            fontSize: fontSize,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
       ],
     );
   }

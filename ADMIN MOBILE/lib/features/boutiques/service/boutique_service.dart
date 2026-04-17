@@ -2,13 +2,13 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:nsp_pos_mobile/core/config/app_config.dart';
 import 'package:nsp_pos_mobile/core/services/storage_service.dart';
 import 'package:nsp_pos_mobile/core/utils/network_utils.dart';
 import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_model.dart';
 
 class BoutiqueService extends ChangeNotifier {
-  // String baseUrl = 'http://127.0.0.1:8000/api/';
-  String baseUrl = 'https://eboutik-api.onrender.com/api/';
+  String baseUrl = ApiConfig.onlineBaseUrl;
   static final _dio = Dio();
   static final storage = StorageService();
   bool _isLoading = false;
@@ -195,6 +195,7 @@ class BoutiqueService extends ChangeNotifier {
   }
 
   Future<BoutiqueModel?> fetchBoutiques() async {
+    // RECUPERER LES BOUTIQUES PUBLIQUES (pour les clients) et les boutiques accessibles (pour les employés/admin)
     try {
       if ( await isServerReachable(baseUrl) == false) {
         return null;

@@ -1,17 +1,18 @@
 // produit_form_widget.dart
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:nsp_pos_mobile/core/services/notifications.dart';
 import 'package:nsp_pos_mobile/core/widgets/image_picker_widget.dart';
-import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
 import 'package:nsp_pos_mobile/features/produits/service/product_service.dart';
 import 'package:nsp_pos_mobile/features/produits/viewmodel/product_brand_model.dart';
 import 'package:nsp_pos_mobile/features/produits/viewmodel/product_model.dart';
+import 'package:nsp_pos_mobile/features/produits/viewmodel/store_product_model.dart';
 import 'package:nsp_pos_mobile/features/type_produits/provider/type_produit_provider.dart';
 import 'package:nsp_pos_mobile/features/type_produits/viewmodel/type_produit_model.dart';
 import 'package:provider/provider.dart';
 
 class ProduitFormWidget extends StatefulWidget {
-  final Product? produit;
+  final StoreProduct? produit;
   final Function(Product)? onSave;
   final Function()? onCancel;
 
@@ -34,8 +35,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
   late TextEditingController _prixVenteController;
   late TextEditingController _prixAchatController;
   late TextEditingController _descriptionController;
-  late TextEditingController _stockController;
-  late TextEditingController _nombreItemController;
+  late TextEditingController _seuilMinController;
   late TextEditingController _locationController;
   late TextEditingController _rechercheTypeController;
   late TextEditingController _rechercheMarqueController;
@@ -49,7 +49,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
   String? _selectedStatus = 'Actif';
   List<String> _images = [];
   int _joursEcart = 15;
-  int _nombreItem = 1;
+  double _nombreItem = 1.00;
 
   // Données
   final List<String> _statusList = ['active', 'draft', 'archived'];
@@ -59,7 +59,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
     super.initState();
 
     final produit = widget.produit;
-    _nomController = TextEditingController(text: produit?.name ?? '');
+    _nomController = TextEditingController(text: produit?.product.name ?? '');
     _prixVenteController = TextEditingController(
       text: produit?.price.toString() ?? '',
     );
@@ -67,24 +67,24 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
       text: produit?.cost.toString() ?? '',
     );
     _descriptionController = TextEditingController(
-      text: produit?.description ?? '',
+      text: produit?.product.description ?? '',
     );
-    _stockController = TextEditingController(
-      text: produit?.stock.toString() ?? '0',
-    );    
-    _nombreItemController = TextEditingController(
-      text: produit?.nombreItem.toString() ?? '0',
+    _seuilMinController = TextEditingController(
+      text: produit?.seuilAlerte.toString() ?? '1',
     );
-    _locationController = TextEditingController(text: produit?.location ?? '');
+    // TODO gerer le stock en remplissant avec le bon nombre
+    _nombreItem = produit?.quantityItem ?? 1.00;
+    _locationController = TextEditingController(text: '');
+    // TODO :Gestion du Warehouse pour Location
     _rechercheTypeController = TextEditingController();
     _rechercheMarqueController = TextEditingController();
 
-    _selectedCategorieId = produit?.categorieId;
-    _selectedBrandId = produit?.brand;
-    _selectedGroupeId = produit?.groupeId;
-    _selectedTypeId = produit?.typeId;
+    _selectedCategorieId = produit?.product.categorieId;
+    _selectedBrandId = produit?.product.brand;
+    _selectedGroupeId = produit?.product.groupeId;
+    _selectedTypeId = produit?.product.typeId;
     _selectedStatus = produit?.status;
-    _images = produit?.imageUrl ?? [];
+    _images = produit?.product.imagesUrls ?? [];
   }
 
   @override
@@ -93,278 +93,320 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
     _prixVenteController.dispose();
     _prixAchatController.dispose();
     _descriptionController.dispose();
-    _stockController.dispose();
-    _nombreItemController.dispose();
+    _seuilMinController.dispose();
     _locationController.dispose();
     _rechercheTypeController.dispose();
     _rechercheMarqueController.dispose();
     super.dispose();
   }
 
-  void _soumettre() {
+  void _soumettre() async {
     if (_formKey.currentState!.validate()) {
       final productProvider = Provider.of<ProductProvider>(
         context,
         listen: false,
       );
-      final boutiqueservice = Provider.of<BoutiqueService>(
-        context,
-        listen: false,
-      );
-      final int storeId = boutiqueservice.selectedStore!.boutique.id;
-      final produit = Product(
-        name: _nomController.text,
-        status: _selectedStatus ?? 'active',
-        brand: _selectedBrandId,
-        imageUrl: _images,
-        description: _descriptionController.text,
-        price: double.tryParse(_prixVenteController.text) ?? 0.0,
-        cost: double.tryParse(_prixAchatController.text) ?? 0.0,
-        nombreItem: int.tryParse(_nombreItemController.text) ?? 0,
-        stock: int.tryParse(_stockController.text) ?? 0,
-        location: _locationController.text,
-        variants: widget.produit?.variants ?? [],
-        categorieId: _selectedCategorieId!,
-        groupeId: _selectedGroupeId!,
-        typeId: _selectedTypeId,
-        storeId: storeId,
-      );
       if (widget.produit == null) {
-        productProvider.addProduct(produit);
+        final produit = Product(
+          name: _nomController.text,
+          status: _selectedStatus ?? 'active',
+          brand: _selectedBrandId,
+          imagesUrls: _images,
+          description: _descriptionController.text,
+          price: double.tryParse(_prixVenteController.text) ?? 0.0,
+          cost: double.tryParse(_prixAchatController.text) ?? 0.0,
+          nombreItem: _nombreItem,
+          variants: widget.produit?.product.variants ?? [],
+          categorieId: _selectedCategorieId!,
+          groupeId: _selectedGroupeId!,
+          typeId: _selectedTypeId,
+        );
+        if (_images.isNotEmpty) {
+          produit.imagesUrls = _images;
+        }
+        final response = await productProvider.addProduct(produit);
+        if (mounted) {
+          if (response["status"] == true) {
+            NotificationService.showSuccess(context, response['message']);
+            Navigator.pop(context);
+          } else {
+            NotificationService.showError(context, response['message']);
+          }
+        }
       } else {
-        productProvider.updateProduct(produit);
+        final storeProduct = widget.produit!;
+        if (_images.isNotEmpty) {
+          storeProduct.product.imagesUrls = _images;
+        }
+        final produit = StoreProduct(
+          id: storeProduct.id,
+          storeId: storeProduct.storeId,
+          product: storeProduct.product,
+          price: double.tryParse(_prixVenteController.text) ?? 0.0,
+          cost: double.tryParse(_prixAchatController.text) ?? 0.0,
+          seuilAlerte: int.tryParse(_seuilMinController.text) ?? 1,
+          jourEcart: _joursEcart,
+          quantityItem: double.tryParse(_nombreItem.toString())!,
+          status: _selectedStatus ?? 'active',
+        );
+        final response = await productProvider.updateStoreProduct(produit);
+        if (mounted) {
+          if (response["status"] == true) {
+            NotificationService.showSuccess(context, response['message']);
+            Navigator.pop(context);
+          } else {
+            NotificationService.showError(context, response['message']);
+          }
+        }
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 768;
     return Consumer<TypesProduitsViewModel>(
       builder: (context, typeProvider, child) {
         final productProvider = Provider.of<ProductProvider>(
           context,
           listen: true,
         );
-        return Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Section Images
-                Row(
+        final loading = productProvider.isLoading;
+        final isEditing = widget.produit != null;
+        return Stack(
+          children: [
+            Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.arrow_back),
-                      padding: EdgeInsets.all(8),
-                    ),
-                    Expanded(
-                      child: // Dans le build, à l'endroit de _buildImagesSection
-                      ImagePickerWidget(
-                        maxImages: 3,
-                        initialImages: widget.produit?.imageUrl!
-                            .map((path) => XFile(path))
-                            .toList(),
-                        onImagesSelected: (images) {
-                          setState(() {
-                            _images = images
-                                .map((xfile) => xfile.path)
-                                .toList();
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-
-                // Informations de base
-                const Text(
-                  'Informations de base',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-
-                _buildTextField(
-                  label: 'Nom de produit *',
-                  controller: _nomController,
-                  validator: (value) =>
-                      value!.isEmpty ? 'Ce champ est requis' : null,
-                ),
-
-                // const SizedBox(height: 16),
-
-                // _buildTextField(
-                //   label: 'SKU *',
-                //   controller: _skuController,
-                //   validator: (value) =>
-                //       value!.isEmpty ? 'Ce champ est requis' : null,
-                // ),
-                const SizedBox(height: 16),
-
-                // Catégorie principale
-                _buildCategorieDropdown(typeProvider),
-
-                const SizedBox(height: 16),
-
-                // Groupe (dépend de la catégorie)
-                if (_selectedCategorieId != null)
-                  _buildGroupeDropdown(typeProvider),
-
-                const SizedBox(height: 16),
-
-                // Type (optionnel) avec recherche
-                if (_selectedGroupeId != null) _buildTypeField(typeProvider),
-
-                const SizedBox(height: 16),
-
-                // Marque avec recherche
-                _buildMarqueField(productProvider),
-
-                const SizedBox(height: 16),
-
-                // Statut
-                _buildStatusDropdown(),
-
-                const SizedBox(height: 24),
-
-                // Tarification
-                const Text(
-                  'Tarification',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        label: 'Prix de vente *',
-                        controller: _prixVenteController,
-                        keyboardType: TextInputType.numberWithOptions(
-                          decimal: true,
+                    // Section Images
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(Icons.arrow_back),
+                          padding: EdgeInsets.all(8),
                         ),
-                        validator: (value) {
-                          if (value!.isEmpty) return 'Ce champ est requis';
-                          final price = double.tryParse(value);
-                          if (price == null || price <= 0)
-                            return 'Prix invalide';
-                          return null;
-                        },
+                        const Spacer(),
+                      ],
+                    ),
+                    ImagePickerWidget(
+                      maxImages: 3,
+                      initialImages: widget.produit?.product.imagesUrls!
+                          .map((path) => XFile(path))
+                          .toList(),
+                      onImagesSelected: (images) {
+                        setState(() {
+                          _images = images.map((xfile) => xfile.path).toList();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    // Informations de base
+                    const Text(
+                      'Informations de base',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildTextField(
-                        label: 'Coût par article *',
-                        controller: _prixAchatController,
-                        keyboardType: TextInputType.numberWithOptions(
-                          decimal: true,
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      label: 'Nom de produit *',
+                      controller: _nomController,
+                      readOnly: isEditing,
+                      validator: (value) =>
+                          value!.isEmpty ? 'Ce champ est requis' : null,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Si édition, on n'affiche pas les champs de catégorie, groupe, type, marque
+                    if (!isEditing) ...[
+                      const SizedBox(height: 16),
+                      _buildCategorieDropdown(typeProvider),
+                      const SizedBox(height: 16),
+                      if (_selectedCategorieId != null)
+                        _buildGroupeDropdown(typeProvider),
+                      const SizedBox(height: 16),
+                      if (_selectedGroupeId != null)
+                        _buildTypeField(typeProvider),
+                      const SizedBox(height: 16),
+                      _buildMarqueField(productProvider),
+                      const SizedBox(height: 16),
+                      _buildStatusDropdown(),
+                    ] else ...[
+                      // En édition, on peut éventuellement afficher un résumé des infos fixes (optionnel)
+                      // Par exemple, afficher le nom de la catégorie/groupe/type/marque en texte statique
+                      // pour information, mais pas modifiable. On peut ajouter un petit texte.
+                      // Mais selon la demande, on cache complètement.
+                      // On garde juste le statut peut-être modifiable ?
+                      // On laisse le statut modifiable ? La demande ne précise pas, mais on peut le laisser.
+                      // Ajoutons le statut ici si on veut le garder modifiable.
+                      const SizedBox(height: 16),
+                      _buildStatusDropdown(),
+                    ],
+                    const SizedBox(height: 24),
+
+                    // Tarification
+                    const Text(
+                      'Tarification',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField(
+                            label: 'Prix de vente *',
+                            controller: _prixVenteController,
+                            keyboardType: TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            validator: (value) {
+                              if (value!.isEmpty) return 'Ce champ est requis';
+                              final price = double.tryParse(value);
+                              if (price == null || price <= 0)
+                                return 'Prix invalide';
+                              return null;
+                            },
+                          ),
                         ),
-                        validator: (value) {
-                          if (value!.isEmpty) return 'Ce champ est requis';
-                          final cost = double.tryParse(value);
-                          if (cost == null || cost < 0) return 'Coût invalide';
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-
-                // Inventaire
-                const Text(
-                  'Inventaire',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTextField(
-                        label: 'Stock initial *',
-                        controller: _stockController,
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value!.isEmpty) return 'Ce champ est requis';
-                          final stock = int.tryParse(value);
-                          if (stock == null || stock < 0)
-                            return 'Stock invalide';
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildTextField(
-                        label: 'Emplacement',
-                        controller: _locationController,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // Jours d'écart
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildCounterSection(
-                        label: 'Jours d\'écart',
-                        value: _joursEcart ,
-                        onDecrement: () => setState(
-                          () => _joursEcart = _joursEcart > 0 ? _joursEcart - 1 : 0,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildTextField(
+                            label: 'Coût par article *',
+                            controller: _prixAchatController,
+                            keyboardType: TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            validator: (value) {
+                              if (value!.isEmpty) return 'Ce champ est requis';
+                              final cost = double.tryParse(value);
+                              if (cost == null || cost < 0)
+                                return 'Coût invalide';
+                              return null;
+                            },
+                          ),
                         ),
-                        onIncrement: () => setState(() => _joursEcart++),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Inventaire
+                    const Text(
+                      'Inventaire',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 16,),
-                    Expanded(
-                      child: _buildCounterSection(
-                        label: "Nombre d'Item", 
-                        value: _nombreItem , 
-                        onDecrement: ()=> setState(
-                         ()=> _nombreItem = _nombreItem > 1 ? _nombreItem - 1 : 1,
-                        ), 
-                        onIncrement: () => setState(() => _nombreItem++)))
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField(
+                            label: "Seuil d'alerte *",
+                            controller: _seuilMinController,
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value!.isEmpty) return 'Ce champ est requis';
+                              final seuil = int.tryParse(value);
+                              if (seuil == null || seuil < 1) {
+                                return 'Seuil invalide';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildTextField(
+                            label: 'Emplacement',
+                            controller: _locationController,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Jours d'écart
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildCounterSection(
+                            label: 'Jours d\'écart',
+                            value: "$_joursEcart jours",
+                            onDecrement: () => setState(
+                              () => _joursEcart = _joursEcart > 0
+                                  ? _joursEcart - 1
+                                  : 0,
+                            ),
+                            onIncrement: () => setState(() => _joursEcart++),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildCounterSection(
+                            label: "Nombre d'Item",
+                            value: "$_nombreItem ",
+                            onDecrement: () => setState(
+                              () => _nombreItem = _nombreItem > 1
+                                  ? _nombreItem - 1
+                                  : 1,
+                            ),
+                            onIncrement: () => setState(() => _nombreItem++),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Description
+                    const Text(
+                      'Description',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildTextField(
+                      label: 'Description',
+                      controller: _descriptionController,
+                      maxLines: 4,
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Boutons d'action
+                    _buildActionButtons(),
                   ],
                 ),
-
-                const SizedBox(height: 24),
-
-                // Description
-                const Text(
-                  'Description',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-
-                _buildTextField(
-                  label: 'Description',
-                  controller: _descriptionController,
-                  maxLines: 4,
-                ),
-
-                const SizedBox(height: 32),
-
-                // Boutons d'action
-                _buildActionButtons(),
-              ],
+              ),
             ),
-          ),
+            if (loading) // ← afficher le loading si nécessaire
+              Container(
+                color: Colors.black.withValues(alpha: 0.3),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+          ],
         );
       },
     );
   }
-
   // Widgets d'aide
 
   Widget _buildCategorieDropdown(TypesProduitsViewModel provider) {
@@ -835,6 +877,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
+    bool readOnly = false,
     String? Function(String?)? validator,
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
@@ -853,6 +896,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
           keyboardType: keyboardType,
           maxLines: maxLines,
           validator: validator,
+          readOnly: readOnly,
         ),
       ],
     );
@@ -882,7 +926,7 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
                 icon: const Icon(Icons.remove),
               ),
               Text(
-                '$value jours',
+                value,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

@@ -54,4 +54,22 @@ class NotificationService {
       ),
     );
   }
+
+  static void showInfo(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.info, color: Colors.white),
+            SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.blue,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(20),
+        duration: Duration(seconds: 4),
+      ),
+    );
+  }
 }
