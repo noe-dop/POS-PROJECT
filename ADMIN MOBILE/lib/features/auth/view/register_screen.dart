@@ -3,8 +3,9 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/core/services/notifications.dart';
+import 'package:nsp_pos_mobile/core/widgets/language_selector.dart';
 import 'package:nsp_pos_mobile/features/auth/viewmodel/auth_viewmodel.dart';
-import 'package:nsp_pos_mobile/features/auth/service/auth_form.dart';
+import 'package:nsp_pos_mobile/features/auth/service/auth_service.dart';
 import 'package:nsp_pos_mobile/localization/locale_keys.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -151,19 +152,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       // Appel API
       final response = await AuthService().signup(signupRequest);
-      if (response.success) {
-        // Succès
-        NotificationService.showSuccess(
-          context,
-          LocaleKeys.registerSuccessMessage.tr(),
-        );
+      if (mounted) {
+        if (!response.success) {
+          // Afficher le message retourné par le service
+          NotificationService.showError(context, response.message);
+        } else {
+          // Succès
+          NotificationService.showSuccess(
+            context,
+            LocaleKeys.registerSuccessMessage.tr(),
+          );
 
-        // Navigation vers le login après un délai
-        await Future.delayed(Duration(seconds: 2));
-        Navigator.pushReplacementNamed(context, "/login");
-      } else {
-        // Erreur de l'API
-        NotificationService.showError(context, response.message);
+          // Navigation vers le login après un délai
+          await Future.delayed(Duration(seconds: 2));
+          Navigator.pushReplacementNamed(context, "/login");
+        }
       }
     } on Exception catch (e) {
       // Gestion des erreurs
@@ -212,6 +215,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(LocaleKeys.registerTitle.tr()),
+        actions: [LanguageSelector(supportedLocales: context.supportedLocales)],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: SizedBox(
@@ -317,7 +324,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 onPressed: () {
                                   generateUsername();
                                 },
-                                child: Text(LocaleKeys.registerGenerateUsername.tr()),
+                                child: Text(
+                                  LocaleKeys.registerGenerateUsername.tr(),
+                                ),
                               ),
                             ),
                             validator: (value) {

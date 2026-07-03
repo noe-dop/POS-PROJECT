@@ -125,14 +125,12 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
           produit.imagesUrls = _images;
         }
         final response = await productProvider.addProduct(produit);
-        if (mounted) {
-          if (response["status"] == true) {
+        if (response["status"] == true) {
             NotificationService.showSuccess(context, response['message']);
             Navigator.pop(context);
           } else {
             NotificationService.showError(context, response['message']);
           }
-        }
       } else {
         final storeProduct = widget.produit!;
         if (_images.isNotEmpty) {
@@ -164,7 +162,6 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 768;
     return Consumer<TypesProduitsViewModel>(
       builder: (context, typeProvider, child) {
         final productProvider = Provider.of<ProductProvider>(
@@ -273,8 +270,9 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
                             validator: (value) {
                               if (value!.isEmpty) return 'Ce champ est requis';
                               final price = double.tryParse(value);
-                              if (price == null || price <= 0)
+                              if (price == null || price <= 0) {
                                 return 'Prix invalide';
+                              }
                               return null;
                             },
                           ),
@@ -290,8 +288,9 @@ class _ProduitFormWidgetState extends State<ProduitFormWidget> {
                             validator: (value) {
                               if (value!.isEmpty) return 'Ce champ est requis';
                               final cost = double.tryParse(value);
-                              if (cost == null || cost < 0)
+                              if (cost == null || cost < 0) {
                                 return 'Coût invalide';
+                              }
                               return null;
                             },
                           ),

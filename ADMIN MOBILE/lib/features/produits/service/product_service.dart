@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nsp_pos_mobile/core/config/app_config.dart';
 import 'package:nsp_pos_mobile/core/services/storage_service.dart';
+import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
 import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
 import 'package:nsp_pos_mobile/features/produits/viewmodel/product_brand_model.dart';
 import 'package:nsp_pos_mobile/features/produits/viewmodel/product_model.dart';
@@ -20,9 +21,9 @@ class ProductProvider extends ChangeNotifier {
 
   int? _currentStoreId;
   List<StoreProduct> _products = [];
-  List<StoreProduct> _storeProducts = [];
+  final List<StoreProduct> _storeProducts = [];
   List<Product> _unlinkedProducts = [];
-  List<Variant> _unlinkedVariantes = [];
+  final List<Variant> _unlinkedVariantes = [];
   List<ProductBrand> _brands = [];
   StoreProduct? _selectedProduct;
   StoreProduct? _selectedStoreProduct;
@@ -30,6 +31,24 @@ class ProductProvider extends ChangeNotifier {
   String _statusFilter = 'Tous';
   bool _isLoading = false;
   String? _error;
+  static const int _pageSize = 20;
+
+  // ============================================
+  // PAGINATION - PRODUITS LIÉS
+  // ============================================
+  int _currentPage = 1;
+  int _totalPages = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+
+  // ============================================
+  // PAGINATION - PRODUITS NON LIÉS
+  // ============================================
+  int _currentOffset = 0;
+  int _currentPageUnlinked = 1;
+  int _totalPagesUnlinked = 1;
+  bool _hasMoreUnlinked = true;
+  bool _isLoadingMoreUnlinked = false;
 
   // Getters
   List<Product> get unlinkedProducts => _unlinkedProducts;
@@ -37,6 +56,16 @@ class ProductProvider extends ChangeNotifier {
   List<StoreProduct> get products => _products;
   List<ProductBrand> get brands => _brands;
   String get statusFilter => _statusFilter;
+
+  bool get hasMore => _hasMore;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMoreUnlinked => _hasMoreUnlinked;
+  bool get isLoadingMoreUnlinked => _isLoadingMoreUnlinked;
+  int get currentPage => _currentPage;
+  int get totalPages => _totalPages;
+  int get currentPageUnlinked => _currentPageUnlinked;
+  int get totalPagesUnlinked => _totalPagesUnlinked;
+
   List<StoreProduct> get filteredProducts => products.where((p) {
     final matchesSearch =
         _searchQuery.isEmpty ||
@@ -45,6 +74,8 @@ class ProductProvider extends ChangeNotifier {
     final matchesStatus = _statusFilter == 'Tous' || p.status == _statusFilter;
     return matchesSearch && matchesStatus;
   }).toList();
+
+  int? get currentStoreId => _currentStoreId;
   StoreProduct? get selectedProduct => _selectedProduct;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -70,7 +101,6 @@ class ProductProvider extends ChangeNotifier {
       headers: {'Content-Type': 'application/json'},
       validateStatus: (status) => status != null,
     );
-    // Écouter les changements de boutique
     boutiqueService.addListener(onStoreChanged);
     Future.microtask(onStoreChanged);
     loadBrand();
@@ -79,7 +109,7 @@ class ProductProvider extends ChangeNotifier {
   void setStore(int storeId) {
     if (_currentStoreId != storeId) {
       _currentStoreId = storeId;
-      loadStoreProducts();
+      unawaited(loadStoreProducts(_currentStoreId!));
     }
   }
 
@@ -87,56 +117,263 @@ class ProductProvider extends ChangeNotifier {
     final selected = boutiqueService.selectedStore;
     if (selected != null) {
       _currentStoreId = selected.boutique.id;
-      loadStoreProducts();
-      loadUnlinkedProducts(_currentStoreId!);
+      unawaited(loadStoreProducts(_currentStoreId!, refresh: true));
+      unawaited(loadUnlinkedProducts(_currentStoreId!, refresh: true));
     } else {
       _currentStoreId = null;
       _products = [];
       _unlinkedProducts = [];
+      _hasMore = true;
+      _hasMoreUnlinked = true;
+      _currentPage = 1;
+      _currentPageUnlinked = 1;
     }
     _selectedProduct = null;
     notifyListeners();
   }
 
-  //  UNLINKED PRODUCT
-  Future<List<Product>> loadUnlinkedProducts(int storeId) async {
-    if (_currentStoreId == null || _currentStoreId != storeId) return [];
+  // ============================================
+  // LOAD STORE PRODUCTS AVEC PAGINATION INFINIE
+  // ============================================
+  Future<void> loadStoreProducts(int storeId, {bool refresh = false}) async {
+    if (_currentStoreId == null) return;
+
+    if (refresh) {
+      _currentPage = 1;
+      _products = [];
+      _hasMore = true;
+    }
+
+    if (!_hasMore && !refresh) return;
+    if (_isLoadingMore) return;
+
     _isLoading = true;
     _error = null;
     notifyListeners();
+
     try {
       final token = await _storage.getToken();
       final response = await _dio.get(
-        '${baseUrl}stores/$_currentStoreId/available-products/',
+        '${baseUrl}stores/$storeId/products/',
+        queryParameters: {
+          'page': _currentPage,
+          'page_size': 20,
+          if (_searchQuery.isNotEmpty) 'search': _searchQuery,
+          if (_statusFilter != 'Tous') 'status': _statusFilter,
+        },
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
+
       if (response.statusCode == 200) {
-        // Adapter selon la structure de la réponse (liste simple ou paginée)
-        List<Product> productsUnlinked = (response.data['results'] as List)
-            .map((json) => Product.fromJson(json))
-            .toList();
-        _unlinkedProducts = productsUnlinked;
-        return productsUnlinked;
+        List dataList;
+        if (response.data is Map && response.data.containsKey('results')) {
+          dataList = response.data['results'];
+          _totalPages = response.data['total_pages'] ?? 1;
+          _currentPage = (response.data['current_page'] ?? _currentPage) + 1;
+          _hasMore = _currentPage <= _totalPages;
+        } else if (response.data is List) {
+          dataList = response.data;
+          _hasMore = false;
+        } else {
+          dataList = [];
+          _hasMore = false;
+        }
+
+        List<StoreProduct> tempStoreProducts = [];
+        for (var i = 0; i < dataList.length; i++) {
+          try {
+            final storeProduct = StoreProduct.fromJson(dataList[i]);
+            tempStoreProducts.add(storeProduct);
+          } catch (e, stack) {
+            _error = "Erreur parsing store product: $e - $stack";
+            rethrow;
+          }
+        }
+
+        if (refresh) {
+          _products = tempStoreProducts;
+        } else {
+          _products.addAll(tempStoreProducts);
+        }
+
+        notifyListeners();
       } else {
-        return [];
+        print("Erreur : ${response.data}- ${response.statusCode}");
+        if (refresh) _products = [];
       }
-    } catch (e) {
-      _error = e.toString();
+    } on DioException catch (e) {
+      _error = e.response?.data?.toString() ?? e.message;
       print(_error);
-      return [];
     } finally {
       _isLoading = false;
+      _isLoadingMore = false;
       notifyListeners();
     }
   }
 
+  // ============================================
+  // CHARGER PLUS DE PRODUITS (SCROLL INFINI)
+  // ============================================
+  Future<void> loadMoreStoreProducts() async {
+    if (!_hasMore || _isLoadingMore || _isLoading) return;
+    if (_currentStoreId == null) return;
+
+    _isLoadingMore = true;
+    notifyListeners();
+
+    try {
+      await loadStoreProducts(_currentStoreId!, refresh: false);
+    } catch (e) {
+      _error = ("Erreur chargement plus: $e");
+    } finally {
+      _isLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  // ============================================
+  // LOAD UNLINKED PRODUCTS AVEC PAGINATION
+  // ============================================
+
+  Future<List<Product>> loadUnlinkedProducts(
+    int storeId, {
+    bool refresh = false,
+  }) async {
+    if (_currentStoreId == null || _currentStoreId != storeId) {
+      _currentStoreId = storeId;
+      refresh = true;
+    }
+
+    if (refresh) {
+      _currentOffset = 0;
+      _unlinkedProducts = [];
+      _hasMoreUnlinked = true;
+      _isLoadingMoreUnlinked = false;
+    }
+
+    if (!_hasMoreUnlinked && !refresh) return _unlinkedProducts;
+    if (_isLoadingMoreUnlinked && !refresh) return _unlinkedProducts;
+
+    if (!refresh) {
+      _isLoadingMoreUnlinked = true;
+    } else {
+      _isLoading = true;
+    }
+    _error = null;
+    notifyListeners();
+
+    try {
+      final token = await _storage.getToken();
+      if (token == null) {
+        throw Exception('Non authentifié');
+      }
+
+      print(
+        '📤 Requête: offset=$_currentOffset, limit=$_pageSize, search=$_searchQuery',
+      );
+
+      final response = await _dio.get(
+        '${baseUrl}stores/$storeId/available-products/',
+        queryParameters: {
+          'limit': _pageSize,
+          'offset': _currentOffset,
+          if (_searchQuery.isNotEmpty) 'search': _searchQuery,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        print('📦 Réponse API: ${response.data}');
+
+        List<Product> newProducts = [];
+        int totalCount = 0;
+
+        if (response.data is Map && response.data.containsKey('results')) {
+          final results = response.data['results'] as List? ?? [];
+          totalCount = response.data['count'] ?? 0;
+
+          newProducts = results.map((json) => Product.fromJson(json)).toList();
+
+          // Vérifier si on a atteint la fin
+          final currentLimit = response.data['limit'] ?? _pageSize;
+          _hasMoreUnlinked = (_currentOffset + currentLimit) < totalCount;
+
+          print(
+            '📊 Total: $totalCount, Offset: $_currentOffset, HasMore: $_hasMoreUnlinked',
+          );
+        } else if (response.data is List) {
+          newProducts = (response.data as List)
+              .map((json) => Product.fromJson(json))
+              .toList();
+          _hasMoreUnlinked = false;
+        }
+
+        if (refresh) {
+          _unlinkedProducts = newProducts;
+        } else {
+          // Éviter les doublons
+          final existingIds = _unlinkedProducts.map((p) => p.id).toSet();
+          final uniqueNewProducts = newProducts
+              .where((p) => !existingIds.contains(p.id))
+              .toList();
+          _unlinkedProducts.addAll(uniqueNewProducts);
+        }
+
+        // Mettre à jour l'offset pour la prochaine page
+        if (newProducts.isNotEmpty) {
+          _currentOffset += newProducts.length;
+        }
+
+
+        return _unlinkedProducts;
+      } else {
+        _error = 'Erreur ${response.statusCode}: ${response.data}';
+        return _unlinkedProducts;
+      }
+    } on DioException catch (e) {
+      _error = e.response?.data?.toString() ?? e.message;
+      return _unlinkedProducts;
+    } finally {
+      _isLoading = false;
+      _isLoadingMoreUnlinked = false;
+      notifyListeners();
+    }
+  }
+
+  // ============================================
+  // CHARGER PLUS DE PRODUITS NON LIÉS
+  // ============================================
+  Future<void> loadMoreUnlinkedProducts() async {
+    if (!_hasMoreUnlinked || _isLoadingMoreUnlinked || _isLoading) return;
+    if (_currentStoreId == null) return;
+
+    _isLoadingMoreUnlinked = true;
+    notifyListeners();
+
+    try {
+      await loadUnlinkedProducts(_currentStoreId!, refresh: false);
+    } catch (e) {
+      print("❌ Erreur chargement plus produits non liés: $e");
+    } finally {
+      _isLoadingMoreUnlinked = false;
+      notifyListeners();
+    }
+  }
+
+  // ============================================
   // LINK PRODUCT TO STORE
-  // STORE PRODUCT ACTION
+  // ============================================
   Future<bool> linkProductToStore(
     Product product, {
     double? storePrice,
     double? storeCost,
     int? supplierId,
+    bool linkAllVariants = true,
   }) async {
     if (_currentStoreId == null) {
       _error = "Aucune boutique sélectionnée";
@@ -155,10 +392,10 @@ class ProductProvider extends ChangeNotifier {
       final Map<String, dynamic> data = {
         'store': _currentStoreId,
         'product': product.id,
+        'link_all_variants': linkAllVariants,
         if (storePrice != null) 'store_base_price': storePrice,
         if (storeCost != null) 'store_cost_price': storeCost,
         if (supplierId != null) 'supplier': supplierId,
-        // Vous pouvez ajouter d'autres champs comme 'status', 'is_active' si nécessaire
       };
 
       final response = await _dio.post(
@@ -168,9 +405,8 @@ class ProductProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 201) {
-        // Recharger les produits liés et non liés
-        await loadStoreProducts();
-        await loadUnlinkedProducts(_currentStoreId!);
+        await loadStoreProducts(_currentStoreId!, refresh: true);
+        await loadUnlinkedProducts(_currentStoreId!, refresh: true);
         return true;
       } else {
         _error = "Erreur ${response.statusCode}: ${response.data}";
@@ -185,6 +421,81 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
+  // ============================================
+  // LIER PLUSIEURS PRODUITS À LA BOUTIQUE
+  // ============================================
+  Future<Map<String, dynamic>> linkMultipleProductsToStore(
+    List<Product> products, {
+    double? storePrice,
+    double? storeCost,
+    int? supplierId,
+  }) async {
+    if (_currentStoreId == null) {
+      return {'status': false, 'message': 'Aucune boutique sélectionnée'};
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    int successCount = 0;
+    int failCount = 0;
+    List<String> errors = [];
+
+    try {
+      final token = await _storage.getToken();
+      if (token == null) throw Exception("Non authentifié");
+
+      for (var product in products) {
+        try {
+          final Map<String, dynamic> data = {
+            'store': _currentStoreId,
+            'product': product.id,
+            if (storePrice != null) 'store_base_price': storePrice,
+            if (storeCost != null) 'store_cost_price': storeCost,
+            if (supplierId != null) 'supplier': supplierId,
+          };
+
+          final response = await _dio.post(
+            '${baseUrl}store-products/',
+            data: data,
+            options: Options(headers: {'Authorization': 'Bearer $token'}),
+          );
+
+          if (response.statusCode == 201) {
+            successCount++;
+          } else {
+            failCount++;
+            errors.add('${product.name}: ${response.data}');
+          }
+        } catch (e) {
+          failCount++;
+          errors.add('${product.name}: $e');
+        }
+      }
+
+      await loadStoreProducts(_currentStoreId!, refresh: true);
+      await loadUnlinkedProducts(_currentStoreId!, refresh: true);
+
+      return {
+        'status': successCount > 0,
+        'success': successCount,
+        'failed': failCount,
+        'errors': errors,
+        'message':
+            '$successCount produit(s) lié(s) avec succès${failCount > 0 ? ', $failCount échec(s)' : ''}',
+      };
+    } catch (e) {
+      return {'status': false, 'message': e.toString()};
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // ============================================
+  // UPDATE STORE PRODUCT
+  // ============================================
   Future<Map<String, dynamic>> updateStoreProduct(
     StoreProduct storeProduct,
   ) async {
@@ -194,12 +505,11 @@ class ProductProvider extends ChangeNotifier {
     try {
       final token = await _storage.getToken();
       final response = await _dio.put(
-        "${baseUrl}store-products/${storeProduct.id}/", // ← attention : .id
+        "${baseUrl}store-products/${storeProduct.id}/",
         data: storeProduct.toJson(),
         options: Options(headers: {"Authorization": 'Bearer $token'}),
       );
       if (response.statusCode == 200) {
-        // Optionnel : mettre à jour la liste locale
         final index = _storeProducts.indexWhere((p) => p.id == storeProduct.id);
         if (index != -1) {
           _storeProducts[index] = StoreProduct.fromJson(response.data);
@@ -221,51 +531,83 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadStoreProducts() async {
-    if (_currentStoreId == null) return;
+  // ============================================
+  // DELETE STORE PRODUCT
+  // ============================================
+
+  /// Supprime un produit de la boutique (StoreProduct)
+  Future<Map<String, dynamic>> deleteStoreProduct(int storeProductId) async {
     _isLoading = true;
-    _error = null;
     notifyListeners();
+
     try {
       final token = await _storage.getToken();
-      final response = await _dio.get(
-        '${baseUrl}stores/$_currentStoreId/products/',
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
-      );
-      if (response.statusCode == 200) {
-        final List dataList = response.data as List;
-        List<StoreProduct> tempStoreProducts = [];
-        for (var i = 0; i < dataList.length; i++) {
-          try {
-            final storeProduct = StoreProduct.fromJson(dataList[i]);
-            tempStoreProducts.add(storeProduct);
-          } catch (e, stack) {
-            print('  ❌ ERREUR sur StoreProduct $i: $e');
-            print('  Stack: $stack');
-            // On arrête au premier échec pour voir l'erreur exacte
-            rethrow;
-          }
-        }
-
-        // Si tout passe, on assigne
-        _products = tempStoreProducts;
-      } else {
-        print("Erreur : ${response.data}- ${response.statusCode}");
-        _products = [];
+      if (token == null) {
+        return {'success': false, 'message': 'Non authentifié'};
       }
+
+      final response = await _dio.delete(
+        '${baseUrl}store-products/$storeProductId/',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return {'success': true, 'message': 'Produit supprimé avec succès'};
+      }
+      return {
+        'success': false,
+        'message': 'Erreur ${response.statusCode}: ${response.data}',
+      };
     } on DioException catch (e) {
-      _error = e.response?.data?.toString() ?? e.message;
-      print(_error);
-    } catch (e) {
-      _error = e.toString();
-      print('Erreur catch $_error');
+      return {
+        'success': false,
+        'message': 'Erreur: ${e.response?.data['message'] ?? e.message}',
+      };
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // Méthode pour recharger un StoreProduct spécifique
+  // ============================================
+  // RECHERCHE AVEC MISE À JOUR
+  // ============================================
+  void setSearchQuery(String query) {
+    if (_searchQuery != query) {
+      _searchQuery = query;
+      _currentPage = 1;
+      _currentPageUnlinked = 1;
+      _products = [];
+      _unlinkedProducts = [];
+      _hasMore = true;
+      _hasMoreUnlinked = true;
+      if (_currentStoreId != null) {
+        loadStoreProducts(_currentStoreId!, refresh: true);
+        loadUnlinkedProducts(_currentStoreId!, refresh: true);
+      }
+    }
+    notifyListeners();
+  }
+
+  void setStatusFilter(String filter) {
+    _statusFilter = filter;
+    _currentPage = 1;
+    _products = [];
+    _hasMore = true;
+    if (_currentStoreId != null) {
+      loadStoreProducts(_currentStoreId!, refresh: true);
+    }
+    notifyListeners();
+  }
+
+  // ============================================
+  // REFRESH STORE PRODUCT
+  // ============================================
   Future<void> refreshStoreProduct(int storeProductId) async {
     try {
       final token = await _storage.getToken();
@@ -277,24 +619,23 @@ class ProductProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         final updatedProduct = StoreProduct.fromJson(response.data);
 
-        // Mettre à jour dans la liste
         final index = _products.indexWhere((p) => p.id == storeProductId);
         if (index != -1) {
           _products[index] = updatedProduct;
         }
         _selectedProduct = updatedProduct;
-        notifyListeners(); // ← CECI DÉCLENCHE LE REBUILD DES CONSUMERS
-        // return updatedProduct;
+        notifyListeners();
       }
     } catch (e) {
       print('❌ Erreur refreshStoreProduct: $e');
     }
-    return null;
+    return;
   }
 
+  // ============================================
+  // ADD / UPDATE / DELETE PRODUCT
+  // ============================================
   Future<Map<String, dynamic>> addProduct(Product product) async {
-    if (boutiqueService.selectedStore?.boutique.id == null)
-      return {"status": false, "message": "Boutique non sélectionnée"};
     _isLoading = true;
     notifyListeners();
     try {
@@ -312,15 +653,12 @@ class ProductProvider extends ChangeNotifier {
         'is_active': true,
       });
       if (product.imagesUrls!.isNotEmpty) {
-        // Première image = photo principale
         formData.files.add(
           MapEntry(
             'photo',
             await MultipartFile.fromFile(product.imagesUrls!.first),
           ),
         );
-
-        // Images supplémentaires (toutes les suivantes) sous le même nom 'additional_images'
         for (var i = 1; i < product.imagesUrls!.length; i++) {
           formData.files.add(
             MapEntry(
@@ -339,11 +677,7 @@ class ProductProvider extends ChangeNotifier {
         ),
       );
       if (response.statusCode == 201) {
-        final Map<String, dynamic> res = {
-          "status": true,
-          "message": 'Produit créé avec succès',
-        };
-        return res;
+        return {"status": true, "message": 'Produit créé avec succès'};
       } else {
         print(
           "Erreur lors de la création ${response.data}-${response.statusCode}",
@@ -363,7 +697,7 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String,dynamic>> updateProduct(Product product) async {
+  Future<Map<String, dynamic>> updateProduct(Product product) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -383,7 +717,6 @@ class ProductProvider extends ChangeNotifier {
         'is_active': true,
       });
 
-      // Séparer les images existantes des nouvelles images
       final List<String> existingImages = [];
       final List<String> newImages = [];
 
@@ -396,16 +729,13 @@ class ProductProvider extends ChangeNotifier {
         }
       }
 
-      // Ajouter les images existantes
       if (existingImages.isNotEmpty) {
         formData.fields.add(
-          MapEntry('existing_ images', existingImages.join(',')),
+          MapEntry('existing_images', existingImages.join(',')),
         );
       }
 
-      // Ajouter les nouvelles images
       if (newImages.isNotEmpty) {
-        // Première image = photo principale
         if (newImages.first.isNotEmpty) {
           final file = File(newImages.first);
           if (await file.exists()) {
@@ -417,7 +747,6 @@ class ProductProvider extends ChangeNotifier {
           }
         }
 
-        // Images supplémentaires
         for (int i = 1; i < newImages.length; i++) {
           final file = File(newImages[i]);
           if (await file.exists()) {
@@ -447,11 +776,8 @@ class ProductProvider extends ChangeNotifier {
           _products[index].product = updatedProduct;
           notifyListeners();
         }
-        await loadStoreProducts();
-        return {
-          "status": true,
-          "message": 'Produit mis à jour avec succès',
-        };
+        await loadStoreProducts(_currentStoreId!, refresh: true);
+        return {"status": true, "message": 'Produit mis à jour avec succès'};
       }
       return {
         "status": false,
@@ -470,7 +796,6 @@ class ProductProvider extends ChangeNotifier {
   }
 
   Future<void> deleteProduct(int id) async {
-    if (boutiqueService.selectedStore!.boutique.id != id) return;
     _isLoading = true;
     notifyListeners();
     try {
@@ -494,18 +819,9 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setSearchQuery(String query) {
-    _searchQuery = query;
-    notifyListeners();
-  }
-
-  void setStatusFilter(String filter) {
-    _statusFilter = filter;
-    notifyListeners();
-  }
-
-  // VARIANTE
-  // Charger les variantes d'un produit
+  // ============================================
+  // VARIANTES
+  // ============================================
   Future<List<Variant>> loadVariants(int storeProductId) async {
     try {
       final token = await _storage.getToken();
@@ -515,8 +831,15 @@ class ProductProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        final List data = response.data;
-        return data.map((json) => Variant.fromJson(json)).toList();
+        List variantsList;
+        if (response.data is Map && response.data.containsKey('results')) {
+          variantsList = response.data['results'];
+        } else if (response.data is List) {
+          variantsList = response.data;
+        } else {
+          variantsList = [];
+        }
+        return variantsList.map((json) => Variant.fromJson(json)).toList();
       }
     } catch (e) {
       print('Erreur chargement variantes: $e');
@@ -524,7 +847,6 @@ class ProductProvider extends ChangeNotifier {
     return [];
   }
 
-  // Créer une variante globale
   Future<Map<String, dynamic>> createVariant(
     int productId,
     Map<String, dynamic> data,
@@ -533,8 +855,6 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final token = await _storage.getToken();
-
-      /// Créer un FormData
       final formData = FormData.fromMap({
         'barcode': data['barcode'],
         'name': data['name'],
@@ -546,7 +866,6 @@ class ProductProvider extends ChangeNotifier {
           'compare_price': data['compare_price'],
       });
 
-      // Ajouter l'image si présente
       if (data.containsKey('photo') && data['photo'] != null) {
         final XFile image = data['photo'];
         formData.files.add(
@@ -558,7 +877,7 @@ class ProductProvider extends ChangeNotifier {
       }
 
       final response = await _dio.post(
-        '${baseUrl}products/$productId/variants/',
+        '${baseUrl}product-variants/$productId/variants/',
         data: formData,
         options: Options(
           headers: {'Authorization': 'Bearer $token'},
@@ -583,7 +902,6 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  // Mettre à jour une variante
   Future<Map<String, dynamic>> updateGlobalVariant(
     int variantId,
     Map<String, dynamic> data,
@@ -594,7 +912,6 @@ class ProductProvider extends ChangeNotifier {
     try {
       final token = await _storage.getToken();
 
-      // Créer un FormData
       final formData = FormData.fromMap({
         'product': data['product'],
         'barcode': data['barcode'],
@@ -607,7 +924,6 @@ class ProductProvider extends ChangeNotifier {
           'compare_price': data['compare_price'],
       });
 
-      // Ajouter l'image si présente
       if (image != null && !image.path.contains('http')) {
         formData.files.add(
           MapEntry(
@@ -626,37 +942,31 @@ class ProductProvider extends ChangeNotifier {
         data: formData,
         options: Options(
           headers: {'Authorization': 'Bearer $token'},
-          contentType: 'multipart/form-data', // Important !
+          contentType: 'multipart/form-data',
         ),
       );
       if (response.statusCode == 200) {
-        // 1. Créer la variante mise à jour depuis la réponse
         final updatedVariant = Variant.fromJson(response.data);
 
-        // 2. Mettre à jour dans le cache local (_products)
         for (var storeProduct in _products) {
           if (storeProduct.product.id == data['product']) {
-            // Trouver la variante dans la liste et la remplacer
             final variantIndex =
                 storeProduct.product.variants?.indexWhere(
                   (v) => v.id == variantId,
                 ) ??
                 -1;
-
             if (variantIndex != -1) {
               storeProduct.product.variants![variantIndex] = updatedVariant;
             }
           }
         }
 
-        // 3. Mettre à jour le produit sélectionné si c'est le même
         if (_selectedProduct?.product.id == data['product']) {
           final variantIndex =
               _selectedProduct?.product.variants?.indexWhere(
                 (v) => v.id == variantId,
               ) ??
               -1;
-
           if (variantIndex != -1) {
             _selectedProduct!.product.variants![variantIndex] = updatedVariant;
           }
@@ -687,13 +997,11 @@ class ProductProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 204) {
-        // Nettoyer le cache
         _unlinkedVariantes.removeWhere((v) => v.id == variantId);
         for (var storeProduct in _products) {
           storeProduct.product.variants?.removeWhere((v) => v.id == variantId);
         }
         notifyListeners();
-
         return {'status': true, 'message': 'Variante supprimée avec succès'};
       }
 
@@ -707,7 +1015,6 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  // Créer une variante ET la lier à la boutique (si nécessaire)
   Future<Map<String, dynamic>> createAndLinkVariant({
     required int productId,
     required int storeId,
@@ -719,20 +1026,20 @@ class ProductProvider extends ChangeNotifier {
     try {
       final token = await _storage.getToken();
 
-      /// Créer un FormData
       final formData = FormData.fromMap({
         'barcode': variantData['barcode'],
         'name': variantData['name'],
-        'quantity': variantData['quantity'],
-        'sale_price_1': variantData['sale_price_1'],
-        if (variantData.containsKey('store_online_price'))
+        'quantity': FormatUtils.toDouble(variantData['quantity']),
+        'sale_price_1': FormatUtils.toDouble(variantData['sale_price_1']),
+        if (variantData.containsKey('store_online_price') &&
+            variantData['store_online_price'] != null)
           'store_online_price': variantData['store_online_price'],
-        if (variantData.containsKey('compare_price'))
-          'compare_price': variantData['compare_price'],
+        if (variantData.containsKey('prix_reduction') &&
+            variantData['prix_reduction'] != null)
+          'prix_reduction': variantData['prix_reduction'],
         'store_id': storeId,
       });
 
-      // Ajouter l'image si présente
       if (variantData.containsKey('photo') && variantData['photo'] != null) {
         final XFile image = variantData['photo'];
         formData.files.add(
@@ -753,7 +1060,7 @@ class ProductProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 201) {
-        await loadStoreProducts(); // Recharger les données pour voir la nouvelle variante liée
+        await loadStoreProducts(_currentStoreId!, refresh: true);
         return {
           'status': true,
           'message': 'Variante créée et liée avec succès',
@@ -761,38 +1068,52 @@ class ProductProvider extends ChangeNotifier {
         };
       }
       return {'status': false, 'message': _formatErrorMessage(response.data)};
-    } catch (e) {
-      return {'status': false, 'message': e.toString()};
+    } on DioException catch (e) {
+      print('❌ DioException in createAndLinkVariant: ${e.message}');
+      return {'status': false, 'message': e.response?.data.toString()};
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // Lier une variante à un magasin (StoreVariant)
-  Future<Map<String, dynamic>> linkVariantToStore(
-    int storeProductId,
-    int variantId, {
+  Future<Map<String, dynamic>> linkVariantToStore({
+    required int storeProductId,
+    int? variantId,
+    List<int>? variantIds,
     double? price,
     double? onlinePrice,
     int? stock,
-    XFile? image, // ← Ajout du paramètre image
+    XFile? image,
   }) async {
     _isLoading = true;
     notifyListeners();
+
     try {
       final token = await _storage.getToken();
+      if (token == null) throw Exception("Non authentifié");
 
-      // Créer FormData pour l'image
-      final formData = FormData.fromMap({
-        'variant_id': variantId,
-        if (price != null) 'price': price,
-        if (onlinePrice != null) 'store_online_price': onlinePrice,
-        if (stock != null) 'stock': stock,
-      });
+      final formData = FormData();
 
-      // Ajouter l'image si présente
-      if (image != null && !image.path.contains('http')) {
+      if (variantId != null) {
+        formData.fields.add(MapEntry('variant_id', variantId.toString()));
+      }
+      if (variantIds != null && variantIds.isNotEmpty) {
+        for (var id in variantIds) {
+          formData.fields.add(MapEntry('variant_ids', id.toString()));
+        }
+      }
+      if (price != null) {
+        formData.fields.add(MapEntry('price', price.toString()));
+      }
+      if (onlinePrice != null) {
+        formData.fields.add(MapEntry('online_price', onlinePrice.toString()));
+      }
+      if (stock != null) {
+        formData.fields.add(MapEntry('stock', stock.toString()));
+      }
+
+      if (image != null && !image.path.contains('http') && variantIds == null) {
         formData.files.add(
           MapEntry(
             'photo',
@@ -800,7 +1121,7 @@ class ProductProvider extends ChangeNotifier {
           ),
         );
       }
-
+      print('donnees envoyer ${formData.fields}');
       final response = await _dio.post(
         '${baseUrl}store-products/$storeProductId/link_variant/',
         data: formData,
@@ -809,11 +1130,25 @@ class ProductProvider extends ChangeNotifier {
           contentType: 'multipart/form-data',
         ),
       );
+      print('RESPONSE DATA ${response.data}');
       if (response.statusCode == 201) {
-        return {'status': true, 'message': 'Variante liée au magasin'};
+        if (response.data['total_created'] != null) {
+          return {
+            'status': true,
+            'message':
+                '${response.data['total_created']} variante(s) liée(s) avec succès',
+            'data': response.data,
+          };
+        }
+        return {
+          'status': true,
+          'message': 'Variante liée au magasin',
+          'data': response.data,
+        };
       }
       return {'status': false, 'message': _formatErrorMessage(response.data)};
     } catch (e) {
+      print('❌ Erreur linkVariantToStore: $e');
       return {'status': false, 'message': e.toString()};
     } finally {
       _isLoading = false;
@@ -821,7 +1156,6 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  // Charger les variantes NON liées à la boutique actuelle
   Future<List<Variant>> loadUnlinkedVariants(int productId, int storeId) async {
     try {
       final token = await _storage.getToken();
@@ -831,9 +1165,19 @@ class ProductProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        final List variants = response.data['unlinked_variants'];
-        _unlinkedVariantes = variants.map((v) => Variant.fromJson(v)).toList();
-        return _unlinkedVariantes;
+        List variantsList;
+        if (response.data is Map &&
+            response.data.containsKey('unlinked_variants')) {
+          variantsList = response.data['unlinked_variants'];
+        } else if (response.data is Map &&
+            response.data.containsKey('results')) {
+          variantsList = response.data['results'];
+        } else if (response.data is List) {
+          variantsList = response.data;
+        } else {
+          variantsList = [];
+        }
+        return variantsList.map((v) => Variant.fromJson(v)).toList();
       }
     } catch (e) {
       print('Erreur chargement variantes non liées: $e');
@@ -841,7 +1185,6 @@ class ProductProvider extends ChangeNotifier {
     return [];
   }
 
-  // Charger les StoreVariants pour un magasin
   Future<List<StoreVariant>> loadStoreVariants(int storeId) async {
     try {
       final token = await _storage.getToken();
@@ -849,9 +1192,17 @@ class ProductProvider extends ChangeNotifier {
         '${baseUrl}stores/$storeId/variants/',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
+
       if (response.statusCode == 200) {
-        final List data = response.data;
-        return data.map((v) => StoreVariant.fromJson(v)).toList();
+        List variantsList;
+        if (response.data is Map && response.data.containsKey('results')) {
+          variantsList = response.data['results'];
+        } else if (response.data is List) {
+          variantsList = response.data;
+        } else {
+          variantsList = [];
+        }
+        return variantsList.map((v) => StoreVariant.fromJson(v)).toList();
       }
     } catch (e) {
       print('Erreur chargement store variants: $e');
@@ -860,11 +1211,8 @@ class ProductProvider extends ChangeNotifier {
   }
 
   // ============================================
-  // FONCTIONS POUR LES VARIANTES LIÉES À UNE BOUTIQUE (StoreProductVariant)
+  // STORE VARIANT UPDATE
   // ============================================
-
-  /// Met à jour une variante DÉJÀ LIÉE à une boutique (StoreProductVariant)
-  /// Utilisé pour modifier les prix, quantités, promotions spécifiques à la boutique
   Future<Map<String, dynamic>> updateStoreVariant({
     required int storeVariantId,
     double? quantity,
@@ -887,7 +1235,6 @@ class ProductProvider extends ChangeNotifier {
       final token = await _storage.getToken();
       if (token == null) throw Exception("Non authentifié");
 
-      // 1. Mettre à jour la liaison StoreProductVariant
       final storeVariantData = {
         if (quantity != null) 'quantity': quantity,
         if (storePrice != null) 'store_variant_price': storePrice,
@@ -906,7 +1253,6 @@ class ProductProvider extends ChangeNotifier {
           data: storeVariantData,
           options: Options(headers: {'Authorization': 'Bearer $token'}),
         );
-        print(storeResponse.data);
         if (storeResponse.statusCode != 200 &&
             storeResponse.statusCode != 204) {
           return {
@@ -917,7 +1263,6 @@ class ProductProvider extends ChangeNotifier {
         }
       }
 
-      // 2. Si on veut aussi mettre à jour la variante globale
       if (globalVariantId != null && globalVariantData != null) {
         final formData = FormData.fromMap({
           'barcode': globalVariantData['barcode'],
@@ -941,7 +1286,7 @@ class ProductProvider extends ChangeNotifier {
           );
         }
 
-        final globalResponse = await _dio.put(
+        final globalResponse = await _dio.patch(
           '${baseUrl}product-variants/$globalVariantId/',
           data: formData,
           options: Options(
@@ -959,8 +1304,7 @@ class ProductProvider extends ChangeNotifier {
         }
       }
 
-      // 3. Recharger les données pour mettre à jour le cache
-      await loadStoreProducts();
+      await loadStoreProducts(_currentStoreId!, refresh: true);
 
       return {
         'status': true,
@@ -975,7 +1319,6 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  /// Délie une variante de la boutique (supprime StoreProductVariant)
   Future<Map<String, dynamic>> unlinkStoreVariant({
     required int storeProductId,
     int? storeVariantId,
@@ -1005,7 +1348,7 @@ class ProductProvider extends ChangeNotifier {
             .product
             .variants
             ?.removeWhere((v) => v.id == variantId);
-        await loadStoreProducts();
+        await loadStoreProducts(_currentStoreId!, refresh: true);
         return {'status': true, 'message': 'Variante dissociée avec succès'};
       }
 
@@ -1018,7 +1361,9 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
+  // ============================================
   // STOCK
+  // ============================================
   Future<Map<String, dynamic>> adjustStock({
     required int storeProductId,
     required int quantity,
@@ -1036,12 +1381,11 @@ class ProductProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        await loadStoreProducts(); // Recharger les données pour voir le stock mis à jour
-        // Retourner TOUTES les données de l'API
+        await loadStoreProducts(_currentStoreId!, refresh: true);
         return {
           'status': true,
           'message': response.data['message'] ?? 'Stock mis à jour',
-          'stock': response.data['stock'], // Données complètes du stock
+          'stock': response.data['stock'],
           'movement_id': response.data['movement_id'],
           'movement_reference': response.data['movement_reference'],
         };
@@ -1049,7 +1393,6 @@ class ProductProvider extends ChangeNotifier {
       return {'status': false, 'message': 'Erreur ${response.statusCode}'};
     } catch (e) {
       if (e is DioException) {
-        // Gérer les erreurs spécifiques de Dio
         if (e.response?.data != null) {
           final errorData = e.response?.data;
           if (errorData is Map && errorData.containsKey('error')) {
@@ -1090,8 +1433,9 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
+  // ============================================
   // PRODUCT BRAND
-
+  // ============================================
   Future<void> loadBrand() async {
     _isLoading = true;
     notifyListeners();
@@ -1102,11 +1446,6 @@ class ProductProvider extends ChangeNotifier {
         _brands = results
             .map<ProductBrand>((brand) => ProductBrand.fromJson(brand))
             .toList();
-      } else {
-        _brands = [];
-        print(
-          'Erreur lors de la recuperation ${response.data}-${response.statusCode}',
-        );
       }
     } catch (e) {
       print("Erreur: $e");
@@ -1128,8 +1467,6 @@ class ProductProvider extends ChangeNotifier {
       );
       if (response.statusCode == 201) {
         loadBrand();
-      } else {
-        print('${response.data} - ${response.statusCode}');
       }
     } catch (e) {
       print('Erreur: $e');
@@ -1147,12 +1484,10 @@ class ProductProvider extends ChangeNotifier {
       final response = await _dio.put(
         '${baseUrl}product-brands/${brand.id}/',
         options: Options(headers: {'Authorization': "Bearer $token"}),
-        data: brand,
+        data: brand.toJson(),
       );
       if (response.statusCode == 200) {
         loadBrand();
-      } else {
-        print('${response.data} - ${response.statusCode}');
       }
     } catch (e) {
       print('Erreur: $e');
@@ -1173,8 +1508,6 @@ class ProductProvider extends ChangeNotifier {
       );
       if (response.statusCode == 204) {
         loadBrand();
-      } else {
-        print('${response.data} - ${response.statusCode}');
       }
     } catch (e) {
       print('Erreur: $e');
@@ -1184,7 +1517,9 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
+  // ============================================
   // GESTION DES ERREURS
+  // ============================================
   String _formatErrorMessage(Map<String, dynamic> errors) {
     if (errors.isEmpty) {
       return 'Une erreur est survenue';
@@ -1193,7 +1528,6 @@ class ProductProvider extends ChangeNotifier {
     List<String> errorMessages = [];
 
     errors.forEach((field, messages) {
-      // Convertir les noms de champs en français
       String fieldName = _getFieldNameInFrench(field);
 
       if (messages is List) {
@@ -1203,7 +1537,6 @@ class ProductProvider extends ChangeNotifier {
       } else if (messages is String) {
         errorMessages.add('$fieldName: $messages');
       } else if (messages is Map<String, dynamic>) {
-        // Pour les erreurs imbriquées
         _parseNestedErrors(messages, fieldName, errorMessages);
       }
     });
@@ -1221,7 +1554,6 @@ class ProductProvider extends ChangeNotifier {
       'prix_reduction': 'Prix promotionnel',
       'image': 'Image',
     };
-
     return fieldNames[field] ?? field;
   }
 

@@ -368,7 +368,7 @@ class _StockScreenState extends State<StockScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: _getStockStatusColor(stock.stockStatus).withOpacity(0.1),
+                            color: _getStockStatusColor(stock.stockStatus).withValues(alpha :0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(

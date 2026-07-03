@@ -1,12 +1,12 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:nsp_pos_mobile/features/auth/service/auth_form.dart';
+import 'package:nsp_pos_mobile/features/auth/service/auth_service.dart';
+import 'package:nsp_pos_mobile/features/auth/viewmodel/user_model.dart';
 import 'package:nsp_pos_mobile/localization/locale_keys.dart';
 import 'package:provider/provider.dart';
 
 class SideMenu extends StatefulWidget {
   const SideMenu({super.key});
-
   @override
   State<SideMenu> createState() => _SideMenuState();
 }
@@ -29,8 +29,7 @@ class _SideMenuState extends State<SideMenu> {
 
   Widget _buildDrawerContent(BuildContext context, AuthService authService) {
     final currentRoute = _getCurrentRoute(context);
-    final userData = authService.userData;
-    final user = userData as Map<String, dynamic>?;
+    final user = authService.currentUser;
 
     // Configuration des modules avec icônes et couleurs
     final List<Map<String, dynamic>> menuItems = [
@@ -40,6 +39,7 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.dashboard,
         'selectedColor': Colors.blue,
         'iconColor': Colors.blue,
+        'visible': user?.canViewReports ?? false, // Visible si l'utilisateur peut voir les rapports
       },
       {
         'title': 'Mes Boutiques',
@@ -47,6 +47,7 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.store,
         'selectedColor': Colors.green,
         'iconColor': Colors.green,
+        'visible' : user?.isOwner == true // Visible pour les propriétaires
       },
       {
         'title': 'Caisse',
@@ -54,6 +55,7 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.point_of_sale,
         'selectedColor': Colors.orange,
         'iconColor': Colors.orange,
+        'visible' : user!.canManageCashbox || user.isOwner == true // Visible si l'utilisateur peut accéder à la caisse
       },
       {
         'title': LocaleKeys.employeesTitle.tr(),
@@ -61,6 +63,7 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.people,
         'selectedColor': Colors.purple,
         'iconColor': Colors.purple,
+        'visible' : user.canManageEmployees // Visible si l'utilisateur peut voir les employés
       },
       {
         'title': LocaleKeys.typeProductsTitle.tr(),
@@ -68,6 +71,7 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.category,
         'selectedColor': Colors.indigo,
         'iconColor': Colors.indigo,
+        'visible' : user.canManageProducts // Visible si l'utilisateur peut voir les types de produits
       },
       {
         'title': LocaleKeys.productTitle.tr(),
@@ -75,6 +79,7 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.inventory,
         'selectedColor': Colors.teal,
         'iconColor': Colors.teal,
+        'visible' : user.canManageProducts // Visible si l'utilisateur peut voir les produits
       },
       {
         'title': 'Inventaire',
@@ -82,6 +87,7 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.list_alt,
         'selectedColor': Colors.indigo,
         'iconColor': Colors.indigo,
+        'visible' : user.canManageInventory // Visible si l'utilisateur peut voir l'inventaire
       },
       {
         'title': 'Statistiques',
@@ -89,6 +95,7 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.bar_chart,
         'selectedColor': Colors.red,
         'iconColor': Colors.red,
+        'visible' : user.canViewReports // Visible si l'utilisateur peut voir les rapports
       },
       {
         'title': 'Abonnements',
@@ -96,6 +103,7 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.card_membership,
         'selectedColor': Colors.pink,
         'iconColor': Colors.pink,
+        'visible' : user.canManageSubscriptions // Visible si l'utilisateur peut gérer les abonnements
       },
       {
         'title': 'Approvisionnement',
@@ -103,6 +111,7 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.local_shipping,
         'selectedColor': Colors.brown,
         'iconColor': Colors.brown,
+        'visible' : user.canManageSupply // Visible si l'utilisateur peut gérer les approvisionnements
       },
       {
         'title': 'Stock',
@@ -110,6 +119,8 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.warehouse,
         'selectedColor': Colors.cyan,
         'iconColor': Colors.cyan,
+        'visible' : user.canManageProducts // Visible si l'utilisateur peut gérer le stock
+
       },
       {
         'title': LocaleKeys.settingsTitle.tr(),
@@ -117,6 +128,7 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.settings,
         'selectedColor': Colors.grey[700]!,
         'iconColor': Colors.grey[600]!,
+        'visible' : true // Visible pour tous les utilisateurs
       },
     ];
 
@@ -141,7 +153,7 @@ class _SideMenuState extends State<SideMenu> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Column(
-                children: menuItems.map((item) {
+                children: menuItems.where((item) => item['visible'] == true).map((item) {
                   // Utiliser la route actuelle pour déterminer si l'élément est sélectionné
                   bool isSelected = currentRoute == item['route'];
                   return _buildMenuItem(
@@ -172,13 +184,13 @@ class _SideMenuState extends State<SideMenu> {
     );
   }
 
-  Widget _buildUserHeader(BuildContext context, Map<String, dynamic>? user) {
+  Widget _buildUserHeader(BuildContext context, User user) {
     // Extraire les informations utilisateur
-    final fullName = user?['full_name'];
-    final email = user?['email'];
-    final role = user?['role'];
-    final firstName = user?['first_name'];
-    final lastName = user?['last_name'];
+    final fullName = user.fullName;
+    final email = user.email;
+    final role = user.role;
+    final firstName = user.firstName;
+    final lastName = user.lastName;
 
     // Créer les initiales pour l'avatar
     String getInitials() {
@@ -201,8 +213,6 @@ class _SideMenuState extends State<SideMenu> {
 
     // Couleur basée sur le rôle ou l'email
     Color getAvatarColor() {
-      if (user == null) return Colors.blue;
-
       // Générer une couleur stable basée sur l'email ou le nom
       final hash = (email.isNotEmpty ? email : fullName).hashCode;
       final colors = [

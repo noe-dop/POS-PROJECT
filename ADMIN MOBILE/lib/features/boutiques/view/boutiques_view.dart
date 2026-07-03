@@ -4,12 +4,14 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/core/constants/random_color.dart';
 import 'package:nsp_pos_mobile/core/services/notifications.dart';
-import 'package:nsp_pos_mobile/features/auth/service/auth_form.dart';
+import 'package:nsp_pos_mobile/features/auth/service/auth_service.dart';
 import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
+import 'package:nsp_pos_mobile/features/boutiques/view/cash_register_list_screen.dart';
 import 'package:nsp_pos_mobile/features/boutiques/view/detail_boutique_view.dart';
 import 'package:nsp_pos_mobile/features/boutiques/view/edit_boutique_view.dart';
 import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_model.dart';
 import 'package:nsp_pos_mobile/app/side_menu.dart';
+import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_type_model.dart';
 import 'package:nsp_pos_mobile/localization/locale_keys.dart';
 import 'package:provider/provider.dart';
 
@@ -76,10 +78,12 @@ class _BoutiquesViewState extends State<BoutiquesView> {
         listStores = boutiqueService.accessibleStores;
         filteredStoresList = listStores.where((store) {
           // Filtre par statut
-          if (_statusFilter == 'active' && !store.boutique.isActive)
+          if (_statusFilter == 'active' && !store.boutique.isActive) {
             return false;
-          if (_statusFilter == 'inactive' && store.boutique.isActive)
+          }
+          if (_statusFilter == 'inactive' && store.boutique.isActive) {
             return false;
+          }
 
           // Filtre par recherche textuelle (nom, ville, adresse, email)
           if (_searchController.text.isNotEmpty) {
@@ -798,7 +802,7 @@ class _BoutiquesViewState extends State<BoutiquesView> {
                       );
                       return;
                     }
-                    
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -883,6 +887,23 @@ class _BoutiquesViewState extends State<BoutiquesView> {
                     Icons.visibility,
                     size: 18,
                     color: Colors.green,
+                  ),
+                  padding: EdgeInsets.zero,
+                ),
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            CashRegisterListScreen(storeId: store.id),
+                      ),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.point_of_sale,
+                    size: 18,
+                    color: Colors.orange,
                   ),
                   padding: EdgeInsets.zero,
                 ),

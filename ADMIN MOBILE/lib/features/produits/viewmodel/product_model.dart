@@ -45,7 +45,8 @@ class Product {
     if (json['photo'] != null && json['photo'].toString().isNotEmpty) {
       imagesList.add(json['photo'].toString());
     }
-    if (json['additional_images_urls'] != null  && json["additional_images_urls"] is List) {
+    if (json['additional_images_urls'] != null &&
+        json["additional_images_urls"] is List) {
       imagesList.addAll(
         (json['additional_images_urls'] as List)
             .map((e) => e.toString())
@@ -53,7 +54,7 @@ class Product {
             .toList(),
       );
     }
-    if (json['images_urls'] !=null && json["images_urls"] is List) {
+    if (json['images_urls'] != null && json["images_urls"] is List) {
       imagesList.addAll(
         (json['images_urls'] as List)
             .map((e) => e.toString())
@@ -72,13 +73,18 @@ class Product {
       price: FormatUtils.toDouble(json["base_price"]),
       cost: FormatUtils.toDouble(json["cost_price"]),
       nombreItem: FormatUtils.toDouble(json["nombre_item"]),
-      variants: (json['variants'] as List?)?.map((v) => Variant.fromJson(v)).toList() ?? [],
-      categorieId: json['main_category_id'],
-      groupeId: json['group'],
-      typeId: json['product_type'],
+      variants:
+          (json['variants'] as List?)
+              ?.map((v) => Variant.fromJson(v))
+              .toList() ??
+          [],
+      categorieId: FormatUtils.toInt(json['main_category_id']) as int,
+      groupeId: FormatUtils.toInt(json['group']) as int,
+      typeId: FormatUtils.toInt(json['product_type']),
       // searchVector: json()
     );
   }
+  
 
   Map<String, dynamic> toJson() {
     return {
@@ -91,7 +97,7 @@ class Product {
       'description': description,
       'price': price,
       'cost': cost,
-      'qt_item':nombreItem,
+      'qt_item': nombreItem,
       'min_stock_threshold': minStockThreshold,
       'variants': variants?.map((v) => v.toJson()).toList(),
       'categorie_id': categorieId,

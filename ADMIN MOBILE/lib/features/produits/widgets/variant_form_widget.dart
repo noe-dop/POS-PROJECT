@@ -307,9 +307,7 @@ class _VariantFormWidgetState extends State<VariantFormWidget> {
           enabled: !_isLinked,
           validator: _isLinked ? null : _validateQuantity,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            _DecimalTextInputFormatter(),
-          ],
+          inputFormatters: [_DecimalTextInputFormatter()],
           decoration: InputDecoration(
             labelText: "Quantité d'item *",
             hintText: 'Ex: 1, 0.5, 0.33, 2.5',
@@ -443,7 +441,8 @@ class _VariantFormWidgetState extends State<VariantFormWidget> {
             border: const OutlineInputBorder(),
             prefixIcon: const Icon(Icons.local_offer),
             prefixText: 'FCFA ',
-            helperText: 'Prix en promotion (optionnel, doit être ≤ prix boutique)',
+            helperText:
+                'Prix en promotion (optionnel, doit être ≤ prix boutique)',
             filled: true,
             fillColor: Colors.white,
           ),
@@ -515,10 +514,7 @@ class _VariantFormWidgetState extends State<VariantFormWidget> {
                 ),
                 child: Text(
                   'Note: Le prix en ligne est généralement plus élevé que le prix boutique pour couvrir les frais de livraison.',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.amber.shade800,
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.amber.shade800),
                 ),
               ),
             ],
@@ -552,24 +548,23 @@ class _VariantFormWidgetState extends State<VariantFormWidget> {
     );
   }
 
-  Widget _buildPriceRule(String label, String operator, String reference, Color color) {
+  Widget _buildPriceRule(
+    String label,
+    String operator,
+    String reference,
+    Color color,
+  ) {
     return Row(
       children: [
         Container(
           width: 8,
           height: 8,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 8),
         Text(
           '$label $operator $reference',
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey.shade700,
-          ),
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
         ),
       ],
     );
@@ -699,7 +694,7 @@ class _VariantFormWidgetState extends State<VariantFormWidget> {
 
   String? _validateOnlinePrice(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Le prix en ligne est requis';
+      return null; // Optionnel, mais si rempli doit être valide
     }
 
     String normalizedValue = value.trim().replaceAll(',', '.');
@@ -824,11 +819,17 @@ class _VariantFormWidgetState extends State<VariantFormWidget> {
       final image = _selectedImages.isNotEmpty ? _selectedImages.first : null;
 
       // Normaliser la quantité (remplacer virgule par point)
-      String quantityText = _quantityController.text.trim().replaceAll(',', '.');
+      String quantityText = _quantityController.text.trim().replaceAll(
+        ',',
+        '.',
+      );
       double quantity = double.parse(quantityText);
 
       // Normaliser les prix
-      String salePrice1Text = _salePrice1Controller.text.trim().replaceAll(',', '.');
+      String salePrice1Text = _salePrice1Controller.text.trim().replaceAll(
+        ',',
+        '.',
+      );
       double salePrice1 = double.parse(salePrice1Text);
 
       if (!_isEditing) {
@@ -843,7 +844,8 @@ class _VariantFormWidgetState extends State<VariantFormWidget> {
                   _storePriceController.text.trim().replaceAll(',', '.'),
                 )
               : null,
-          'store_online_price': _storeOnlinePriceController.text.trim().isNotEmpty
+          'store_online_price':
+              _storeOnlinePriceController.text.trim().isNotEmpty
               ? double.parse(
                   _storeOnlinePriceController.text.trim().replaceAll(',', '.'),
                 )
@@ -856,7 +858,7 @@ class _VariantFormWidgetState extends State<VariantFormWidget> {
           variantData: variantData,
           image: image,
         );
-        
+
         if (mounted) {
           if (response['status'] == true) {
             Navigator.pop(context);
@@ -867,6 +869,13 @@ class _VariantFormWidgetState extends State<VariantFormWidget> {
           }
         }
       } else {
+        // MISE À JOUR - Inclure l'image et les données globales
+        final globalVariantData = {
+          'barcode': _barcodeController.text.trim(),
+          'name': _nameController.text.trim(),
+          'quantity': quantity,
+          'sale_price_1': salePrice1,
+        };
         // MISE À JOUR - Seulement les champs boutique
         response = await provider.updateStoreVariant(
           storeVariantId: widget.variant!.storeVariantId!,
@@ -886,6 +895,8 @@ class _VariantFormWidgetState extends State<VariantFormWidget> {
                 )
               : null,
           image: image,
+          globalVariantId: widget.variant!.id,
+          globalVariantData: globalVariantData,
         );
       }
 

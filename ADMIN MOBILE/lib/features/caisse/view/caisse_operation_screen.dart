@@ -1,2498 +1,1311 @@
+// lib/features/caisse/view/caisse_operation_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/caisse_session.dart';
+import 'package:flutter/services.dart';
+import 'package:nsp_pos_mobile/core/widgets/numeric_keyboard.dart';
+import 'package:nsp_pos_mobile/features/caisse/services/order_provider.dart';
+import 'package:nsp_pos_mobile/features/caisse/view/payment_modal.dart';
+import 'package:nsp_pos_mobile/features/caisse/view/orders_tab.dart';
+import 'package:nsp_pos_mobile/features/caisse/view/products_search_sheet.dart';
+import 'package:provider/provider.dart';
 import 'package:nsp_pos_mobile/app/side_menu.dart';
-import '../services/caisse_service.dart';
+import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
+import 'package:nsp_pos_mobile/features/caisse/services/caisse_provider.dart';
+import 'package:nsp_pos_mobile/features/caisse/viewmodel/cart_item.dart';
 
 class CaisseOperationScreen extends StatefulWidget {
-  const CaisseOperationScreen({super.key});
+  final int storeId;
+  final int employeeId;
+  final int cashRegisterId;
+
+  const CaisseOperationScreen({
+    super.key,
+    required this.storeId,
+    required this.employeeId,
+    required this.cashRegisterId,
+  });
 
   @override
   State<CaisseOperationScreen> createState() => _CaisseOperationScreenState();
 }
 
-class _CaisseOperationScreenState extends State<CaisseOperationScreen> {
-  final CaisseService _caisseService = CaisseService();
-  Size size = Size.zero;
-  int _selectedTab = 0; // 0: Transactions, 1: Clients, 2: Ventes
+class _CaisseOperationScreenState extends State<CaisseOperationScreen>
+    with SingleTickerProviderStateMixin {
+  final TextEditingController _barcodeController = TextEditingController();
+  final TextEditingController _quantityController = TextEditingController();
+  final FocusNode _barcodeFocusNode = FocusNode();
+  final FocusNode _quantityFocusNode = FocusNode();
 
-  String _searchQuery = '';
-  String _searchClient = '';
+  CartItem? _selectedItem;
+  String _currentQuantity = '1';
+  bool _isQuantityEditing = false;
 
-  final TextEditingController _paymentController = TextEditingController();
-  double _amountReceived = 0.0;
-  String _selectedPaymentMethod = 'Espèces';
+  late TabController _tabController;
 
-  // Variable pour le filtrage (null = tous les produits)
-  String? _selectedFilter;
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_onTabChanged);
 
-  // Getter pour extraire les types uniques des produits
-  List<String> get _productTypes {
-    // Récupérer tous les types
-    final allTypes = _listProduits.map((p) => p["type"].toString()).toList();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<CaisseProvider>(context, listen: false);
+      provider.createNewSession(isAnonymous: true);
+      FocusScope.of(context).requestFocus(_barcodeFocusNode);
+    });
 
-    // Ajouter "Tous" au début et supprimer les doublons
-    final uniqueTypes = allTypes.toSet().toList()..sort();
-
-    // Retourner avec "Tous" en premier
-    return ['Tous'] + uniqueTypes;
+    _quantityFocusNode.addListener(_onQuantityFocusChange);
+    _barcodeFocusNode.addListener(_onBarcodeFocusChange);
+    _quantityController.addListener(_onQuantityTextChanged);
   }
 
-  // Getter pour les produits filtrés
-  List<Map<String, dynamic>> get _filteredProducts {
-    if (_selectedFilter == null || _selectedFilter == 'Tous') {
-      return _listProduits;
-    }
-    return _listProduits
-        .where((product) => product["type"] == _selectedFilter)
-        .toList();
-  }
+  void _onTabChanged() {}
 
-  // Données de test
-  final List<Map<String, dynamic>> _sampleProducts = [
-    {
-      'name': 'Ordinateur Portable XPS',
-      'quantity': 1,
-      'unitPrice': 1200.00,
-      'total': 1200.00,
-    },
-    {
-      'name': 'Souris Optique Sans Fil',
-      'quantity': 2,
-      'unitPrice': 25.50,
-      'total': 51.00,
-    },
-    {
-      'name': 'Clavier Mécanique RGB',
-      'quantity': 1,
-      'unitPrice': 89.99,
-      'total': 89.99,
-    },
-    {
-      'name': 'Écran 27 pouces 4K',
-      'quantity': 1,
-      'unitPrice': 349.99,
-      'total': 349.99,
-    },
-  ];
-
-  final List<Map<String, dynamic>> _paymentMethods = [
-    {'id': 'cash', 'name': 'Espèces', 'icon': Icons.money},
-    {'id': 'wave', 'name': 'Wave', 'icon': Icons.account_balance_wallet},
-    {'id': 'orange', 'name': 'Orange Money', 'icon': Icons.phone_android},
-    {'id': 'mtn', 'name': 'MTN money', 'icon': Icons.phone_iphone},
-    {'id': 'card', 'name': 'Carte bancaire', 'icon': Icons.credit_card},
-    {'id': 'client', 'name': 'Carte Client', 'icon': Icons.card_membership},
-  ];
-  final List<Map<String, dynamic>> _listProduits = [
-    {
-      "name": 'Bonnet rouge sachet 10g',
-      "type": "Milk",
-      "price": 100,
-      "stock": 219,
-      "image_url":
-          "https://openmoise.ci/web/image/product.product/87758/image_1024/BONNET%20ROUGE%20EN%20POUDRE%20SACHET%2010GRS%20ROUGE?unique=9c73c33",
-    },
-    {
-      "name": "Riz maman 4.5kg",
-      "type": "Rice",
-      'price': 600,
-      "stock": 46,
-      "image_url":
-          "http://majordservices.com/586-large_default/riz-maman-45kg.jpg",
-    },
-    {
-      "name": "Laity Sachet 360g",
-      "type": "Milk",
-      "price": 1200,
-      "stock": 9,
-      "image_url":
-          "https://ci.jumia.is/unsafe/fit-in/680x680/filters:fill(white)/product/16/96844/1.jpg?5618",
-    },
-    {
-      "name": "Yoplait vanille sachet 125g",
-      "type": "Yogourt",
-      "price": 250,
-      'stock': 15,
-      "image_url":
-          "https://www.eurolait.ci/img/products/GamYY/3d-vanille-yayoyo.jpg",
-    },
-    {
-      "name": "Yoplait nature sucré boîte 125g",
-      "type": "Yogourt",
-      'price': 300,
-      'stock': 3,
-      "image_url": "https://www.eurolait.ci/img/products/GamNA/Nature.jpg",
-    },
-    {
-      "name": "Sardine princesse 125g",
-      "type": "sardine",
-      "price": 500,
-      "stock": 1,
-      "image_url":
-          "https://sp-ao.shortpixel.ai/client/to_webp,q_glossy,ret_img,w_500,h_500/https://ghfruit.com/wp-content/uploads/2021/06/Princesse-Sardine-in-vegetable-Oil.jpg",
-    },
-    {
-      "name": "Celeste eau minerale 330ml",
-      "type": "water",
-      "price": 100,
-      "stock": 0,
-      "image_url":
-          "https://www.librairiedefrance.net/97815-large_default/celeste-eau-min%C3%A9rale-naturelle-bouteille-330ml.jpg",
-    },
-    {
-      "name": "Kirène 0.5cl",
-      "type": "water",
-      "price": 100,
-      "stock": 6,
-      "image_url":
-          "https://www.auchan.sn/624440-large_default/eau-minerale-kirene-330ml.jpg",
-    },
-    {
-      "name": 'Bonnet rouge sachet 10g',
-      "type": "Milk",
-      "price": 100,
-      "stock": 219,
-      "image_url":
-          "https://openmoise.ci/web/image/product.product/87758/image_1024/BONNET%20ROUGE%20EN%20POUDRE%20SACHET%2010GRS%20ROUGE?unique=9c73c33",
-    },
-    {
-      "name": "Celeste eau minerale 330ml",
-      "type": "water",
-      "price": 100,
-      "stock": 0,
-      "image_url":
-          "https://www.librairiedefrance.net/97815-large_default/celeste-eau-min%C3%A9rale-naturelle-bouteille-330ml.jpg",
-    },
-  ];
-
-  // Liste pour stocker les controllers de quantité PAR PRODUIT
-  final Map<int, TextEditingController> _productControllers = {};
-  // Méthode pour initialiser/réinitialiser les controllers
-  void _initializeProductControllers() {
-    // Nettoyer les anciens controllers
-    _productControllers.forEach((_, controller) => controller.dispose());
-    _productControllers.clear();
-
-    // Créer un controller pour chaque produit
-    for (int i = 0; i < _sampleProducts.length; i++) {
-      final controller = TextEditingController(
-        text: _sampleProducts[i]['quantity'].toString(),
-      );
-
-      // Ajouter un listener pour mettre à jour automatiquement
-      controller.addListener(() {
-        _onQuantityChanged(i, controller);
+  void _onQuantityTextChanged() {
+    if (_quantityController.text != _currentQuantity) {
+      setState(() {
+        _currentQuantity = _quantityController.text;
       });
-
-      _productControllers[i] = controller;
     }
   }
 
-  // Listener pour les changements de quantité
-  void _onQuantityChanged(int index, TextEditingController controller) {
-    final text = controller.text.trim();
-
-    if (text.isEmpty) {
-      return; // Ne rien faire si vide
-    }
-
-    final quantity = int.tryParse(text) ?? 1;
-    final clampedQuantity = quantity.clamp(1, 999);
-
-    // Mettre à jour seulement si la valeur a changé
-    if (_sampleProducts[index]['quantity'] != clampedQuantity) {
-      _updateProductQuantity(index, clampedQuantity, updateController: false);
+  void _onQuantityFocusChange() {
+    if (_quantityFocusNode.hasFocus) {
+      setState(() {
+        _isQuantityEditing = true;
+      });
     }
   }
 
-  // Méthode pour mettre à jour la quantité
-  void _updateProductQuantity(
-    int index,
-    int newQuantity, {
-    bool updateController = true,
-  }) {
-    if (newQuantity < 1) newQuantity = 1;
-    if (newQuantity > 999) newQuantity = 999;
-
-    if (_sampleProducts[index]['quantity'] == newQuantity) {
-      return; // Pas de changement nécessaire
+  void _onBarcodeFocusChange() {
+    if (_barcodeFocusNode.hasFocus) {
+      setState(() {
+        _isQuantityEditing = false;
+      });
     }
+  }
 
-    setState(() {
-      _sampleProducts[index]['quantity'] = newQuantity;
-      _sampleProducts[index]['total'] =
-          _sampleProducts[index]['unitPrice'] * newQuantity;
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _barcodeController.dispose();
+    _quantityController.dispose();
+    _barcodeFocusNode.dispose();
+    _quantityFocusNode.dispose();
+    super.dispose();
+  }
 
-      // Mettre à jour le controller si demandé
-      if (updateController && _productControllers.containsKey(index)) {
-        _productControllers[index]!.text = newQuantity.toString();
+  void _onBarcodeScanned(String barcode) async {
+    if (barcode.isEmpty) return;
+
+    _barcodeController.clear();
+    final provider = Provider.of<CaisseProvider>(context, listen: false);
+
+    final variant = await provider.findProductByBarcode(
+      widget.storeId,
+      barcode,
+    );
+
+    if (variant != null) {
+      if (!variant.isLinkedToStore) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Variante non liée à cette boutique'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        _barcodeFocusNode.requestFocus();
+        return;
       }
 
-      _calculateOrderSummary();
-    });
+      if (!variant.isInStock) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Stock insuffisant. Disponible: ${variant.effectiveQuantity}',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        _barcodeFocusNode.requestFocus();
+        return;
+      }
+
+      final price = variant.effectivePrice;
+      final productName = variant.name;
+
+      CartItem? existingItem;
+      final session = provider.currentSession;
+      if (session != null) {
+        try {
+          existingItem = session.cart.firstWhere(
+            (item) => item.storeProductId == variant.storeProductId,
+          );
+        } catch (e) {
+          existingItem = null;
+        }
+      }
+
+      if (existingItem != null) {
+        provider.updateItemQuantityInCurrentSession(
+          existingItem,
+          existingItem.quantity + 1,
+        );
+      } else {
+        provider.addItemToCurrentSession(
+          CartItem(
+            storeProductId: variant.storeProductId!,
+            productName: productName,
+            unitPrice: price,
+            quantity: 1,
+            taxRate: 0,
+            imageUrl: variant.imageUrl,
+          ),
+        );
+      }
+
+      setState(() {
+        _currentQuantity = '1';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${variant.name} ajouté au panier'),
+          backgroundColor: Colors.green,
+          duration: const Duration(milliseconds: 800),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Produit non trouvé'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+
+    _barcodeFocusNode.requestFocus();
   }
 
-  double get _subtotal {
-    return _sampleProducts.fold(
-      0.0,
-      (sum, item) => sum + (item['total'] as double),
+  void _onNumericKeyPressed(String value) {
+    if (_isQuantityEditing && _selectedItem != null) {
+      setState(() {
+        _currentQuantity = _currentQuantity + value;
+      });
+      _quantityController.text = _currentQuantity;
+    } else {
+      _barcodeController.text = _barcodeController.text + value;
+    }
+  }
+
+  void _onNumericClear() {
+    if (_isQuantityEditing && _selectedItem != null) {
+      setState(() {
+        _currentQuantity = '';
+      });
+      _quantityController.text = '';
+    } else {
+      _barcodeController.clear();
+    }
+  }
+
+  void _onNumericDelete() {
+    if (_isQuantityEditing && _selectedItem != null) {
+      if (_currentQuantity.isNotEmpty) {
+        setState(() {
+          _currentQuantity = _currentQuantity.substring(
+            0,
+            _currentQuantity.length - 1,
+          );
+        });
+        _quantityController.text = _currentQuantity;
+      }
+    } else {
+      final text = _barcodeController.text;
+      if (text.isNotEmpty) {
+        _barcodeController.text = text.substring(0, text.length - 1);
+      }
+    }
+  }
+
+  void _validateAndApplyQuantity() {
+    if (_quantityController.text.isNotEmpty) {
+      setState(() {
+        _currentQuantity = _quantityController.text;
+      });
+    }
+    if (_selectedItem != null && _currentQuantity.isNotEmpty) {
+      int newQuantity = int.tryParse(_currentQuantity) ?? 1;
+      if (newQuantity <= 0) newQuantity = 1;
+
+      final provider = Provider.of<CaisseProvider>(context, listen: false);
+      provider.updateItemQuantityInCurrentSession(_selectedItem!, newQuantity);
+
+      setState(() {
+        _selectedItem = null;
+        _currentQuantity = '1';
+        _isQuantityEditing = false;
+      });
+
+      _barcodeFocusNode.requestFocus();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Quantité mise à jour : $newQuantity'),
+          backgroundColor: Colors.green,
+          duration: const Duration(milliseconds: 800),
+        ),
+      );
+    }
+  }
+
+  void _cancelQuantityEdit() {
+    setState(() {
+      _selectedItem = null;
+      _currentQuantity = '1';
+      _isQuantityEditing = false;
+    });
+    _barcodeFocusNode.requestFocus();
+  }
+
+  void _onItemSelected(CartItem item) {
+    setState(() {
+      _selectedItem = item;
+      _currentQuantity = item.quantity.toString();
+      _quantityController.text = item.quantity.toString();
+      _isQuantityEditing = true;
+    });
+    FocusScope.of(context).requestFocus(_quantityFocusNode);
+  }
+
+  void _clearCart() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Vider le panier'),
+        content: const Text('Êtes-vous sûr de vouloir vider tout le panier ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final provider = Provider.of<CaisseProvider>(
+                context,
+                listen: false,
+              );
+              provider.clearCurrentSessionCart();
+              setState(() {
+                _selectedItem = null;
+                _currentQuantity = '1';
+                _isQuantityEditing = false;
+              });
+              Navigator.pop(ctx);
+              _barcodeFocusNode.requestFocus();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Vider'),
+          ),
+        ],
+      ),
     );
   }
 
-  double get _taxes {
-    return _subtotal * 0.20; // 20% de TVA
-  }
+  void _proceedToPayment() {
+    final provider = Provider.of<CaisseProvider>(context, listen: false);
+    final session = provider.currentSession;
 
-  double get _total {
-    return _subtotal + _taxes;
-  }
-
-  double get _change {
-    return _amountReceived - _total;
-  }
-
-  // Pour les paiements mixtes
-  final Map<String, double> _paymentSplit = {};
-  double _remainingAmount = 0.0;
-  bool _isPaymentDialogOpen = false;
-  Map<String, Object> transaction = {};
-
-  void _updateProductTotal(int index) {
-    final product = _sampleProducts[index];
-    product['total'] = product['unitPrice'] * product['quantity'];
-    _calculateOrderSummary();
-  }
-
-  void _removeProduct(int index) {
-    setState(() {
-      // Supprimer le controller
-      if (_productControllers.containsKey(index)) {
-        _productControllers[index]!.dispose();
-        _productControllers.remove(index);
-      }
-
-      // Réindexer les controllers restants
-      final newControllers = <int, TextEditingController>{};
-      _productControllers.forEach((key, controller) {
-        if (key > index) {
-          newControllers[key - 1] = controller;
-        } else if (key < index) {
-          newControllers[key] = controller;
-        }
-      });
-      _productControllers.clear();
-      _productControllers.addAll(newControllers);
-
-      // Supprimer le produit
-      _sampleProducts.removeAt(index);
-
-      _calculateOrderSummary();
-    });
-  }
-
-  void _resetPaymentSplit() {
-    _paymentSplit.clear();
-    _remainingAmount = _total;
-    _selectedPaymentMethod = 'Espèces';
-  }
-
-  void _addPaymentAmount(StateSetter setState) {
-    final amount = double.tryParse(_paymentController.text) ?? 0;
-
-    if (amount <= 0) {
+    if (session == null || session.cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Veuillez saisir un montant valide'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (amount > _remainingAmount) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Le montant ne peut pas dépasser ${FormatUtils.formatCurrency(_remainingAmount, _caisseService.currentSession!.currency)}',
-          ),
+          content: Text('Panier vide'),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    setState(() {
-      // Si ce moyen de paiement existe déjà, ajouter au montant
-      if (_paymentSplit.containsKey(_selectedPaymentMethod)) {
-        _paymentSplit[_selectedPaymentMethod] =
-            _paymentSplit[_selectedPaymentMethod]! + amount;
-      } else {
-        _paymentSplit[_selectedPaymentMethod] = amount;
-      }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => PaymentModal(
+        total: session.total,
+        onConfirm: (payments) async {
+          for (var p in payments) {
+            provider.addPaymentToCurrentSession(p['methodId'], p['amount']);
+          }
 
-      _remainingAmount =
-          _total - _paymentSplit.values.fold(0.0, (sum, value) => sum + value);
-      _paymentController.clear();
+          final currentSession = provider.currentSession;
+          if (currentSession != null && currentSession.isFullyPaid) {
+            final result = await provider.createSaleFromCurrentSession(
+              widget.storeId,
+              widget.employeeId,
+              widget.cashRegisterId,
+            );
+            if (result['success']) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Vente enregistrée !'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                Navigator.pop(context);
+                setState(() {
+                  _selectedItem = null;
+                  _currentQuantity = '1';
+                  _isQuantityEditing = false;
+                });
+                _barcodeFocusNode.requestFocus();
+              }
+            } else {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Erreur: ${result['message']}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          } else {
+            final remaining = currentSession?.remaining ?? 0;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Montant insuffisant. Reste: ${remaining.toStringAsFixed(0)} FCFA',
+                ),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        },
+      ),
+    ).then((_) {
+      _barcodeFocusNode.requestFocus();
     });
   }
 
-  void _validateOrder() {
-    setState(() {
-      _isPaymentDialogOpen = true;
-      _remainingAmount =
-          _total - _paymentSplit.values.fold(0.0, (sum, value) => sum + value);
-    });
+  void _createNewClientSession() {
+    final provider = Provider.of<CaisseProvider>(context, listen: false);
+
+    // Limiter à 3 sessions simultanées
+    if (provider.sessions.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Limite de 3 clients simultanés atteinte'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: Row(
-              children: [
-                const Icon(Icons.payment, color: Colors.blue),
-                const SizedBox(width: 8),
-                Text(
-                  'Paiement - ${FormatUtils.formatCurrency(_total, _caisseService.currentSession!.currency)}',
+      builder: (ctx) => AlertDialog(
+        title: const Text('Nouveau client'),
+        content: TextField(
+          decoration: const InputDecoration(
+            labelText: 'Nom du client',
+            border: OutlineInputBorder(),
+          ),
+          onSubmitted: (value) {
+            if (value.isNotEmpty) {
+              provider.createNewSession(clientName: value, isAnonymous: false);
+              Navigator.pop(ctx);
+              _barcodeFocusNode.requestFocus();
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              provider.createNewSession(isAnonymous: true);
+              Navigator.pop(ctx);
+              _barcodeFocusNode.requestFocus();
+            },
+            child: const Text('Client anonyme'),
+          ),
+        ],
+      ),
+    ).then((_) {
+      _barcodeFocusNode.requestFocus();
+    });
+  }
+
+  void _openCloseScreen() {
+    final provider = Provider.of<CaisseProvider>(context, listen: false);
+    final session = provider.session;
+
+    if (session == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Aucune session de caisse active'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    Navigator.pushNamed(context, '/cashbox/close', arguments: session);
+  }
+
+  void _showProductSearch() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => ProductsSearchSheet(
+        storeId: widget.storeId,
+        onProductSelected: (variant) {
+          // Ajouter le produit au panier
+          final provider = Provider.of<CaisseProvider>(context, listen: false);
+
+          if (!variant.isLinkedToStore) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Variante non liée à cette boutique'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            return;
+          }
+
+          if (!variant.isInStock) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Stock insuffisant. Disponible: ${variant.effectiveQuantity}',
                 ),
-              ],
-            ),
-            content: SizedBox(
-              width: size.width > 800 ? 700 : size.width * 0.8,
-              child: _buildPaymentDialogContent(setState),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _isPaymentDialogOpen = false;
-                },
-                child: const Text('ANNULER'),
+                backgroundColor: Colors.orange,
               ),
-              ElevatedButton(
-                onPressed: _remainingAmount <= 0
-                    ? () {
-                        Navigator.pop(context);
-                        _isPaymentDialogOpen = false;
-                        _processFinalPayment();
-                      }
-                    : null,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                child: const Text('CONFIRMER'),
+            );
+            return;
+          }
+
+          final price = variant.effectivePrice;
+          final productName = variant.name;
+
+          CartItem? existingItem;
+          final session = provider.currentSession;
+          if (session != null) {
+            try {
+              existingItem = session.cart.firstWhere(
+                (item) => item.storeProductId == variant.storeProductId,
+              );
+            } catch (e) {
+              existingItem = null;
+            }
+          }
+
+          if (existingItem != null) {
+            provider.updateItemQuantityInCurrentSession(
+              existingItem,
+              existingItem.quantity + 1,
+            );
+          } else {
+            provider.addItemToCurrentSession(
+              CartItem(
+                storeProductId: variant.storeProductId!,
+                productName: productName,
+                unitPrice: price,
+                quantity: 1,
+                taxRate: 0,
+                imageUrl: variant.imageUrl,
               ),
-            ],
+            );
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${variant.name} ajouté au panier'),
+              backgroundColor: Colors.green,
+              duration: const Duration(milliseconds: 800),
+            ),
           );
         },
       ),
     );
   }
 
-  void _clearOrder() {
-    setState(() {
-      // Nettoyer tous les controllers
-      _productControllers.forEach((_, controller) => controller.dispose());
-      _productControllers.clear();
-
-      // Vider la liste des produits
-      _sampleProducts.clear();
-
-      _calculateOrderSummary();
-    });
-  }
-
-  void _processFinalPayment() {
-    if (_paymentSplit.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez saisir au moins un moyen de paiement'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Récapitulatif du paiement'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Détail commande
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Détail de la commande',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      ..._sampleProducts.map((product) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 4.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  '${product['name']} x${product['quantity']}',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Text(
-                                FormatUtils.formatCurrency(
-                                  product['total'],
-                                  _caisseService.currentSession!.currency,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                      const Divider(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Total:'),
-                          Text(
-                            FormatUtils.formatCurrency(
-                              _total,
-                              _caisseService.currentSession!.currency,
-                            ),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Détail paiement
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Détail du paiement',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      ..._paymentSplit.entries.map((entry) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 4.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(entry.key),
-                              Text(
-                                FormatUtils.formatCurrency(
-                                  entry.value,
-                                  _caisseService.currentSession!.currency,
-                                ),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                      const Divider(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Total payé:'),
-                          Text(
-                            FormatUtils.formatCurrency(
-                              _paymentSplit.values.fold(
-                                0.0,
-                                (sum, value) => sum + value,
-                              ),
-                              _caisseService.currentSession!.currency,
-                            ),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Monnaie à rendre
-              if (_paymentSplit.values.fold(0.0, (sum, value) => sum + value) >
-                  _total)
-                Card(
-                  color: Colors.green.shade50,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Monnaie à rendre',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          FormatUtils.formatCurrency(
-                            _paymentSplit.values.fold(
-                                  0.0,
-                                  (sum, value) => sum + value,
-                                ) -
-                                _total,
-                            _caisseService.currentSession!.currency,
-                          ),
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('MODIFIER'),
-          ),
-          ElevatedButton(
-            onPressed: _confirmPayment,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('TERMINER LA VENTE'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Alternative pour mobile (à la place de showDialog)
-  void _openPaymentBottomSheet() {
-    _remainingAmount =
-        _total - _paymentSplit.values.fold(0.0, (sum, value) => sum + value);
-
+  void _showSalesHistory() {
+    // TODO: Implémenter l'historique des ventes
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.9,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        height: MediaQuery.of(context).size.height * 0.8,
+        child: Column(
+          children: [
+            const Text(
+              'Historique des ventes',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: 10,
+                itemBuilder: (context, index) => ListTile(
+                  title: Text(
+                    'Vente #TKT-20260623-${index.toString().padLeft(4, '0')}',
+                  ),
+                  subtitle: Text(
+                    '${index + 1} articles - ${DateTime.now().subtract(Duration(hours: index)).toString().substring(0, 16)}',
+                  ),
+                  trailing: Text('${1000 + index * 500} FCFA'),
+                  onTap: () {
+                    // TODO: Ouvrir le détail de la vente
+                  },
+                ),
               ),
-              child: Column(
-                children: [
-                  // Handle
-                  Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-
-                  // En-tête
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Paiement',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Contenu
-                  Expanded(
-                    child: SingleChildScrollView(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildPaymentDialogContent((fn) => setState(fn)),
-                    ),
-                  ),
-
-                  // Actions
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border(
-                        top: BorderSide(color: Colors.grey.shade200),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('ANNULER'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _remainingAmount <= 0
-                                ? () {
-                                    _confirmPayment();
-                                  }
-                                : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                            ),
-                            child: const Text('CONFIRMER'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // Confirmer le paiement et enregistrer la transaction
-  void _confirmPayment() {
-    // Enregistrer la transaction
-    try {
-      final session = _caisseService.currentSession!;
-
-      // Créer la transaction avec les paiements multiples
-      transaction = {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'clientId': 'anonymous',
-        'products': List.from(_sampleProducts),
-        'paymentMethods': _paymentSplit.keys.toList(),
-        'total': _total,
-        'timestamp': DateTime.now(),
-      };
-
-      // Ajouter à l'historique
-      session.transactions.add(
-        CaisseTransaction(
-          id: transaction['id']! as String,
-          clientId: transaction['clientId']! as String,
-          amount: transaction['total']! as double,
-          paymentMethod: _paymentSplit.keys.toList(),
-          timestamp: transaction['timestamp'] as DateTime,
+            ),
+          ],
         ),
-      );
-
-      // Imprimer le ticket
-      _printReceipt(transaction);
-
-      // Réinitialiser
-      Navigator.pop(context); // Fermer le récap
-      Navigator.pop(context); // Fermer le dialogue paiement
-
-      setState(() {
-        _clearOrder();
-        _resetPaymentSplit();
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Vente terminée avec succès !'),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-      );
-    }
-  }
-
-  void _calculateOrderSummary() {
-    _subtotal;
-    _taxes;
-    _total;
-  }
-
-  void _addProductToCart(Map<String, dynamic> product) {
-    // Vérifier le stock
-    if (product["stock"] <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${product["name"]} est en rupture de stock'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Rechercher si le produit est déjà dans la commande
-    final existingIndex = _sampleProducts.indexWhere(
-      (item) => item['name'] == product['name'],
-    );
-
-    setState(() {
-      if (existingIndex >= 0) {
-        // Augmenter la quantité
-        final newQty = _sampleProducts[existingIndex]['quantity'] + 1;
-        _updateProductQuantity(existingIndex, newQty);
-      } else {
-        // Ajouter nouveau produit
-        final newProduct = {
-          'name': product['name'],
-          'quantity': 1,
-          'unitPrice': product['price'].toDouble(),
-          'total': product['price'].toDouble(),
-        };
-
-        final newIndex = _sampleProducts.length;
-        _sampleProducts.add(newProduct);
-
-        // Créer un nouveau controller
-        final controller = TextEditingController(text: '1');
-        controller.addListener(() {
-          _onQuantityChanged(newIndex, controller);
-        });
-        _productControllers[newIndex] = controller;
-
-        _calculateOrderSummary();
-      }
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${product["name"]} ajouté au panier'),
-        backgroundColor: Colors.green,
       ),
     );
   }
 
-  // Méthode pour obtenir l'icône selon le type
-  IconData _getTypeIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'milk':
-        return Icons.local_drink;
-      case 'rice':
-        return Icons.grain;
-      case 'yogourt':
-        return Icons.icecream;
-      case 'sardine':
-        return Icons.set_meal;
-      case 'water':
-        return Icons.water_drop;
-      default:
-        return Icons.category;
+  void _closeClientSession() {
+    final provider = Provider.of<CaisseProvider>(context, listen: false);
+    final session = provider.currentSession;
+
+    if (session == null) return;
+
+    if (session.cart.isNotEmpty && !session.isFullyPaid) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Fermer la session'),
+          content: const Text(
+            'Cette session a des articles non payés. Voulez-vous vraiment la fermer ?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                provider.closeSession(session.id);
+                Navigator.pop(ctx);
+                _barcodeFocusNode.requestFocus();
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Fermer'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      provider.closeSession(session.id);
+      _barcodeFocusNode.requestFocus();
     }
-  }
-
-  // Méthode pour obtenir la couleur selon le type
-  Color _getTypeColor(String type) {
-    switch (type.toLowerCase()) {
-      case 'milk':
-        return Colors.purple;
-      case 'rice':
-        return Colors.amber[700]!;
-      case 'yogourt':
-        return Colors.pink;
-      case 'sardine':
-        return Colors.orange;
-      case 'water':
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeProductControllers();
-    _resetPaymentSplit();
-  }
-
-  @override
-  void dispose() {
-    // Nettoyer tous les controllers
-    _productControllers.forEach((_, controller) => controller.dispose());
-    _paymentController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    size = MediaQuery.of(context).size;
-    final currentSession = _caisseService.currentSession;
+    final isLarge = MediaQuery.of(context).size.width > 1000;
 
-    if (currentSession == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Caisse')),
-        drawer: const SideMenu(),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.orange),
-              const SizedBox(height: 20),
-              const Text(
-                'Aucune caisse active',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              const Text('Veuillez d\'abord initialiser une caisse'),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('RETOUR'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Caisse - ${currentSession.currency}'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: _addClient,
-            tooltip: 'Nouveau client',
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _showSettings,
-            tooltip: 'Paramètres',
-          ),
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => _closeCaisse(context),
-            tooltip: 'Clôturer la caisse',
-          ),
-        ],
-      ),
-      drawer: const SideMenu(),
-      body: Column(
-        children: [
-          // Onglets
-          Container(
-            color: Colors.white,
-            child: Row(
-              children: [
-                _buildTab(0, 'Transaction', Icons.point_of_sale),
-                _buildTab(1, 'Clients', Icons.people),
-                _buildTab(2, 'Ventes', Icons.history),
-              ],
-            ),
-          ),
-
-          // Contenu selon l'onglet sélectionné
-          Expanded(child: _buildTabContent(currentSession, size)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTab(int index, String title, IconData icon) {
-    final isSelected = _selectedTab == index;
-
-    return Expanded(
-      child: Material(
-        color: isSelected ? const Color(0xFF53b5fb) : Colors.white,
-        child: InkWell(
-          onTap: () => setState(() => _selectedTab = index),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: isSelected ? Colors.white : Colors.grey),
-                const SizedBox(height: 4),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTabContent(CaisseSession session, Size size) {
-    switch (_selectedTab) {
-      case 0:
-        return _buildTransactionTab(session, size);
-      case 1:
-        return _buildClientsTab();
-      case 2:
-        return _buildSalesTab(session);
-      default:
-        return _buildTransactionTab(session, size);
-    }
-  }
-
-  Widget _buildTransactionTab(CaisseSession session, Size size) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 8),
-        child: Column(
-          children: [
-            // Barre de recherche produit et Clients
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.search, color: Colors.blue),
-                              SizedBox(width: 8),
-                              Text(
-                                'Ajouter un Produit',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
-                            onChanged: (value) =>
-                                setState(() => _searchQuery = value),
-                            decoration: InputDecoration(
-                              hintText:
-                                  'Scanner le code-barres ou saisir le nom du produit.',
-                              prefixIcon: const Icon(Icons.barcode_reader),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.person_sharp, color: Colors.blue),
-                              SizedBox(width: 8),
-                              Text("Client"),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  onChanged: (value) =>
-                                      setState(() => _searchClient = value),
-                                  decoration: InputDecoration(
-                                    hintText:
-                                        'Rechercher un client nom , numero de carte...',
-                                    prefixIcon: const Icon(Icons.search),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide(
-                                        color: Color(0xFFdee1e6),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              OutlinedButton(
-                                style: ButtonStyle(
-                                  side: WidgetStateProperty.all(
-                                    BorderSide(color: Color(0xFF19b373)),
-                                  ),
-                                  shape: WidgetStateProperty.all(
-                                    RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                ),
-                                onPressed: () {
-                                  //TODO: Fonction pour afficher formulaire de creation de client
-                                },
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.add, color: Color(0xFF19b373)),
-                                    Text(
-                                      "Ajouter un client",
-                                      style: TextStyle(
-                                        color: Color(0xFF19b373),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            if (size.width > 950)
-              Row(
-                children: [
-                  // Grid de la liste des produits
-                  Expanded(child: _buildProductGrid()),
-
-                  const SizedBox(height: 16),
-
-                  // Commande actuelle
-                  Expanded(child: _buildCurrentOrder(session)),
-                ],
-              )
-            else
-              Column(
-                children: [
-                  // Grid de la liste des produits
-                  _buildCurrentOrder(session),
-                  const SizedBox(height: 16),
-                  _buildProductGrid(),
-                  // Commande actuelle
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Actions Rapides de caisse
-  Card _QuickAction() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Actions Rapides',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _printReceipt(transaction),
-                    icon: const Icon(Icons.print),
-                    label: const Text('Imprimer'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _withdrawMoney(),
-                    icon: const Icon(Icons.money_off),
-                    label: const Text('Retrait'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _newTransaction(),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Nouveau'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // GridView des produits avec filtre
-  SizedBox _buildProductGrid() {
-    final productGridSize= size.height * 0.7;
-    return SizedBox(
-      height: productGridSize,
-      child: Card(
-        elevation: 3,
-        child: Padding(
-          padding: EdgeInsetsGeometry.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
-            children: [
-              // En-tête avec titre et filtre
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Liste des produits",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-
-                  // Dropdown de filtrage
-                  Container(
-                    width: 150,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedFilter ?? "Tous",
-                          isExpanded: true,
-                          icon: const Icon(Icons.filter_list, size: 20),
-                          iconEnabledColor: const Color(0xFF1f9ef9),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.black87,
-                          ),
-                          dropdownColor: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedFilter = newValue == "Tous"
-                                  ? null
-                                  : newValue;
-                            });
-                          },
-                          items: _productTypes.map<DropdownMenuItem<String>>((
-                            String value,
-                          ) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    _getTypeIcon(value),
-                                    color: _getTypeColor(value),
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(value),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // Titre de filtre
-              if (_selectedFilter != null && _selectedFilter != 'Tous')
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Chip(
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _getTypeIcon(_selectedFilter!),
-                          size: 16,
-                          color: _getTypeColor(_selectedFilter!),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Filtre: $_selectedFilter',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ],
-                    ),
-                    backgroundColor: _getTypeColor(
-                      _selectedFilter!,
-                    ).withValues(alpha: 0.1),
-                    deleteIcon: const Icon(Icons.close, size: 16),
-                    onDeleted: () {
-                      setState(() {
-                        _selectedFilter = null;
-                      });
-                    },
-                  ),
-                ),
-              const SizedBox(height: 8),
-              // GridView des produits filtrés
-              if (_filteredProducts.isNotEmpty)
-                SizedBox(
-                  height: _selectedFilter == null || _selectedFilter =="Tous" ? productGridSize - 100
-                      : productGridSize -130,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12.0),
-                    child: GridView.builder(
-                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 180,
-                        mainAxisExtent: 200,
-                      ),
-                      itemCount: _filteredProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = _filteredProducts[index];
-                        return Card(
-                          elevation: 2,
-                          child: InkWell(
-                            onTap: () {
-                              _addProductToCart(product);
-                            },
-                            child: Column(
-                              children: [
-                                // Image avec hauteur fixe
-                                Container(
-                                  height: 100,
-                                  decoration: BoxDecoration(
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(4),
-                                      topRight: Radius.circular(4),
-                                    ),
-                                    image: DecorationImage(
-                                      image: NetworkImage(product["image_url"]),
-                                      fit: BoxFit.contain,
-                                    ),
-                                  ),
-                                  child: Stack(
-                                    children: [
-                                      // Indicateur de stock
-                                      if (product["stock"] <= 0)
-                                        Container(
-                                          color: Colors.red.withValues(
-                                            alpha: 0.7,
-                                          ),
-                                          child: const Center(
-                                            child: Text(
-                                              'RUPTURE',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-
-                                // Info produit
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        product["name"].toString(),
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            '${product["price"]} FCFA',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.green,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                          Chip(
-                                            label: Text('${product["stock"]}'),
-                                            backgroundColor:
-                                                product["stock"] > 0
-                                                ? Colors.blue[50]
-                                                : Colors.red[50],
-                                            labelStyle: TextStyle(
-                                              fontSize: 10,
-                                              color: product["stock"] > 0
-                                                  ? Colors.blue
-                                                  : Colors.red,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              // Message si aucun produit trouvé
-              if (_filteredProducts.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(40),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.inventory_2_outlined,
-                        size: 60,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Aucun produit trouvé',
-                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _selectedFilter == 'Tous'
-                            ? 'Aucun produit en stock'
-                            : 'Aucun produit de type "$_selectedFilter"',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuantityCell(int index, Map<String, dynamic> product) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // Bouton -
-        IconButton(
-          onPressed: () {
-            final newQty = (product['quantity'] as int) - 1;
-            if (newQty >= 1) {
-              _updateProductQuantity(index, newQty);
-            }
-          },
-          icon: const Icon(Icons.remove, size: 24),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.grey.shade100,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
-              side: BorderSide(color: Colors.grey.shade300),
-            ),
-          ),
-        ),
-
-        // Champ de saisie SIMPLE
-        Container(
-          width: 45,
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: TextField(
-            controller: _productControllers[index]!,
-            textAlign: TextAlign.center,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            decoration: InputDecoration(
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 4,
-                horizontal: 4,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
-              ),
-            ),
-          ),
-        ),
-
-        // Bouton +
-        IconButton(
-          onPressed: () {
-            final newQty = (product['quantity'] as int) + 1;
-            _updateProductQuantity(index, newQty);
-          },
-          icon: const Icon(Icons.add, size: 24),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.blue.shade50,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
-              side: BorderSide(color: Colors.blue.shade200),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Commande actuelle
-  SizedBox _buildCurrentOrder(CaisseSession session) {
-    final curentOrderSize= size.height * 0.7;
-    return SizedBox(
-      height: curentOrderSize,
-      child: Card(
-        elevation: 3,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.shopping_cart, color: Colors.blue),
-                  SizedBox(width: 8),
-                  Text(
-                    'Commande Actuelle',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // Tableau des produits
-              Expanded(
-                child: SizedBox(
-                  width: double.infinity,
-                  child: SingleChildScrollView(
-                    child: DataTable(
-                      columnSpacing: 8,
-                      headingRowHeight: 40,
-                      columns: const [
-                        DataColumn(
-                          label: Text('Produit'),
-                          tooltip: 'Nom du produit',
-                        ),
-                        DataColumn(label: Text('Quantité'), numeric: true),
-                        DataColumn(
-                          label: Text('Prix U.'),
-                          numeric: false,
-                          tooltip: 'Prix unitaire',
-                        ),
-                        DataColumn(
-                          label: Text('Total'),
-                          numeric: false,
-                          tooltip: 'Total pour ce produit',
-                        ),
-                        DataColumn(
-                          label: Text('Actions'),
-                          tooltip: 'Actions disponibles',
-                        ),
-                      ],
-                      rows: _sampleProducts.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final product = entry.value;
-
-                        return DataRow(
-                          cells: [
-                            // Nom produit
-                            DataCell(
-                              SizedBox(
-                                width: 160,
-                                child: Text(
-                                  product['name'].toString(),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 2,
-                                ),
-                              ),
-                            ),
-                            // Quantité - SIMPLIFIÉ
-                            DataCell(
-                              SizedBox(
-                                width: 140,
-                                child: _buildQuantityCell(index, product),
-                              ),
-                            ),
-                            // Prix unitaire
-                            DataCell(
-                              Text(
-                                FormatUtils.formatCurrencyWithDecimal(
-                                  product['unitPrice'],
-                                  session.currency,
-                                ),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            // Total
-                            DataCell(
-                              Text(
-                                FormatUtils.formatCurrencyWithDecimal(
-                                  product['total'],
-                                  session.currency,
-                                ),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                            ),
-                            // Actions
-                            DataCell(
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  size: 20,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () => _removeProduct(index),
-                                tooltip: 'Supprimer ce produit',
-                              ),
-                            ),
-                          ],
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ),
-              // Résumé de la commande
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Column(
-                  children: [
-                    _buildSummaryRow('Sous-total', _subtotal, session.currency),
-                    _buildSummaryRow('Taxes (20%)', _taxes, session.currency),
-                    const Divider(height: 5),
-                    _buildSummaryRow(
-                      'TOTAL',
-                      _total,
-                      session.currency,
-                      isTotal: true,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _total > 0 ? _validateOrder : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      icon: const Icon(Icons.check_circle, size: 20),
-                      label: const Text(
-                        'VALIDER LA COMMANDE',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  OutlinedButton.icon(
-                    onPressed: _clearOrder,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.all(12),
-                      side: BorderSide(color: Colors.red.shade400),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    icon: Icon(
-                      Icons.delete_outline,
-                      size: 20,
-                      color: Colors.red.shade400,
-                    ),
-                    label: Text(
-                      'VIDER',
-                      style: TextStyle(
-                        color: Colors.red.shade400,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // Actions rapides
-              _QuickAction(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildClientsTab() {
-    final clients = _caisseService.clientSessions;
-
-    return Column(
-      children: [
-        // Barre de recherche client
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Rechercher un client',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Nom, Email ou Téléphone',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Rechercher client...',
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.add),
-                        onPressed: _addClient,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Liste des clients ou message vide
-        Expanded(
-          child: clients.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.people_outline,
-                        size: 80,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Aucun client enregistré',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton.icon(
-                        onPressed: _addClient,
-                        icon: const Icon(Icons.person_add),
-                        label: const Text('AJOUTER UN CLIENT'),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: clients.length,
-                  itemBuilder: (context, index) {
-                    final client = clients[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.blue[100],
-                          child: Text('${index + 1}'),
-                        ),
-                        title: Text('Client ${client.id.substring(7, 12)}'),
-                        subtitle: Text(
-                          'Session démarrée à ${client.formatTime(client.startTime)}',
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.visibility, size: 20),
-                              onPressed: () =>
-                                  _openClientSession(context, client),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.delete,
-                                size: 20,
-                                color: Colors.red,
-                              ),
-                              onPressed: () => _removeClient(client.id),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSalesTab(CaisseSession session) {
-    final transactionsCaisse = session.transactions;
-
-    return Column(
-      children: [
-        // En-tête avec informations de caisse
-        Container(
-          padding: const EdgeInsets.all(16),
-          color: Colors.blue[50],
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Fond: ${FormatUtils.formatCurrency(session.totalCurrent, session.currency)}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Ouverte: ${session.formatTime(session.startTime)}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Clients: ${_caisseService.activeClientsCount}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Transactions: ${session.transactions.length}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        // En-tête historique
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Historique des Ventes',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Aujourd\'hui',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                  Chip(
-                    label: Text('${transactionsCaisse.length} transactions'),
-                    backgroundColor: Colors.blue[100],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Liste des transactions ou message vide
-        Expanded(
-          child: transactionsCaisse.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.receipt_long, size: 80, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
-                        'Aucune transaction enregistrée',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: transactionsCaisse.length,
-                  itemBuilder: (context, index) {
-                    final transaction = transactionsCaisse[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        leading: SizedBox(
-                          width: 50,
-                          child: Wrap(
-                            spacing: 2,
-                            runSpacing: 2,
-                            children: transaction.paymentMethod
-                                .take(3) // Limiter à 3 icônes maximum
-                                .map(
-                                  (method) => CircleAvatar(
-                                    radius: 14,
-                                    backgroundColor: _getPaymentColor(method),
-                                    child: Icon(
-                                      _getPaymentIcon(method),
-                                      color: Colors.white,
-                                      size: 14,
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ),
-                        title: Text(
-                          'Transaction #${transaction.id.substring(0, 6)}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Client: ${transaction.clientId}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            Text(
-                              session.formatTime(transaction.timestamp),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              FormatUtils.formatCurrency(
-                                transaction.amount,
-                                session.currency,
-                              ),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Container(
-                              constraints: const BoxConstraints(maxWidth: 100),
-                              child: Text(
-                                transaction.paymentMethod.join(', '),
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.end,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSummaryRow(
-    String label,
-    double amount,
-    String currency, {
-    bool isTotal = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isTotal ? 16 : 14,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-              color: isTotal ? Colors.blue : Colors.grey[700],
-            ),
-          ),
-          Text(
-            FormatUtils.formatCurrency(amount, currency),
-            style: TextStyle(
-              fontSize: isTotal ? 18 : 14,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-              color: isTotal ? Colors.blue : Colors.grey[700],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _getPaymentColor(String method) {
-    switch (method.toLowerCase()) {
-      case 'cash':
-        return Colors.green;
-      case 'card':
-        return Colors.blue;
-      case 'wave':
-        return Colors.purple;
-      case 'orange':
-        return Colors.orange;
-      case 'mtn':
-        return Colors.yellow[700]!;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _getPaymentIcon(String method) {
-    switch (method.toLowerCase()) {
-      case 'cash':
-        return Icons.money;
-      case 'card':
-        return Icons.credit_card;
-      case 'wave':
-      case 'orange':
-      case 'mtn':
-        return Icons.phone_android;
-      default:
-        return Icons.payment;
-    }
-  }
-
-  void _addClient() {
-    try {
-      final clientId = _caisseService.createClientSession();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Client $clientId ajouté'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      setState(() {});
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
-      );
-    }
-  }
-
-  void _removeClient(String clientId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Supprimer le client?'),
-        content: const Text('Cette action est irréversible.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ANNULER'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Implémenter la suppression
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fonctionnalité à implémenter')),
-              );
-            },
-            child: const Text('SUPPRIMER'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openClientSession(BuildContext context, CaisseSession client) {
-    // TODO: Ouvrir l'écran de transaction pour ce client
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Ouvrir session client ${client.id.substring(7, 12)}'),
-      ),
-    );
-  }
-
-  Widget _buildPaymentDialogContent(StateSetter setState) {
-    final session = _caisseService.currentSession!;
-
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Montant restant à payer
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: _remainingAmount > 0
-                  ? Colors.orange.shade50
-                  : Colors.green.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: _remainingAmount > 0 ? Colors.orange : Colors.green,
-              ),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  _remainingAmount > 0 ? 'RESTE À PAYER' : 'MONTANT A RENDRE',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: _remainingAmount > 0 ? Colors.orange : Colors.green,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  FormatUtils.formatCurrency(
-                    _remainingAmount,
-                    session.currency,
-                  ),
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: _remainingAmount > 0 ? Colors.orange : Colors.green,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Répartition des paiements existants
-          if (_paymentSplit.isNotEmpty) ...[
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Paiements saisis :',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                const SizedBox(height: 8),
-                ..._paymentSplit.entries.map((entry) {
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: Icon(
-                        _paymentMethods.firstWhere(
-                          (m) => m['name'] == entry.key,
-                        )['icon'],
-                        color: Colors.blue,
-                      ),
-                      title: Text(entry.key),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            FormatUtils.formatCurrency(
-                              entry.value,
-                              session.currency,
-                            ),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              size: 16,
-                              color: Colors.red,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _paymentSplit.remove(entry.key);
-                                _updateRemainingAmount();
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // Liste des moyens de paiement avec saisie directe
-          Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Saisir les paiements',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Saisissez le montant pour chaque moyen de paiement',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Liste des moyens de paiement
-                  ..._paymentMethods.map((method) {
-                    final methodName = method['name'] as String;
-                    final currentAmount = _paymentSplit[methodName] ?? 0.0;
-
-                    // Créer un contrôleur pour chaque champ
-                    final controller = TextEditingController(
-                      text: currentAmount > 0
-                          ? currentAmount.toStringAsFixed(0)
-                          : '',
-                    );
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                method['icon'] as IconData,
-                                size: 20,
-                                color: Colors.blue,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                methodName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const Spacer(),
-                              if (currentAmount > 0)
-                                Text(
-                                  FormatUtils.formatCurrency(
-                                    currentAmount,
-                                    session.currency,
-                                  ),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green.shade700,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: controller,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    hintText: 'Montant',
-                                    prefixText: '${session.currency} ',
-                                    border: const OutlineInputBorder(),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 10,
-                                    ),
-                                    suffixIcon: IconButton(
-                                      icon: const Icon(Icons.check, size: 18),
-                                      onPressed: () {
-                                        final value = controller.text;
-                                        final amount =
-                                            double.tryParse(value) ?? 0.0;
-                                        if (amount > 0) {
-                                          setState(() {
-                                            _paymentSplit[methodName] = amount;
-                                            _updateRemainingAmount();
-                                          });
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                  onFieldSubmitted: (value) {
-                                    final amount =
-                                        double.tryParse(value) ?? 0.0;
-                                    if (amount > 0) {
-                                      setState(() {
-                                        _paymentSplit[methodName] = amount;
-                                        _updateRemainingAmount();
-                                      });
-                                    }
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-
-                  const SizedBox(height: 16),
-
-                  // Totaux et suggestions globales
-                  Card(
-                    color: Colors.grey.shade50,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Total saisi :'),
-                              Text(
-                                FormatUtils.formatCurrency(
-                                  _paymentSplit.values.fold(
-                                    0.0,
-                                    (sum, value) => sum + value,
-                                  ),
-                                  session.currency,
-                                ),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text( _remainingAmount > 0 ? 'Reste à payer' : 'Montant à rendre'),
-                              Text(
-                                FormatUtils.formatCurrency(
-                                  _remainingAmount,
-                                  session.currency,
-                                ),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: _remainingAmount > 0
-                                      ? Colors.orange
-                                      : Colors.green,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Fonction pour mettre à jour le montant restant
-  void _updateRemainingAmount() {
-    final totalPaid = _paymentSplit.values.fold(
-      0.0,
-      (sum, value) => sum + value,
-    );
-    _remainingAmount = _total - totalPaid;
-
-    // Nettoyer les entrées avec montant 0
-    _paymentSplit.removeWhere((key, value) => value <= 0);
-  }
-
-  // Suggestions rapides (version corrigée)
-  Widget _buildQuickAmountButton(
-    String label,
-    double amount,
-    String methodName,
-    TextEditingController controller,
-    StateSetter setState,
-  ) {
-    return FilterChip(
-      label: Text(label),
-      onSelected: (selected) {
-        if (selected) {
-          setState(() {
-            final currentAmount = _paymentSplit[methodName] ?? 0.0;
-            final newAmount = currentAmount + amount;
-            _paymentSplit[methodName] = newAmount;
-            controller.text = newAmount.toStringAsFixed(0);
-            _updateRemainingAmount();
-          });
+    return KeyboardListener(
+      focusNode: FocusNode(),
+      onKeyEvent: (event) {
+        if (event is KeyDownEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.enter) {
+            _validateAndApplyQuantity();
+          } else if (event.logicalKey == LogicalKeyboardKey.escape) {
+            _cancelQuantityEdit();
+          }
         }
       },
-      backgroundColor: Colors.blue.shade50,
-      selectedColor: Colors.blue.shade100,
-    );
-  }
-
-  void _completeTransaction() {
-    // TODO: Enregistrer la transaction
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Transaction enregistrée avec succès'),
-        backgroundColor: Colors.green,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Caisse - Opération'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              onPressed: _createNewClientSession,
+              tooltip: 'Nouveau client',
+            ),
+            IconButton(
+              icon: const Icon(Icons.lock_outline),
+              onPressed: _openCloseScreen,
+              tooltip: 'Clôturer la caisse',
+            ),
+          ],
+        ),
+        drawer: const SideMenu(),
+        body: Consumer<CaisseProvider>(
+          builder: (context, provider, child) {
+            return Column(
+              children: [
+                // Tabs
+                Container(
+                  color: Colors.grey[100],
+                  child: TabBar(
+                    controller: _tabController,
+                    labelColor: Colors.blue,
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: Colors.blue,
+                    tabs: [
+                      const Tab(text: 'Vente'),
+                      Tab(
+                        child: Consumer<OrderProvider>(
+                          builder: (context, provider, child) {
+                            final count = provider.pendingOrdersCount;
+                            return Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('Commandes'),
+                                if (count > 0) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      '$count',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                      const Tab(text: 'Clients'),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      // Tab 0: Vente
+                      _buildSalesTab(provider, isLarge),
+                      // Tab 1: Commandes
+                      OrdersTab(storeId: widget.storeId),
+                      // Tab 2: Clients
+                      _buildClientsTab(provider),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
-
-    // Réinitialiser
-    setState(() {
-      _paymentController.clear();
-      _amountReceived = 0.0;
-    });
   }
 
-  void _printReceipt(Map<String, dynamic> transaction) {
-    // TODO: Implémenter l'impression
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Impression du ticket')));
+  // ============================================================================
+  // TAB 0: VENTE
+  // ============================================================================
+
+  Widget _buildSalesTab(CaisseProvider provider, bool isLarge) {
+    return Column(
+      children: [
+        _buildSessionTabs(provider),
+        Expanded(
+          child: isLarge
+              ? Row(
+                  children: [
+                    Expanded(flex: 2, child: _buildCartList(provider)),
+                    Expanded(flex: 1, child: _buildRightPanel(provider)),
+                  ],
+                )
+              : Column(
+                  children: [
+                    Expanded(child: _buildCartList(provider)),
+                    SizedBox(height: 450, child: _buildRightPanel(provider)),
+                  ],
+                ),
+        ),
+      ],
+    );
   }
 
-  void _withdrawMoney() {
-    // TODO: Implémenter le retrait
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Retrait d\'argent')));
-  }
+  // ============================================================================
+  // TAB 2: CLIENTS
+  // ============================================================================
 
-  void _newTransaction() {
-    // TODO: Nouvelle transaction
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Nouvelle transaction')));
-  }
-
-  void _showSettings() {
-    // TODO: Afficher les paramètres
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Paramètres')));
-  }
-
-  void _closeCaisse(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clôturer la caisse?'),
-        content: const Text('Cette action est définitive. Continuer?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ANNULER'),
+  Widget _buildClientsTab(CaisseProvider provider) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Barre de recherche
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'Rechercher un client...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              filled: true,
+              fillColor: Colors.grey[50],
+            ),
+            onChanged: (value) {
+              // TODO: Rechercher des clients
+            },
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            onPressed: () {
-              Navigator.pop(context);
-              final closedSession = _caisseService.closeMainCaisse();
-              Navigator.pushNamed(
-                context,
-                '/cashbox/close',
-                arguments: closedSession,
+          const SizedBox(height: 16),
+          Expanded(
+            child: ListView.builder(
+              itemCount: 10,
+              itemBuilder: (context, index) => Card(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.person)),
+                  title: Text('Client ${index + 1}'),
+                  subtitle: Text('client${index + 1}@email.com'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Points: 150'),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.history, color: Colors.blue),
+                        onPressed: () {
+                          // TODO: Voir l'historique du client
+                        },
+                      ),
+                    ],
+                  ),
+                  onTap: () {
+                    // TODO: Sélectionner ce client pour la vente
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================================
+  // SESSION TABS
+  // ============================================================================
+
+  Widget _buildSessionTabs(CaisseProvider provider) {
+    if (provider.sessions.length <= 1) return const SizedBox.shrink();
+
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: provider.sessions.length,
+              itemBuilder: (context, index) {
+                final session = provider.sessions[index];
+                final isSelected = provider.currentSession?.id == session.id;
+
+                return GestureDetector(
+                  onTap: () => provider.switchSession(session.id),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected ? Colors.blue : Colors.grey[200],
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          session.clientName,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.black,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        if (session.itemCount > 0) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.white : Colors.blue,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${session.itemCount}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isSelected ? Colors.blue : Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                        // Bouton fermer
+                        const SizedBox(width: 4),
+                        InkWell(
+                          onTap: () {
+                            if (session.id == provider.currentSession?.id) {
+                              _closeClientSession();
+                            } else {
+                              provider.closeSession(session.id);
+                            }
+                          },
+                          child: Icon(
+                            Icons.close,
+                            size: 16,
+                            color: isSelected ? Colors.white70 : Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          // Indicateur de limite
+          if (provider.sessions.length >= 3)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: const Icon(Icons.warning, color: Colors.orange, size: 20),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================================
+  // CART LIST
+  // ============================================================================
+
+  Widget _buildCartList(CaisseProvider provider) {
+    final session = provider.currentSession;
+
+    if (session == null || session.cart.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.shopping_cart, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'Panier vide',
+              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Scannez un code-barres',
+              style: TextStyle(color: Colors.grey[500]),
+            ),
+            // Boutons d'action
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 12,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _showProductSearch,
+                  icon: const Icon(Icons.search),
+                  label: const Text('Rechercher produit'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _showSalesHistory,
+                  icon: const Icon(Icons.history),
+                  label: const Text('Anciennes ventes'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(8),
+            itemCount: session.cart.length,
+            itemBuilder: (context, index) {
+              final item = session.cart[index];
+              final isSelected = _selectedItem == item;
+
+              return Card(
+                elevation: isSelected ? 4 : 1,
+                color: isSelected ? Colors.blue[50] : null,
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.white,
+                    child: item.imageUrl != null
+                        ? Image.network(
+                            item.imageUrl!,
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => Text(
+                              '${item.quantity}',
+                              style: const TextStyle(color: Colors.blue),
+                            ),
+                          )
+                        : Text(
+                            '${item.quantity}',
+                            style: const TextStyle(color: Colors.blue),
+                          ),
+                  ),
+                  title: Text(
+                    item.productName,
+                    style: TextStyle(
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${FormatUtils.formatCurrency(item.unitPrice, 'FCFA')} x ${item.quantity}',
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        FormatUtils.formatCurrency(item.total, 'FCFA'),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
+                        onPressed: () =>
+                            provider.removeItemFromCurrentSession(item),
+                      ),
+                    ],
+                  ),
+                  onTap: () => _onItemSelected(item),
+                ),
               );
             },
-            child: const Text('CLÔTURER'),
+          ),
+        ),
+        // Boutons d'action en bas de la liste
+        Padding(
+          padding: const EdgeInsets.all(8),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _showProductSearch,
+                icon: const Icon(Icons.search, size: 18),
+                label: const Text('Rechercher'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: _showSalesHistory,
+                icon: const Icon(Icons.history, size: 18),
+                label: const Text('Historique'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================================
+  // RIGHT PANEL
+  // ============================================================================
+
+  Widget _buildRightPanel(CaisseProvider provider) {
+    final session = provider.currentSession;
+    final total = session?.total ?? 0;
+
+    return Container(
+      color: Colors.white,
+      child: Column(
+        children: [
+          // Zone code-barres / quantité
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _isQuantityEditing ? Colors.green[50] : Colors.blue[50],
+              border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _isQuantityEditing
+                          ? Icons.numbers
+                          : Icons.qr_code_scanner,
+                      color: _isQuantityEditing ? Colors.green : Colors.blue,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _isQuantityEditing
+                          ? 'MODIFICATION QUANTITÉ'
+                          : 'CODE-BARRES',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: _isQuantityEditing ? Colors.green : Colors.blue,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _isQuantityEditing
+                    ? Container(
+                        decoration: BoxDecoration(
+                          color: Colors.green[100],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.green, width: 2),
+                        ),
+                        child: TextField(
+                          controller: _quantityController,
+                          focusNode: _quantityFocusNode,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Saisir la quantité...',
+                            border: InputBorder.none,
+                            prefixIcon: const Icon(
+                              Icons.numbers,
+                              size: 28,
+                              color: Colors.green,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                          ),
+                          onSubmitted: (value) {
+                            _validateAndApplyQuantity();
+                          },
+                          onChanged: (value) {
+                            setState(() {
+                              _currentQuantity = value;
+                            });
+                          },
+                        ),
+                      )
+                    : TextField(
+                        controller: _barcodeController,
+                        focusNode: _barcodeFocusNode,
+                        autofocus: true,
+                        style: const TextStyle(fontSize: 20),
+                        decoration: InputDecoration(
+                          hintText: 'Scanner ou saisir le code...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.qr_code_scanner,
+                            size: 28,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.search, size: 28),
+                            onPressed: () =>
+                                _onBarcodeScanned(_barcodeController.text),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                        ),
+                        onSubmitted: _onBarcodeScanned,
+                      ),
+              ],
+            ),
+          ),
+
+          // Article sélectionné avec boutons d'action
+          if (_selectedItem != null && _isQuantityEditing)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.shopping_cart,
+                        color: Colors.green,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _selectedItem!.productName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        FormatUtils.formatCurrency(
+                          _selectedItem!.unitPrice,
+                          'FCFA',
+                        ),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _cancelQuantityEdit,
+                          icon: const Icon(Icons.close),
+                          label: const Text('ANNULER'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _validateAndApplyQuantity,
+                          icon: const Icon(Icons.check_circle),
+                          label: Text('VALIDER (${_currentQuantity})'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+          // Total
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'TOTAL',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  FormatUtils.formatCurrency(total, 'FCFA'),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Pavé numérique
+          Expanded(
+            child: NumericKeyboard(
+              isQuantityMode: _isQuantityEditing && _selectedItem != null,
+              onKeyPressed: _onNumericKeyPressed,
+              onClear: _onNumericClear,
+              onDelete: _onNumericDelete,
+            ),
+          ),
+
+          // Boutons d'action
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.grey[300]!)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _clearCart,
+                    icon: const Icon(Icons.delete_sweep),
+                    label: const Text('VIDER PANIER'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _proceedToPayment,
+                    icon: const Icon(Icons.payment),
+                    label: const Text('PAYER'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -4,9 +4,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
 import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_model.dart';
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/caisse_model.dart';
 import 'package:nsp_pos_mobile/app/side_menu.dart';
 import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
+import 'package:nsp_pos_mobile/features/caisse/viewmodel/currency_config.dart';
 import 'package:nsp_pos_mobile/features/employe/service/employe_provider.dart';
 import 'package:nsp_pos_mobile/features/employe/view/employee_form_widget.dart';
 import 'package:nsp_pos_mobile/features/employe/viewmodel/employe_model.dart';
@@ -29,7 +29,6 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
 
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
-  List<Employee> _filteredEmployees = [];
 
   bool showSalary = false;
 
@@ -57,23 +56,11 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
   }
 
   void _filterEmployees(String query) {
-    final provider = Provider.of<EmployeeProvider>(context, listen: false);
-    final employees = provider.employees;
+    Provider.of<EmployeeProvider>(context, listen: false);
 
     setState(() {
       if (query.isEmpty) {
-        _filteredEmployees = List.from(employees);
       } else {
-        _filteredEmployees = employees.where((employee) {
-          final name = employee.fullName.toLowerCase();
-          final email = employee.email.toLowerCase();
-          final phone = employee.phone.toLowerCase();
-          final searchLower = query.toLowerCase();
-
-          return name.contains(searchLower) ||
-              email.contains(searchLower) ||
-              phone.contains(searchLower);
-        }).toList();
       }
     });
   }
@@ -81,7 +68,6 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
   @override
   void initState() {
     super.initState();
-    _filteredEmployees = [];
     _searchController.addListener(() {
       _filterEmployees(_searchController.text);
     });
@@ -102,7 +88,6 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
     await employeeProvider.loadAllData();
 
     setState(() {
-      _filteredEmployees = List.from(employeeProvider.employees);
     });
   }
 
@@ -114,7 +99,6 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
     await employeeProvider.loadAllData(storeId: storeId);
 
     setState(() {
-      _filteredEmployees = List.from(employeeProvider.employees);
     });
   }
 
@@ -615,7 +599,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
   }
 
   Widget _buildAssignedStores(Employee employe) {
-    if (employe.assignedStores == null || employe.assignedStores!.isEmpty) {
+    if (employe.assignedStores.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -637,8 +621,8 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            ...employe.assignedStores!.map((store) {
-              final isPrimary = store['is_primary'] == true;
+            ...employe.assignedStores.map((store) {
+              final isPrimary = store.isPrimary;
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
@@ -663,7 +647,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            store['name'],
+                            store.name,
                             style: TextStyle(
                               fontWeight: isPrimary
                                   ? FontWeight.bold
@@ -691,7 +675,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        store['permission_type'] ?? 'viewer',
+                        store.permissionType,
                         style: const TextStyle(fontSize: 11),
                       ),
                     ),

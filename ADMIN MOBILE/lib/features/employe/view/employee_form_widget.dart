@@ -1,14 +1,12 @@
-// lib/features/employe/view/employee_form_widget.dart
 import 'dart:math';
 import 'dart:typed_data';
-
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nsp_pos_mobile/core/utils/password_generator.dart';
 import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_model.dart';
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/caisse_model.dart';
+import 'package:nsp_pos_mobile/features/caisse/viewmodel/currency_config.dart';
 import 'package:nsp_pos_mobile/features/employe/service/employe_provider.dart';
 import 'package:nsp_pos_mobile/features/employe/viewmodel/employe_model.dart';
 import 'package:nsp_pos_mobile/localization/locale_keys.dart';
@@ -100,7 +98,7 @@ class _EmployeeFormWidgetState extends State<EmployeeFormWidget> {
     _hireDate = widget.employee?.hireDate ?? DateTime.now();
 
     if (_isEditing && widget.employee != null) {
-      _selectedStoreIds = widget.employee!.assignedStores!.map((store) => store["id"] as int).toList();
+      _selectedStoreIds = widget.employee!.assignedStores.map((store) => store.id).toList();
       _selectedRole = widget.employee!.roleName;
         _canSelectMultipleStores = widget.employee!.canAccessMultipleStores;
     }
@@ -156,7 +154,7 @@ class _EmployeeFormWidgetState extends State<EmployeeFormWidget> {
     if (firstName.isNotEmpty) {
       String base = firstName.trim().toLowerCase();
       if (lastName.isNotEmpty) {
-        base = '${base}.${lastName.trim().toLowerCase()}';
+        base = '$base.${lastName.trim().toLowerCase()}';
       }
       // Ajouter un nombre aléatoire pour éviter les doublons
       base = base.replaceAll(' ', '');
@@ -183,108 +181,6 @@ class _EmployeeFormWidgetState extends State<EmployeeFormWidget> {
       });
     }
   }
-
-  // Future<void> _submit() async {
-  //   print('Debut de la soummission du formulaire');
-  //   print(_isSubmitting);
-  //   print(_isEditing);
-  //   if (_isSubmitting) return;
-  //   if (!_formKey.currentState!.validate()) return;
-  //   if (_selectedStoreIds.isEmpty) {
-  //     _showSnackBar('Veuillez sélectionner au moins une boutique', Colors.red);
-  //     return;
-  //   }
-  //   if (_selectedRole == null) {
-  //     _showSnackBar('Veuillez sélectionner un rôle', Colors.red);
-  //     return;
-  //   }
-  //   if (_hireDate == null) {
-  //     _showSnackBar('Veuillez sélectionner la date d\'embauche', Colors.red);
-  //     return;
-  //   }
-
-  //   setState(() => _isSubmitting = true);
-
-  //   final provider = Provider.of<EmployeeProvider>(context, listen: false);
-
-  //   // Générer le nom d'utilisateur si vide
-  //   String username = _usernameController.text.trim();
-  //   if (username.isEmpty) {
-  //     username = _generateUsername(
-  //       _firstNameController.text,
-  //       _lastNameController.text,
-  //       _emailController.text
-  //     );
-  //   }
-
-  //   if (_isEditing && widget.employee != null) {
-  //     print('Debut mise à jour de l\'employé avec ID: ${widget.employee!.id}');
-  //     // Mise à jour de l'employé
-  //     final result = await provider.updateEmployee(
-  //       employeeId: widget.employee!.id,
-  //       firstName: _firstNameController.text.trim(),
-  //       lastName: _lastNameController.text.trim(),
-  //       email: _emailController.text.trim(),
-  //       phone: _phoneController.text.trim(),
-  //       address: _addressController.text.trim(),
-  //       storeId: _selectedStoreIds.first,
-  //       roleId: provider.getRoleIdByName(_selectedRole!) ?? widget.employee!.roleId,
-  //       hireDate: _hireDate!,
-  //       salary: double.tryParse(_salaryController.text),
-  //       emergencyContact: _emergencyContactController.text.trim(),
-  //       photo: _profileImage,
-  //     );
-
-  //     setState(() => _isSubmitting = false);
-
-  //     if (mounted && result['status'] == true) {
-  //       _showSnackBar('Employé mis à jour avec succès', Colors.green);
-  //       await provider.loadAllData(storeId: provider.selectedStoreId);
-  //       widget.onSuccess();
-  //       if (mounted) Navigator.pop(context);
-  //     } else if (mounted) {
-  //       _showSnackBar(result['message'] ?? 'Erreur lors de la mise à jour', Colors.red);
-  //     }
-  //   } else {
-  //     // Création d'un nouvel employé
-  //     final result = await provider.createEmployee(
-  //       username: username,
-  //       firstName: _firstNameController.text.trim(),
-  //       lastName: _lastNameController.text.trim(),
-  //       email: _emailController.text.trim(),
-  //       phone: _phoneController.text.trim(),
-  //       address: _addressController.text.trim(),
-  //       password: _passwordController.text,
-  //       storeId: _selectedStoreIds.first,
-  //       roleId: provider.getRoleIdByName(_selectedRole!) ?? 1,
-  //       hireDate: _hireDate!,
-  //       salary: double.tryParse(_salaryController.text),
-  //       emergencyContact: _emergencyContactController.text.trim(),
-  //       photo: _profileImage,
-  //     );
-
-  //     setState(() => _isSubmitting = false);
-
-  //     if (mounted && result['status'] == true) {
-  //       final employee = result['employee'];
-
-  //       if (_selectedStoreIds.length > 1) {
-  //         await provider.assignEmployeeToStores(
-  //           employeeId: employee.id,
-  //           storeIds: _selectedStoreIds,
-  //           permissionType: _selectedRole!.toLowerCase(),
-  //         );
-  //       }
-
-  //       await provider.loadAllData(storeId: provider.selectedStoreId);
-  //       _showSnackBar('Employé ajouté avec succès', Colors.green);
-  //       widget.onSuccess();
-  //       if (mounted) Navigator.pop(context);
-  //     } else if (mounted) {
-  //       _showSnackBar(result['message'] ?? 'Erreur lors de l\'ajout', Colors.red);
-  //     }
-  //   }
-  // }
 
   Future<void> _submit() async {
     if (_isSubmitting) {
@@ -350,8 +246,7 @@ class _EmployeeFormWidgetState extends State<EmployeeFormWidget> {
           salary: double.tryParse(_salaryController.text),
           emergencyContact: _emergencyContactController.text.trim(),
           photo: _profileImage,
-          assignedStoreIds: _canSelectMultipleStores && _selectedStoreIds.length > 1 ? _selectedStoreIds : null,
-          
+          assignedStoreIds: _selectedStoreIds,
         );
 
         setState(() => _isSubmitting = false);
@@ -661,8 +556,9 @@ class _EmployeeFormWidgetState extends State<EmployeeFormWidget> {
       ),
       keyboardType: TextInputType.phone,
       validator: (value) {
-        if (value == null || value.isEmpty)
+        if (value == null || value.isEmpty) {
           return 'Veuillez entrer le numéro de téléphone';
+        }
         if (!RegExp(r'^\+?[0-9]{7,15}$').hasMatch(value)) {
           return 'Numéro de téléphone invalide';
         }
@@ -702,8 +598,9 @@ class _EmployeeFormWidgetState extends State<EmployeeFormWidget> {
               ),
             ),
             validator: (value) {
-              if (value == null || value.isEmpty)
+              if (value == null || value.isEmpty) {
                 return 'Veuillez entrer un mot de passe';
+              }
               if (value.length < 6) return 'Minimum 6 caractères';
               return null;
             },
@@ -743,7 +640,7 @@ class _EmployeeFormWidgetState extends State<EmployeeFormWidget> {
 
   Widget _buildRoleDropdown() {
     return DropdownButtonFormField<String>(
-      value: _selectedRole,
+      initialValue: _selectedRole,
       decoration: const InputDecoration(
         labelText: "Rôle *",
         prefixIcon: Icon(Icons.work),
@@ -853,7 +750,7 @@ class _EmployeeFormWidgetState extends State<EmployeeFormWidget> {
           )
         else
           DropdownButtonFormField<int>(
-            value: _selectedStoreIds.isNotEmpty
+            initialValue: _selectedStoreIds.isNotEmpty
                 ? _selectedStoreIds.first
                 : null,
             decoration: const InputDecoration(

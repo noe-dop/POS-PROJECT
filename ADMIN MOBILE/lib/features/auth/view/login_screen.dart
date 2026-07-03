@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:nsp_pos_mobile/core/services/notifications.dart';
 import 'package:nsp_pos_mobile/features/auth/viewmodel/auth_viewmodel.dart';
-import 'package:nsp_pos_mobile/features/auth/service/auth_form.dart';
+import 'package:nsp_pos_mobile/features/auth/service/auth_service.dart';
 import 'package:provider/provider.dart';
 import '../../../localization/locale_keys.dart';
 
@@ -56,11 +56,28 @@ class _LoginScreenState extends State<LoginScreen> {
             context,
             LocaleKeys.loginSuccessMessage.tr(),
           );
+          // Récupérer l'utilisateur connecté
+          final user = authService.currentUser;
+          // Déterminer la page de destination en fonction des permissions
+          String destination = '/dashboard';
 
-          // Simulation login
-          await Future.delayed(const Duration(seconds: 2));
+          if (user != null) {
+            if (user.canViewReports) {
+              destination = '/dashboard'; // Tableau de bord
+            } else if (user.canManageSales) {
+              destination = '/cashbox'; // Caisse
+            } else if (user.canManageProducts) {
+              destination = '/produits'; // Produits
+            } else {
+              destination = '/settings'; // Paramètres par défaut
+            }
+          }
+
+          // Petite pause pour laisser le temps de voir le message
+          await Future.delayed(const Duration(seconds: 1));
+
           if (mounted) {
-            Navigator.pushReplacementNamed(context, "/dashboard");
+            Navigator.pushReplacementNamed(context, destination);
           }
         } else {
           String errorMessage = LocaleKeys.loginErrorMessage.tr();

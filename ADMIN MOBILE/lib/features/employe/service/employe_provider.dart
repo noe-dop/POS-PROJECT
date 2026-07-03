@@ -4,14 +4,18 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/core/config/app_config.dart';
 import 'package:nsp_pos_mobile/core/services/storage_service.dart';
+import 'package:nsp_pos_mobile/features/auth/service/auth_service.dart';
+import 'package:nsp_pos_mobile/features/auth/viewmodel/user_model.dart';
 import 'package:nsp_pos_mobile/features/employe/viewmodel/employe_model.dart';
 
 class EmployeeProvider extends ChangeNotifier {
   final String baseUrl = ApiConfig.onlineBaseUrl;
   final Dio _dio = Dio();
   final StorageService _storage = StorageService();
+  final AuthService _authService;
 
   bool _isLoading = false;
+
   String? _errorMessage;
   List<Employee> _employees = [];
   List<Map<String, dynamic>> _stores = [];
@@ -20,7 +24,6 @@ class EmployeeProvider extends ChangeNotifier {
 
   // Pagination
   bool _hasMore = true;
-  int _currentPage = 1;
   bool _isLoadingMore = false;
 
   // Boutique sélectionnée
@@ -30,14 +33,35 @@ class EmployeeProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
   String? get errorMessage => _errorMessage;
-  List<Employee> get employees => _employees;
+
+  List<Employee> get employees {
+    try {
+      final currentUser = _authService.currentUser;
+      final currentEmployeeId = currentUser?.employeeProfile?.id;
+
+      if (currentUser == null) {
+        return _employees;
+      }
+
+      if (currentUser.employeeProfile == null) {
+        return _employees;
+      }
+
+      return _employees
+          .where((employee) => employee.id != currentEmployeeId)
+          .toList();
+    } catch (e) {
+      return _employees;
+    }
+  }
+
   List<Map<String, dynamic>> get stores => _stores;
   List<Map<String, dynamic>> get roles => _roles;
   Map<String, dynamic>? get stats => _stats;
   bool get hasMore => _hasMore;
   int? get selectedStoreId => _selectedStoreId;
 
-  EmployeeProvider() {
+  EmployeeProvider(this._authService) {
     _dio.options = BaseOptions(
       baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 30),
@@ -54,7 +78,6 @@ class EmployeeProvider extends ChangeNotifier {
     bool refresh = false,
   }) async {
     if (refresh) {
-      _currentPage = 1;
       _employees = [];
       _hasMore = true;
     }
@@ -77,7 +100,6 @@ class EmployeeProvider extends ChangeNotifier {
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
-        print(data);
         final newEmployees = data
             .map((json) => Employee.fromJson(json))
             .toList();
@@ -88,7 +110,6 @@ class EmployeeProvider extends ChangeNotifier {
         }
 
         _hasMore = response.data['next'] != null;
-        _currentPage++;
 
         notifyListeners();
         return _employees;
@@ -348,8 +369,6 @@ class EmployeeProvider extends ChangeNotifier {
 
       final roleIdValue = roleId ?? existingEmployee.roleId;
       formData.fields.add(MapEntry('role', roleIdValue.toString()));
-      print("Role ID: $roleIdValue");
-      print("Role name: ${getRolesForDropdown().firstWhere((r) => r['id'] == roleIdValue)['name']}");
 
       // Champs utilisateur
       final finalFirstName = firstName ?? existingEmployee.firstName;
@@ -392,7 +411,6 @@ class EmployeeProvider extends ChangeNotifier {
       }
 
       if (assignedStoreIds != null && assignedStoreIds.isNotEmpty) {
-        print('Assigning to stores: ${assignedStoreIds.join(',')}');
         // Envoyer comme une liste JSON valide
         formData.fields.add(
           MapEntry('assigned_store_ids', assignedStoreIds.join(',')),
@@ -427,7 +445,6 @@ class EmployeeProvider extends ChangeNotifier {
           },
         ),
       );
-      print(  'Update response data: ${response.data}');
       if (response.statusCode == 200) {
         final updatedEmployee = Employee.fromJson(response.data);
 
@@ -446,20 +463,16 @@ class EmployeeProvider extends ChangeNotifier {
           'employee': updatedEmployee,
         };
       }
-      print('Update failed with status ${response.statusCode}: ${response.data}');
       return {
         'status': false,
         'message': 'Erreur ${response.statusCode}: ${response.data}',
       };
     } on DioException catch (e) {
       final errorMsg = _handleDioError(e);
-      print('Update error: $errorMsg');
-      if (e.response?.data != null) {
-        print('Response data: ${e.response!.data}');
-      }
+      print('e.response?.data: ${e.response?.data}');
+      print('Erreur lors de la mise à jour de l\'employé: $errorMsg');
       return {'status': false, 'message': errorMsg};
     } catch (e) {
-      print('Update error: $e');
       return {'status': false, 'message': e.toString()};
     } finally {
       _isLoading = false;
@@ -544,6 +557,25 @@ class EmployeeProvider extends ChangeNotifier {
 
   // ==================== ASSIGNATION À PLUSIEURS BOUTIQUES ====================
 
+  // Dans EmployeeProvider
+  Future<List<AssignedStore>> fetchAssignedStores(int employeeId) async {
+    try {
+      final token = await _storage.getToken();
+      final response = await _dio.get(
+        '${baseUrl}employees/$employeeId/assigned_stores/',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => AssignedStore.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<Map<String, dynamic>> assignEmployeeToStores({
     required int employeeId,
     required List<int> storeIds,
@@ -618,8 +650,22 @@ class EmployeeProvider extends ChangeNotifier {
   }
 
   List<Employee> getEmployeesByStore(int? storeId) {
-    if (storeId == null) return _employees;
-    return _employees.where((emp) => emp.storeId == storeId).toList();
+    final currentEmployeeId = _authService.currentUser?.employeeProfile?.id;
+
+    Iterable<Employee> filteredEmployees = _employees;
+    if (storeId != null) {
+      filteredEmployees = filteredEmployees.where(
+        (emp) => emp.storeId == storeId,
+      );
+    }
+
+    if (currentEmployeeId != null) {
+      filteredEmployees = filteredEmployees.where(
+        (emp) => emp.id != currentEmployeeId,
+      );
+    }
+
+    return filteredEmployees.toList();
   }
 
   List<String> getUniqueRoleNames() {

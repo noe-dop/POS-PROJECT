@@ -1,7 +1,9 @@
-// edit_store_view.dart
+// lib/features/boutiques/views/edit_store_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/core/services/notifications.dart';
 import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
+import 'package:nsp_pos_mobile/features/boutiques/viewmodel/address_model.dart';
 import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_model.dart';
 import 'package:nsp_pos_mobile/features/boutiques/widgets/boutique_form_fields.dart';
 import 'package:provider/provider.dart';
@@ -35,15 +37,24 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
   late TextEditingController _postalCodeController;
   late TextEditingController _countryController;
 
+  // Configuration des commandes en ligne
+  late TextEditingController _maxQuantityController;
+
   // Variables pour les sélecteurs
   bool _isActive = true;
-  int? _selectedStoreType ;
+  int? _selectedStoreType;
   bool _isLoading = false;
+  bool _isConfigLoading = false;
+
+  // Configuration
+  int? _maxOnlineItemQuantity;
+  bool _isQuantityServiceEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
+    _loadConfiguration();
   }
 
   void _initializeControllers() {
@@ -75,6 +86,9 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
     );
     _countryController = TextEditingController(text: store.address.country);
 
+    // Configuration
+    _maxQuantityController = TextEditingController();
+
     _isActive = store.isActive;
     _selectedStoreType = store.storeType;
   }
@@ -95,16 +109,169 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
     _stateController.dispose();
     _postalCodeController.dispose();
     _countryController.dispose();
+    _maxQuantityController.dispose();
     super.dispose();
   }
+
+  // ============================================================================
+  // CHARGEMENT DE LA CONFIGURATION
+  // ============================================================================
+
+  Future<void> _loadConfiguration() async {
+    if (!mounted) return;
+    setState(() => _isConfigLoading = true);
+
+    try {
+      final service = Provider.of<BoutiqueService>(context, listen: false);
+      final config = await service.getStoreConfiguration(widget.store.id);
+
+      if (mounted) {
+        setState(() {
+          _maxOnlineItemQuantity = config['max_online_item_quantity'] as int?;
+          _maxQuantityController.text = _maxOnlineItemQuantity?.toString() ?? '';
+
+          final servicesStatus = config['services_status'] as Map<String, dynamic>?;
+          _isQuantityServiceEnabled =
+              servicesStatus?['max_quantity_limit']?['enabled'] ?? false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur de chargement de la configuration: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isConfigLoading = false);
+    }
+  }
+
+  // ============================================================================
+  // SAUVEGARDE DE LA CONFIGURATION
+  // ============================================================================
+
+  Future<void> _saveQuantityLimit() async {
+    if (!mounted) return;
+    setState(() => _isConfigLoading = true);
+
+    try {
+      final service = Provider.of<BoutiqueService>(context, listen: false);
+
+      final text = _maxQuantityController.text.trim();
+      final int? maxQuantity = text.isEmpty ? null : int.tryParse(text);
+
+      if (text.isNotEmpty && maxQuantity == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Veuillez entrer un nombre valide'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (maxQuantity != null && maxQuantity <= 0) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('La quantité doit être supérieure à 0'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      await service.updateStoreConfiguration(
+        widget.store.id,
+        'max_online_item_quantity',
+        maxQuantity,
+      );
+
+      if (mounted) {
+        setState(() {
+          _maxOnlineItemQuantity = maxQuantity;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Limite de quantité sauvegardée avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isConfigLoading = false);
+    }
+  }
+
+  Future<void> _toggleQuantityService(bool value) async {
+    if (!mounted) return;
+    setState(() => _isConfigLoading = true);
+
+    try {
+      final service = Provider.of<BoutiqueService>(context, listen: false);
+      await service.togglePaidService(
+        widget.store.id,
+        'max_quantity_limit',
+        value,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isQuantityServiceEnabled = value;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              value
+                  ? 'Service de limite de quantité activé 🔓'
+                  : 'Service de limite de quantité désactivé 🔒',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isConfigLoading = false);
+    }
+  }
+
+  // ============================================================================
+  // SAUVEGARDE DE LA BOUTIQUE
+  // ============================================================================
 
   Future<void> _saveStore() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
-      // Construire l'objet boutique mis à jour
       final updatedStore = BoutiqueModel(
         id: widget.store.id,
         name: _nameController.text.trim(),
@@ -112,14 +279,14 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
         phone: _phoneController.text.trim(),
         email: _emailController.text.trim(),
         slogan: _sloganController.text.trim(),
-        storeType: _selectedStoreType!, // À récupérer du sélecteur
+        storeType: _selectedStoreType ?? 0,
         isActive: _isActive,
         totalEmployee: widget.store.totalEmployee,
         totalProducts: widget.store.totalProducts,
         totalPendingOrders: widget.store.totalPendingOrders,
         address: AddressModel(
           id: widget.store.address.id,
-          fullAddress: '', // Sera généré par le backend
+          fullAddress: '',
           addressLine1: _addressLine1Controller.text.trim(),
           addressLine2: _addressLine2Controller.text.trim(),
           city: _cityController.text.trim(),
@@ -140,7 +307,6 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
         updatedAt: DateTime.now(),
       );
 
-      // Appeler le service pour mettre à jour
       final boutiqueService = Provider.of<BoutiqueService>(
         context,
         listen: false,
@@ -173,8 +339,24 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
     }
   }
 
+  // ============================================================================
+  // BUILD
+  // ============================================================================
+
   @override
   Widget build(BuildContext context) {
+    if (_isConfigLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Modifier la boutique'),
+          backgroundColor: const Color(0xFF2E3A59),
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Modifier la boutique'),
@@ -209,6 +391,10 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
     );
   }
 
+  // ============================================================================
+  // CONSTRUCTION DU FORMULAIRE
+  // ============================================================================
+
   Widget _buildForm() {
     return Form(
       key: _formKey,
@@ -218,7 +404,7 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Section: Informations générales
-            StoreFormSection(
+            _buildSection(
               title: 'Informations générales',
               icon: Icons.store,
               children: [
@@ -265,7 +451,7 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
             const SizedBox(height: 20),
 
             // Section: Contact
-            StoreFormSection(
+            _buildSection(
               title: 'Contact',
               icon: Icons.contact_phone,
               children: [
@@ -307,7 +493,7 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
             const SizedBox(height: 20),
 
             // Section: Adresse
-            StoreFormSection(
+            _buildSection(
               title: 'Adresse',
               icon: Icons.location_on,
               children: [
@@ -383,12 +569,147 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
 
             const SizedBox(height: 20),
 
+            // Section: Configuration des commandes en ligne
+            _buildSection(
+              title: 'Commandes en ligne',
+              icon: Icons.shopping_cart,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _isQuantityServiceEnabled
+                        ? Colors.green[50]
+                        : Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _isQuantityServiceEnabled ? Colors.green : Colors.grey,
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _isQuantityServiceEnabled
+                                ? Icons.lock_open
+                                : Icons.lock,
+                            color: _isQuantityServiceEnabled
+                                ? Colors.green
+                                : Colors.orange,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Limite de quantité par article',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  _isQuantityServiceEnabled
+                                      ? 'Service activé 🔓'
+                                      : 'Service désactivé 🔒',
+                                  style: TextStyle(
+                                    color: _isQuantityServiceEnabled
+                                        ? Colors.green
+                                        : Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: _isQuantityServiceEnabled,
+                            onChanged: _toggleQuantityService,
+                          ),
+                        ],
+                      ),
+                      if (_isQuantityServiceEnabled) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _maxQuantityController,
+                                decoration: InputDecoration(
+                                  labelText: 'Quantité max par article',
+                                  hintText: 'Laisser vide = pas de limite',
+                                  border: const OutlineInputBorder(),
+                                  prefixIcon: const Icon(Icons.numbers),
+                                  suffixText: 'unités',
+                                ),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton.icon(
+                              onPressed: _saveQuantityLimit,
+                              icon: const Icon(Icons.save, size: 18),
+                              label: const Text('Sauvegarder'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_maxOnlineItemQuantity != null) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.info_outline,
+                                  size: 16,
+                                  color: Colors.blue,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Limite actuelle: ${_maxOnlineItemQuantity != null ? "$_maxOnlineItemQuantity unités" : "Aucune limite"}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.blue[700],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        Text(
+                          'Cette limite s\'applique uniquement aux commandes en ligne',
+                          style: TextStyle(
+                            color: Colors.orange[700],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
             // Section: Paramètres
-            StoreFormSection(
+            _buildSection(
               title: 'Paramètres',
               icon: Icons.settings,
               children: [
-                // Type de boutique
                 Consumer<BoutiqueService>(
                   builder: (context, service, child) {
                     final storeTypes = service.getBoutiqueTypes ?? [];
@@ -412,16 +733,13 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
                     );
                   },
                 ),
-
-                // Statut actif/inactif
                 StoreSwitchTile(
                   value: _isActive,
                   onChanged: (value) {
                     setState(() => _isActive = value);
                   },
                   title: 'Boutique active',
-                  subtitle:
-                      'Désactivez pour masquer temporairement la boutique',
+                  subtitle: 'Désactivez pour masquer temporairement la boutique',
                   icon: Icons.power_settings_new,
                 ),
               ],
@@ -429,7 +747,7 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
 
             const SizedBox(height: 30),
 
-            // Bouton de sauvegarde (mobile)
+            // Bouton de sauvegarde
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -444,11 +762,42 @@ class _EditBoutiqueViewState extends State<EditBoutiqueView> {
                 ),
               ),
             ),
-
             const SizedBox(height: 30),
           ],
         ),
       ),
+    );
+  }
+
+  // ============================================================================
+  // WIDGETS AIDANTS
+  // ============================================================================
+
+  Widget _buildSection({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: Colors.blue[700], size: 20),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue[700],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...children,
+      ],
     );
   }
 }

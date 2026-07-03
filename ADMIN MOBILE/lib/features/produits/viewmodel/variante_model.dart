@@ -7,23 +7,24 @@ class Variant {
   int? id;
   String barcode;
   String name;
-  double quantity;           // quantité globale
-  double salePrice1;         // prix vente 1 global
-  String? imageUrl;          // photo globale
-  
+  double quantity; // quantité globale
+  double salePrice1; // prix vente 1 global
+  String? imageUrl; // photo globale
+
   // Champs de StoreProductVariant (spécifiques boutique)
-  int? storeVariantId;                    // id de StoreProductVariant
-  double? storeVariantPrice;              // prix spécifique boutique
-  double? storeOnlinePrice;             // prix en ligne spécifique boutique
-  double? storeVariantCost;               // coût spécifique boutique
-  double? prixReduction;                  // prix réduit (promotion)
-  double storeQuantity;                   // quantité boutique
-  double? weight;                         // poids
-  bool selection;                         // sélectionnée
-  String status;                          // statut (draft/active/archived)
-  bool isActive;                          // active en boutique
-  DateTime? createdAt;                    // date création liaison
-  DateTime? updatedAt;                    // date modification liaison
+  int? storeVariantId; // id de StoreProductVariant
+  int? storeProductId; // id de StoreProduct (liaison produit-boutique)
+  double? storeVariantPrice; // prix spécifique boutique
+  double? storeOnlinePrice; // prix en ligne spécifique boutique
+  double? storeVariantCost; // coût spécifique boutique
+  double? prixReduction; // prix réduit (promotion)
+  double storeQuantity; // quantité boutique
+  double? weight; // poids
+  bool selection; // sélectionnée
+  String status; // statut (draft/active/archived)
+  bool isActive; // active en boutique
+  DateTime? createdAt; // date création liaison
+  DateTime? updatedAt; // date modification liaison
 
   Variant({
     this.id,
@@ -32,6 +33,7 @@ class Variant {
     required this.quantity,
     required this.salePrice1,
     this.imageUrl,
+    this.storeProductId,
     this.storeVariantId,
     this.storeVariantPrice,
     this.storeOnlinePrice,
@@ -54,34 +56,30 @@ class Variant {
       name: json['name'] ?? '',
       quantity: FormatUtils.toDouble(json['quantity']) ?? 0,
       salePrice1: FormatUtils.toDouble(json['sale_price_1']) ?? 0,
-      imageUrl: _cleanImageUrl(json['photo']),
-      
+      imageUrl: FormatUtils.formatImageUrl(json['photo']),
+
       // Champs boutique (StoreProductVariant)
       storeVariantId: json['store_variant_id'],
+      storeProductId: json['store_product_id'],
       storeVariantPrice: FormatUtils.toDouble(json['store_variant_price']),
       storeVariantCost: FormatUtils.toDouble(json['store_variant_cost']),
       storeOnlinePrice: FormatUtils.toDouble(json['store_online_price']),
       prixReduction: FormatUtils.toDouble(json['prix_reduction']),
-      storeQuantity: FormatUtils.toDouble(json['store_quantity']) ?? 
-                     FormatUtils.toDouble(json['quantity']) ?? 0,
+      storeQuantity:
+          FormatUtils.toDouble(json['store_quantity']) ??
+          FormatUtils.toDouble(json['quantity']) ??
+          0,
       weight: FormatUtils.toDouble(json['weight']),
       selection: json['selection'] ?? false,
       status: json['status'] ?? 'active',
       isActive: json['is_active'] ?? true,
-      createdAt: json['created_at'] != null 
-          ? DateTime.tryParse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
           : null,
-      updatedAt: json['updated_at'] != null 
-          ? DateTime.tryParse(json['updated_at']) 
+      updatedAt: json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'])
           : null,
     );
-  }
-
-  static String? _cleanImageUrl(dynamic imageUrl) {
-    if (imageUrl == null) return null;
-    String url = imageUrl.toString().trim();
-    if (url.isEmpty || url == 'null' || url == 'None') return null;
-    return url;
   }
 
   Map<String, dynamic> toJson() {
@@ -95,16 +93,16 @@ class Variant {
   }
 
   // ========== GETTERS UTILES ==========
-  
+
   // /// ID de la liaison boutique (pour les updates)
   // int? get storeVariantId => storeVariantId;
-  
+
   /// Prix effectif (prix boutique ou prix global)
   double get effectivePrice {
     if (storeVariantPrice != null) return storeVariantPrice!;
     return salePrice1;
   }
-  
+
   /// Prix final (avec promotion si applicable)
   double get finalPrice {
     if (prixReduction != null && prixReduction! < effectivePrice) {
@@ -112,30 +110,30 @@ class Variant {
     }
     return effectivePrice;
   }
-  
+
   /// Quantité effective (quantité boutique ou quantité globale)
   double get effectiveQuantity {
     if (storeQuantity > 0) return storeQuantity;
     return quantity;
   }
-  
+
   /// Vérifie si la variante est liée à une boutique
   bool get isLinkedToStore => storeVariantId != null;
-  
+
   /// Vérifie si la variante est active en boutique
   bool get isActiveInStore => isActive && status == 'active';
-  
+
   /// Vérifie si une promotion est active
   bool get isPromotionActive {
     if (prixReduction == null) return false;
     return prixReduction! < effectivePrice;
   }
-  
+
   /// Prix barré (si promotion)
   double? get crossedOutPrice {
     return isPromotionActive ? effectivePrice : null;
   }
-  
+
   /// Prix à afficher (avec ou sans promotion)
   String get displayPrice {
     if (isPromotionActive) {
@@ -143,7 +141,7 @@ class Variant {
     }
     return '${effectivePrice.toStringAsFixed(0)} FCFA';
   }
-  
+
   /// Texte du prix avec promotion
   Widget get priceWidget {
     if (isPromotionActive) {
@@ -171,34 +169,34 @@ class Variant {
     }
     return Text('${effectivePrice.toStringAsFixed(0)} FCFA');
   }
-  
+
   /// Vérifie si l'image existe
   bool get hasValidImage => imageUrl != null && imageUrl!.isNotEmpty;
-  
+
   /// Statut du stock
   String get stockStatus {
     if (effectiveQuantity <= 0) return 'Rupture';
     if (effectiveQuantity < 10) return 'Stock faible';
     return 'En stock';
   }
-  
+
   /// Couleur du statut stock
   Color get stockStatusColor {
     if (effectiveQuantity <= 0) return Colors.red;
     if (effectiveQuantity < 10) return Colors.orange;
     return Colors.green;
   }
-  
+
   /// Vérifie si le stock est disponible
   bool get isInStock => effectiveQuantity > 0;
-  
+
   /// Icône du statut
   IconData get statusIcon {
     if (!isActiveInStore) return Icons.cancel;
     if (!isInStock) return Icons.warning;
     return Icons.check_circle;
   }
-  
+
   /// Couleur du statut
   Color get statusColor {
     if (!isActiveInStore) return Colors.red;
@@ -207,7 +205,7 @@ class Variant {
   }
 
   // ========== MÉTHODES ==========
-  
+
   /// Crée une copie avec des valeurs modifiées
   Variant copyWith({
     int? id,

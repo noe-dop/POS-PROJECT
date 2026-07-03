@@ -5,10 +5,12 @@ import 'package:nsp_pos_mobile/features/auth/view/register_screen.dart';
 import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
 import 'package:nsp_pos_mobile/features/boutiques/view/boutiques_view.dart';
 import 'package:nsp_pos_mobile/features/boutiques/view/create_boutique_form.dart';
+import 'package:nsp_pos_mobile/features/caisse/view/caisse_cloture_report_screen.dart';
 import 'package:nsp_pos_mobile/features/caisse/view/caisse_operation_screen.dart';
 import 'package:nsp_pos_mobile/features/caisse/view/caisse_screen.dart';
 import 'package:nsp_pos_mobile/features/caisse/view/caisse_cloture_screen.dart';
 import 'package:nsp_pos_mobile/features/caisse/view/caisse_initialisation_screen.dart';
+import 'package:nsp_pos_mobile/features/caisse/viewmodel/caisse_session.dart';
 import 'package:nsp_pos_mobile/features/dashboard/view/dashbord_screen.dart';
 import 'package:nsp_pos_mobile/features/employe/view/employee_screen.dart';
 import 'package:nsp_pos_mobile/features/inventaire/view/inventaire_screen.dart';
@@ -59,50 +61,39 @@ final Map<String, WidgetBuilder> appRoutes = {
 
   // Route d'initialisation de la caisse
   "/cashbox/init": (context) {
-    final args = ModalRoute.of(context)?.settings.arguments;
-
-    // Vérifier si on a des arguments
-    if (args == null || args is! List<String>) {
-      // Retourner à l'écran précédent avec un message d'erreur
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Paramètres manquants'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        Navigator.pop(context);
-      });
-
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    return CaisseInitialisationScreen(userRoles: args);
-  },
+  final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+  final userRoles = args?['userRoles'] as List<String>? ?? [];
+  final cashRegisterId = args?['cashRegisterId'] ?? 0;
+  final employeeId = args?['employeeId'] ?? 0;
+  return CaisseInitialisationScreen(
+    userRoles: userRoles,
+    cashRegisterId: cashRegisterId,
+    employeeId: employeeId,
+  );
+},
 
   // Route d'opération de caisse (après initialisation)
-  "/cashbox/operation": (context) => const CaisseOperationScreen(),
+  "/cashbox/operation": (context) {
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final storeId = args?['storeId'];
+    final employeeId = args?['employeeId'] ;
+    final cashRegisterId = args?['cashRegisterId'];
+    return CaisseOperationScreen(
+      storeId: storeId,
+      employeeId: employeeId,
+      cashRegisterId: cashRegisterId,
+    );
+  },
 
   // Route de clôture de caisse
   "/cashbox/close": (context) {
-    final args = ModalRoute.of(context)?.settings.arguments;
-
-    if (args == null) {
-      // Retourner à l'écran précédent
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Aucune session à afficher'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        Navigator.pop(context);
-      });
-
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    return CaisseClotureScreen(sessionData: args);
+    return CaisseClotureScreen();
+  },
+  "/cashbox/close/report": (context) {
+    final args =
+        ModalRoute.of(context)?.settings.arguments as CaisseSession?;
+    return CaisseClotureReportScreen(session: args!);
   },
   "/inventory": (context) => const InventaireScreen(),
   "/procurement": (context) => const ApprovisionnementScreen(),

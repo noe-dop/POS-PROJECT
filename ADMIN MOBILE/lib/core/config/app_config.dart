@@ -1,5 +1,6 @@
 class ApiConfig {
   static const String baseUrl = 'https://127.0.0.1:8000/api/';
+  // static const String onlineBaseUrl = 'https://eboutikapp.com/api/';
   static const String onlineBaseUrl = 'http://127.0.0.1:8000/api/';
   static const String mediaBaseUrl = 'http://127.0.0.1:8000';
   // static const String onlineBaseUrl = 'https://eboutik-api.onrender.com/api/';

@@ -1,4 +1,3 @@
-
 class SignupRequest {
   final String surname;
   final String name;

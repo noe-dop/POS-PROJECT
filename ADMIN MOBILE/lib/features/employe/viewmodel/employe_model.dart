@@ -1,5 +1,6 @@
 // lib/features/employe/viewmodel/employe_model.dart
 import 'package:nsp_pos_mobile/core/config/app_config.dart';
+import 'package:nsp_pos_mobile/features/auth/viewmodel/user_model.dart';
 
 class Employee {
   final int id;
@@ -26,7 +27,7 @@ class Employee {
   final String? photoUrl;
   final Map<String, dynamic> permissions;
   final bool canAccessMultipleStores;
-  final List<Map<String, dynamic>>? assignedStores;
+  final List<AssignedStore> assignedStores;
 
   Employee({
     required this.id,
@@ -51,7 +52,7 @@ class Employee {
     this.photoUrl,
     this.permissions = const {},
     required this.canAccessMultipleStores,
-    this.assignedStores,
+    this.assignedStores = const [],
   });
 
   String get fullName => '$firstName $lastName';
@@ -60,13 +61,11 @@ class Employee {
   factory Employee.fromJson(Map<String, dynamic> json) {
     final userData = json['user'] ?? json;
     // Gérer assigned_stores qui pourrait être null ou absent
-    List<Map<String, dynamic>> assignedStores = [];
+    List<AssignedStore> assignedStores = [];
     if (json['assigned_stores'] != null && json['assigned_stores'] is List) {
-      assignedStores = List<Map<String, dynamic>>.from(
-        (json['assigned_stores'] as List).map(
-          (store) => Map<String, dynamic>.from(store),
-        ),
-      );
+      assignedStores = (json['assigned_stores'] as List)
+          .map((storeJson) => AssignedStore.fromJson(storeJson))
+          .toList();
     }
     String? photoUrl; // Par défaut, pas d'URL de photo
     if (json['photo'] != null && json['photo'] is String) {

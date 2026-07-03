@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/core/config/app_config.dart';
 import 'package:nsp_pos_mobile/core/services/storage_service.dart';
 import 'package:nsp_pos_mobile/core/utils/network_utils.dart';
+import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_form_model.dart';
 import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_model.dart';
+import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_type_model.dart';
 
 class BoutiqueService extends ChangeNotifier {
   String baseUrl = ApiConfig.onlineBaseUrl;
@@ -16,6 +18,7 @@ class BoutiqueService extends ChangeNotifier {
   BoutiqueModel? boutiques;
   List<BoutiqueType>? boutiqueType;
   String? _errorMessage;
+  int? _maxOnlineItemQuantity;
 
   // Getters
   List<BoutiqueType>? get getBoutiqueTypes => boutiqueType;
@@ -35,22 +38,23 @@ class BoutiqueService extends ChangeNotifier {
   }
 
   Future<void> init() async {
-    _isLoading = true;
-    notifyListeners();
     try {
       await fetchBoutiqueTypes();
       await fetchAccessibleStores();
     } catch (e) {
-      // print('Erreur lors du chargement: $e');
+      _errorMessage = e.toString();
     } finally {
-      _isLoading = false;
-      notifyListeners();
     }
   }
 
   // Manage Store Types
   Future<List<BoutiqueType>?> fetchBoutiqueTypes() async {
+    if (_isLoading) {
+      return [];
+    }
     try {
+      _isLoading = true;
+      notifyListeners();
       if (await isServerReachable(baseUrl) == false) {
         return null;
       }
@@ -62,6 +66,9 @@ class BoutiqueService extends ChangeNotifier {
       return boutiqueType;
     } catch (e) {
       return null;
+    } finally {
+      _isLoading= false;
+      notifyListeners();
     }
   }
 
@@ -197,7 +204,7 @@ class BoutiqueService extends ChangeNotifier {
   Future<BoutiqueModel?> fetchBoutiques() async {
     // RECUPERER LES BOUTIQUES PUBLIQUES (pour les clients) et les boutiques accessibles (pour les employés/admin)
     try {
-      if ( await isServerReachable(baseUrl) == false) {
+      if (await isServerReachable(baseUrl) == false) {
         return null;
       }
       // final response = await _dio.get('${baseUrl}stores/');
@@ -283,7 +290,12 @@ class BoutiqueService extends ChangeNotifier {
   // ============================================
 
   Future<List<StoreWithPermission>> fetchAccessibleStores() async {
+    if (_isLoading) {
+      return _accessibleStores;
+    }
     try {
+      _isLoading = true;
+      notifyListeners();
       final token = await storage.getToken();
       if (token == null) return [];
 
@@ -308,6 +320,9 @@ class BoutiqueService extends ChangeNotifier {
     } catch (e) {
       // print('Erreur fetchAccessibleStores: $e');
       return [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -436,13 +451,8 @@ class BoutiqueService extends ChangeNotifier {
 
   Future<void> selectStore(StoreWithPermission store) async {
     _selectedStore = store;
-
-    // Sauvegarder la sélection
-    // TODO:
-    // A reactiver
-    // await _storageService.saveSelectedStore(store.toJson());
-
-    // Émettre un événement pour notifier le changement
+    final savedStore = store.toJson();
+    await storage.saveSelectedStore(savedStore);
     notifyListeners();
   }
 
@@ -526,5 +536,101 @@ class BoutiqueService extends ChangeNotifier {
   void _calculeStats() {
     _calculateEmployeeStats();
     _calculateStockProductsStats();
+  }
+
+  /// Récupère la configuration d'une boutique
+  Future<Map<String, dynamic>> getStoreConfiguration(int storeId) async {
+    try {
+      final token = await storage.getToken();
+
+      final response = await _dio.get(
+        '$baseUrl/stores/$storeId/configuration/',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception('Erreur ${response.statusCode}: ${response.data}');
+      }
+    } on DioException catch (e) {
+      print('Erreur récupération configuration: $e');
+      throw Exception('Erreur récupération configuration: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Met à jour une configuration spécifique de la boutique
+  Future<Map<String, dynamic>> updateStoreConfiguration(
+    int storeId,
+    String key,
+    dynamic value,
+  ) async {
+    try {
+      final token = await storage.getToken();
+
+      final response = await _dio.post(
+        '$baseUrl/stores/$storeId/update_config/',
+        data: {'key': key, 'value': value},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception('Erreur ${response.statusCode}: ${response.data}');
+      }
+    } on DioException catch (e) {
+      print('Erreur mise à jour configuration: $e');
+      throw Exception('Erreur mise à jour configuration: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Active ou désactive un service payant
+  Future<Map<String, dynamic>> togglePaidService(
+    int storeId,
+    String serviceKey,
+    bool enabled,
+  ) async {
+    try {
+      final token = await storage.getToken();
+
+      final response = await _dio.post(
+        '$baseUrl/stores/$storeId/toggle_service/',
+        data: {'service_key': serviceKey, 'enabled': enabled},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      } else {
+        return {'error': 'Erreur ${response.statusCode}: ${response.data}'};
+      }
+    } on DioException catch (e) {
+      throw Exception('Erreur activation/désactivation service: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

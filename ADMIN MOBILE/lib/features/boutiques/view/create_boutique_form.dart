@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nsp_pos_mobile/core/services/notifications.dart';
+import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_form_model.dart';
 import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_model.dart';
 import 'package:nsp_pos_mobile/features/boutiques/widgets/simple_location_picker.dart';
 import 'package:provider/provider.dart';

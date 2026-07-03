@@ -346,19 +346,19 @@ class _ProductDetailViewState extends State<ProductDetailView> {
       return Column(
         children: [
           _buildStockCard(
-            'Stock disponible',
-            '${stock.quantityAvailable}',
-            Icons.inventory,
-            Colors.green,
-            'Quantité disponible à la vente',
-          ),
-          const SizedBox(height: 12),
-          _buildStockCard(
             'Stock physique',
             '${stock.quantityOnHand}',
             Icons.warehouse,
             Colors.blue,
             'Quantité en stock physique',
+          ),
+          const SizedBox(height: 12),
+          _buildStockCard(
+            'Stock boutique',
+            '${stock.quantityAvailable}',
+            Icons.inventory,
+            Colors.green,
+            'Quantité disponible à la vente en boutique',
           ),
           const SizedBox(height: 12),
           _buildStockCard(
@@ -389,21 +389,21 @@ class _ProductDetailViewState extends State<ProductDetailView> {
             children: [
               Expanded(
                 child: _buildStockCard(
-                  'Stock disponible',
-                  '${stock.quantityAvailable}',
-                  Icons.inventory,
-                  Colors.green,
-                  'Quantité disponible à la vente',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStockCard(
                   'Stock physique',
                   '${stock.quantityOnHand}',
                   Icons.warehouse,
                   Colors.blue,
                   'Quantité en stock physique',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStockCard(
+                  'Stock boutique',
+                  '${stock.quantityAvailable}',
+                  Icons.inventory,
+                  Colors.green,
+                  'Quantité disponible à la vente en boutique',
                 ),
               ),
               const SizedBox(width: 12),
