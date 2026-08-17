@@ -1,12 +1,10 @@
-// lib/features/caisse/viewmodel/caisse_transaction.dart
-
 class CaisseTransaction {
   final String id;
   final String clientId;
   final double amount;
   final DateTime timestamp;
   final List<String> paymentMethod;
-  final Map<int, double> paymentBreakdown;  // NOUVEAU: breakdown par méthode
+  final Map<int, double> paymentBreakdown; 
 
   CaisseTransaction({
     required this.id,

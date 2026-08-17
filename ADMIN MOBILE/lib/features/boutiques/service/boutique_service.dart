@@ -213,7 +213,6 @@ class BoutiqueService extends ChangeNotifier {
       notifyListeners();
       return boutiques;
     } catch (e) {
-      // print('Error fetching boutiques: $e');
       return null;
     }
   }
@@ -280,7 +279,6 @@ class BoutiqueService extends ChangeNotifier {
       }
       return _publicStores;
     } catch (e) {
-      // print('Erreur fetchPublicStores: $e');
       return [];
     }
   }
@@ -318,7 +316,6 @@ class BoutiqueService extends ChangeNotifier {
       }
       return [];
     } catch (e) {
-      // print('Erreur fetchAccessibleStores: $e');
       return [];
     } finally {
       _isLoading = false;
@@ -559,7 +556,6 @@ class BoutiqueService extends ChangeNotifier {
         throw Exception('Erreur ${response.statusCode}: ${response.data}');
       }
     } on DioException catch (e) {
-      print('Erreur récupération configuration: $e');
       throw Exception('Erreur récupération configuration: $e');
     } finally {
       _isLoading = false;
@@ -593,7 +589,6 @@ class BoutiqueService extends ChangeNotifier {
         throw Exception('Erreur ${response.statusCode}: ${response.data}');
       }
     } on DioException catch (e) {
-      print('Erreur mise à jour configuration: $e');
       throw Exception('Erreur mise à jour configuration: $e');
     } finally {
       _isLoading = false;

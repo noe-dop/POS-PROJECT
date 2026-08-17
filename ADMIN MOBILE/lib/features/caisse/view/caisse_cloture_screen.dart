@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:nsp_pos_mobile/app/side_menu.dart';
 import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
 import 'package:nsp_pos_mobile/features/caisse/services/caisse_provider.dart';
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/caisse_session.dart';
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/currency_config.dart';
+import 'package:nsp_pos_mobile/features/caisse/viewmodel/caisse_session_model.dart';
+import 'package:nsp_pos_mobile/core/config/currency_config.dart';
 import 'package:nsp_pos_mobile/features/caisse/viewmodel/payment_method_model.dart';
 
 class CaisseClotureScreen extends StatefulWidget {
@@ -47,30 +47,6 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
     }
   }
 
-  void _calculateFinalTotal() {
-    double total = 0.0;
-    _finalCashControllers.forEach((denom, ctrl) {
-      final qty = int.tryParse(ctrl.text) ?? 0;
-      total += denom * qty;
-    });
-    setState(() {
-      _finalTotalAmount = total;
-      if (_session != null) {
-        _hasDeficit = total < _session!.totalCurrent;
-        _hasExcess = total > _session!.totalCurrent;
-      }
-    });
-  }
-
-  Map<int, int> _getFinalCashCount() {
-    final Map<int, int> cashCount = {};
-    _finalCashControllers.forEach((denom, ctrl) {
-      final qty = int.tryParse(ctrl.text) ?? 0;
-      if (qty > 0) cashCount[denom] = qty;
-    });
-    return cashCount;
-  }
-
   @override
   void dispose() {
     for (var controller in _finalCashControllers.values) {
@@ -95,9 +71,33 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
     }
   }
 
+  void _calculateFinalTotal() {
+    double total = 0.0;
+    _finalCashControllers.forEach((denom, ctrl) {
+      final qty = int.tryParse(ctrl.text) ?? 0;
+      total += denom * qty;
+    });
+    setState(() {
+      _finalTotalAmount = total;
+      if (_session != null) {
+        _hasDeficit = total < _session!.expectedCashBalance;
+        _hasExcess = total > _session!.expectedCashBalance;
+      }
+    });
+  }
+
+  Map<int, int> _getFinalCashCount() {
+    final Map<int, int> cashCount = {};
+    _finalCashControllers.forEach((denom, ctrl) {
+      final qty = int.tryParse(ctrl.text) ?? 0;
+      if (qty > 0) cashCount[denom] = qty;
+    });
+    return cashCount;
+  }
+
   void _presetFinalCashFromCurrent() {
     if (_session == null) return;
-    double remaining = _session!.totalCurrent;
+    double remaining = _session!.expectedCashBalance;
     final config = CurrencyConfig.currencies[_selectedCurrency]!;
 
     for (var denom in config.banknotes) {
@@ -180,7 +180,7 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
     if (_session == null) return;
 
     if (_hasDeficit) {
-      final deficit = _session!.totalCurrent - _finalTotalAmount;
+      final deficit = _session!.expectedCashBalance - _finalTotalAmount;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -195,7 +195,7 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
     }
 
     if (_hasExcess) {
-      final excess = _finalTotalAmount - _session!.totalCurrent;
+      final excess = _finalTotalAmount - _session!.expectedCashBalance;
       final confirm = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -323,10 +323,7 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.blue.shade50,
-                    Colors.white,
-                  ],
+                  colors: [Colors.blue.shade50, Colors.white],
                 ),
               ),
               child: SingleChildScrollView(
@@ -335,12 +332,12 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
                   children: [
                     // LIGNE 1 : Récapitulatif
                     _buildSummaryCard(),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
 
                     // LIGNE 2 : Billetage (billets à gauche, pièces à droite)
                     _buildCashCard(config),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
 
                     // Boutons
                     _buildActionButtons(),
@@ -361,8 +358,6 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
   // ============================================================================
 
   Widget _buildSummaryCard() {
-    final isBalanced = (_session!.totalCurrent - _session!.totalInitial).abs() < 0.01;
-
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -379,7 +374,11 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
                     color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.receipt, color: Colors.blue.shade700, size: 20),
+                  child: Icon(
+                    Icons.receipt,
+                    color: Colors.blue.shade700,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Text(
@@ -405,12 +404,6 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildInfoRow(
-                        Icons.tag,
-                        'Session',
-                        '#${_session!.id}',
-                        color: Colors.grey.shade700,
-                      ),
-                      _buildInfoRow(
                         Icons.calendar_today,
                         'Ouverture',
                         _formatDateTime(_session!.startTime),
@@ -426,7 +419,7 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
                       _buildInfoRow(
                         Icons.account_balance_wallet,
                         'Fond attendu',
-                        '${_session!.totalCurrent.toStringAsFixed(0)} ${_session!.currency}',
+                        '${_session!.expectedCashBalance.toStringAsFixed(0)} ${_session!.currency}',
                         isBold: true,
                         color: Colors.blue.shade700,
                       ),
@@ -437,33 +430,40 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
                         isBold: true,
                         color: _hasDeficit
                             ? Colors.red
-                            : (_hasExcess ? Colors.orange : Colors.green.shade700),
+                            : (_hasExcess
+                                  ? Colors.orange
+                                  : Colors.green.shade700),
                       ),
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        width: 150,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: isBalanced ? Colors.green.shade50 : Colors.red.shade50,
+                          color: Colors.green.shade50,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isBalanced ? Colors.green.shade200 : Colors.red.shade200,
-                          ),
+                          border: Border.all(color: Colors.green.shade200),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              isBalanced ? Icons.check_circle : Icons.warning,
-                              color: isBalanced ? Colors.green.shade700 : Colors.red.shade700,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 6),
                             Text(
-                              'Différence: ${(_session!.totalCurrent - _session!.totalInitial) > 0 ? '+' : ''}${(_session!.totalCurrent - _session!.totalInitial).toStringAsFixed(0)} ${_session!.currency}',
+                              'CA: ',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: isBalanced ? Colors.green.shade700 : Colors.red.shade700,
+                                color: Colors.green.shade700,
+                              ),
+                            ),
+                            Spacer(),
+                            Text(
+                              '${_session!.totalSales.toStringAsFixed(0)} ${_session!.currency}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade700,
                               ),
                             ),
                           ],
@@ -522,7 +522,11 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
                     color: Colors.green.shade50,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.money, color: Colors.green.shade700, size: 20),
+                  child: Icon(
+                    Icons.money,
+                    color: Colors.green.shade700,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Text(
@@ -535,26 +539,37 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _hasDeficit
                         ? Colors.red.shade50
-                        : (_hasExcess ? Colors.orange.shade50 : Colors.green.shade50),
+                        : (_hasExcess
+                              ? Colors.orange.shade50
+                              : Colors.green.shade50),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: _hasDeficit
                           ? Colors.red.shade200
-                          : (_hasExcess ? Colors.orange.shade200 : Colors.green.shade200),
+                          : (_hasExcess
+                                ? Colors.orange.shade200
+                                : Colors.green.shade200),
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        _hasDeficit ? Icons.error : (_hasExcess ? Icons.warning : Icons.check_circle),
+                        _hasDeficit
+                            ? Icons.error
+                            : (_hasExcess ? Icons.warning : Icons.check_circle),
                         color: _hasDeficit
                             ? Colors.red.shade700
-                            : (_hasExcess ? Colors.orange.shade700 : Colors.green.shade700),
+                            : (_hasExcess
+                                  ? Colors.orange.shade700
+                                  : Colors.green.shade700),
                         size: 16,
                       ),
                       const SizedBox(width: 4),
@@ -567,7 +582,9 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
                           fontWeight: FontWeight.bold,
                           color: _hasDeficit
                               ? Colors.red.shade700
-                              : (_hasExcess ? Colors.orange.shade700 : Colors.green.shade700),
+                              : (_hasExcess
+                                    ? Colors.orange.shade700
+                                    : Colors.green.shade700),
                         ),
                       ),
                     ],
@@ -600,7 +617,9 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        ...config.banknotes.map((denom) => _buildDenominationRow(denom)),
+                        ...config.banknotes.map(
+                          (denom) => _buildDenominationRow(denom),
+                        ),
                       ],
                     ),
                   ),
@@ -625,7 +644,9 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        ...config.coins.map((denom) => _buildDenominationRow(denom)),
+                        ...config.coins.map(
+                          (denom) => _buildDenominationRow(denom),
+                        ),
                       ],
                     ),
                   ),
@@ -641,10 +662,7 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
               children: [
                 const Text(
                   'Total déclaré',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   '${_finalTotalAmount.toStringAsFixed(0)} ${_session!.currency}',
@@ -721,7 +739,9 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
               child: Text(
                 _hasExcess
                     ? 'CONFIRMER L\'EXCÉDENT'
-                    : (_hasDeficit ? 'DÉFICIT - BLOQUÉ' : 'CONFIRMER LA CLÔTURE'),
+                    : (_hasDeficit
+                          ? 'DÉFICIT - BLOQUÉ'
+                          : 'CONFIRMER LA CLÔTURE'),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -749,7 +769,7 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'DÉFICIT : ${(_session!.totalCurrent - _finalTotalAmount).abs().toStringAsFixed(0)} ${_session!.currency} manquant(s). Vérifiez le fond de caisse.',
+              'DÉFICIT : ${(_session!.expectedCashBalance - _finalTotalAmount).abs().toStringAsFixed(0)} ${_session!.currency} manquant(s). Vérifiez le fond de caisse.',
               style: TextStyle(
                 color: Colors.red.shade700,
                 fontSize: 13,
@@ -782,10 +802,7 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
           Expanded(
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
           ),
           Text(
@@ -812,7 +829,7 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
       child: Row(
         children: [
           SizedBox(
-            width: 50,
+            width: 100,
             child: Text(
               FormatUtils.formatCurrency(denom.toDouble(), config.symbol),
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
@@ -831,17 +848,20 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
-                  borderSide: BorderSide(color: Colors.blue.shade300, width: 1.5),
+                  borderSide: BorderSide(
+                    color: Colors.blue.shade300,
+                    width: 1.5,
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 3),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 isDense: true,
               ),
             ),
           ),
           const SizedBox(width: 4),
           Container(
-            width: 60,
-            padding: const EdgeInsets.symmetric(vertical: 2),
+            width: 100,
+            padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [Colors.blue.shade600, Colors.blue.shade400],
@@ -900,10 +920,7 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
             Container(
               width: 6,
               height: 6,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
             const SizedBox(width: 6),
             Expanded(
@@ -914,10 +931,7 @@ class _CaisseClotureScreenState extends State<CaisseClotureScreen> {
             ),
             Text(
               '${amount.toStringAsFixed(0)} ${_session!.currency}',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ],
         ),

@@ -1,12 +1,10 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:nsp_pos_mobile/core/config/app_config.dart';
 import 'package:nsp_pos_mobile/core/services/storage_service.dart';
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/order_model.dart';
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/order_status_model.dart';
+import 'package:nsp_pos_mobile/features/orders/viewmodel/order_model.dart';
+import 'package:nsp_pos_mobile/features/orders/viewmodel/order_status_model.dart';
 
 class OrderProvider extends ChangeNotifier {
   final Dio _dio = Dio();
@@ -21,8 +19,7 @@ class OrderProvider extends ChangeNotifier {
 
   Timer? _pollingTimer;
   bool _isPolling = false;
-  List<int> _previousOrderIds = [];
-  static const Duration _pollingInterval = Duration(seconds:10);
+  static const Duration _pollingInterval = Duration(seconds: 10);
   int? _pollingStoreId;
 
   // GETTERS
@@ -38,11 +35,14 @@ class OrderProvider extends ChangeNotifier {
     // Si les statuts ne sont pas encore chargés, on retourne 0
     if (_statuses.isEmpty) return 0;
 
-    final pendingStatus = _statuses.firstWhere(
-      (s) => s.code == 'pending',
-      orElse: () => throw Exception('Statut "pending" non trouvé'),
-    );
-    return _orders.where((o) => o.status.id == pendingStatus.id).length;
+    try {
+      final OrderStatusModel pendingStatus = _statuses.firstWhere(
+        (s) => s.code == 'pending',
+      );
+      return _orders.where((o) => o.status.id == pendingStatus.id).length;
+    } catch (e) {
+      return 0;
+    }
   }
 
   OrderProvider() {
@@ -64,12 +64,8 @@ class OrderProvider extends ChangeNotifier {
     if (_isPolling) return;
     _pollingStoreId = storeId;
     _isPolling = true;
-    // Récupérer les IDs actuels pour référence
-    _previousOrderIds = _orders.map((o) => o.id).toList();
     // Démarrer le timer
-    _pollingTimer = Timer.periodic(_pollingInterval, (timer) {
-      _pollOrders();
-    });
+    _pollingTimer = Timer.periodic(_pollingInterval, (timer) => _pollOrders());
     notifyListeners();
   }
 
@@ -79,7 +75,6 @@ class OrderProvider extends ChangeNotifier {
     _pollingTimer = null;
     _isPolling = false;
     _pollingStoreId = null;
-    _previousOrderIds = [];
     notifyListeners();
   }
 
@@ -98,33 +93,48 @@ class OrderProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final List data = response.data['results'] ?? response.data;
-        if (data is List) {
-          final newOrders = data.map((json) => OrderModel.fromJson(json, _statuses)).toList();
-          // Détecter les nouvelles commandes (IDs qui n'étaient pas dans la liste précédente)
-          final newOrderIds = newOrders.map((o) => o.id).toSet();
-          final previousIds = _previousOrderIds.toSet();
-          final newlyAddedIds = newOrderIds.difference(previousIds);
-          if (newlyAddedIds.isNotEmpty) {
-            // Filtrer les nouvelles commandes
-            final newlyAddedOrders = newOrders.where((o) => newlyAddedIds.contains(o.id)).toList();
-            // Notifier
-            // _notifyNewOrders(newlyAddedOrders);
+        final newOrders = data
+            .map((json) => OrderModel.fromJson(json, _statuses))
+            .toList();
+
+        // Mise à jour intelligente
+        final existingIds = _orders.map((o) => o.id).toSet();
+        final Map<int, OrderModel> newOrderMap = {
+          for (var o in newOrders) o.id: o,
+        };
+
+        List<OrderModel> updatedList = [];
+        for (var oldOrder in _orders) {
+          if (newOrderMap.containsKey(oldOrder.id)) {
+            // Remplacer par la nouvelle version (statut, etc. à jour)
+            updatedList.add(newOrderMap[oldOrder.id]!);
+            newOrderMap.remove(
+              oldOrder.id,
+            ); // retirer pour ne pas l'ajouter à la fin
+          } else {
+            // Conserver l'ancienne (commande supprimée ?)
+            updatedList.add(oldOrder);
           }
-          // Mettre à jour la liste et les IDs précédents
-          _orders = newOrders;
-          _previousOrderIds = newOrders.map((o) => o.id).toList();
-          // Notifier pour mettre à jour l'UI
-          notifyListeners();
         }
+        // Ajouter les nouvelles commandes (IDs non présents avant)
+        updatedList.addAll(newOrderMap.values);
+
+        // Trier par date décroissante (comme l'API)
+        updatedList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+        _orders = updatedList;
+        notifyListeners();
       }
     } catch (e) {
-      // Ignorer les erreurs de polling (log uniquement en debug)
       if (kDebugMode) print('Polling error: $e');
     }
   }
 
   // Récupérer les statuts
   Future<void> fetchStatuses() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
     try {
       final token = await _storage.getToken();
       if (token == null) throw Exception('Non authentifié');
@@ -135,7 +145,7 @@ class OrderProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        final List data = response.data;
+        final List data = response.data['results'] ?? response.data;
         _statuses = data
             .map((json) => OrderStatusModel.fromJson(json))
             .toList();
@@ -145,14 +155,24 @@ class OrderProvider extends ChangeNotifier {
       }
     } catch (e) {
       _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
   // Récupérer les commandes
-  Future<void> fetchOrders({int? storeId, String? statusCode}) async {
+  Future<void> fetchOrders({required int storeId, int? statusId}) async {
     // Charger les statuts s'ils sont vides
     if (_statuses.isEmpty) {
       await fetchStatuses();
+      // Si après fetchStatuses ils sont toujours vides, on lève une exception
+      if (_statuses.isEmpty) {
+        _errorMessage = 'Impossible de charger les statuts des commandes';
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
     }
 
     _isLoading = true;
@@ -163,22 +183,19 @@ class OrderProvider extends ChangeNotifier {
       final token = await _storage.getToken();
       if (token == null) throw Exception('Non authentifié');
 
-      final queryParams = <String, String>{};
-      if (storeId != null) queryParams['store'] = storeId.toString();
-      if (statusCode != null && statusCode.isNotEmpty)
-        queryParams['status'] = statusCode;
+      final queryParams = <String, String>{'store': storeId.toString()};
+      if (statusId != null && statusId != 0) {
+        queryParams['status'] = statusId.toString();
+      }
 
       final response = await _dio.get(
         'orders/',
         queryParameters: queryParams,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-
       if (response.statusCode == 200) {
         final List data = response.data['results'] ?? response.data;
-        _orders = data
-            .map((json) => OrderModel.fromJson(json, _statuses))
-            .toList();
+        _orders = data.map((json) => OrderModel.fromJson(json, _statuses)).toList();
         _currentStoreId = storeId;
       } else {
         _errorMessage = 'Erreur ${response.statusCode}: ${response.data}';
@@ -204,7 +221,7 @@ class OrderProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        await fetchOrders(storeId: _currentStoreId);
+        await fetchOrders(storeId: _currentStoreId!);
         return true;
       } else {
         _errorMessage = 'Erreur ${response.statusCode}: ${response.data}';
@@ -217,27 +234,53 @@ class OrderProvider extends ChangeNotifier {
   }
 
   // Annuler une commande (statut 'cancelled')
-  Future<bool> cancelOrder(int orderId) async {
-    final cancelledStatus = _statuses.firstWhere(
-      (s) => s.code == 'cancelled',
-      orElse: () => throw Exception('Statut "cancelled" non trouvé'),
-    );
-    return updateOrderStatus(orderId, cancelledStatus.id);
+  Future<bool> cancelOrder(
+    int orderId, {
+    String reason = 'Annulation par l\'utilisateur',
+  }) async {
+    try {
+      final response = await _dio.post(
+        'orders/$orderId/cancel_order/',
+        data: {'reason': reason},
+      );
+      if (response.statusCode == 200) {
+        // Mettre à jour la liste des commandes
+        await fetchOrders(
+          storeId: _currentStoreId!,
+        ); // ou mettre à jour localement
+        return true;
+      } else {
+        _errorMessage = 'Erreur ${response.statusCode}';
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    }
   }
 
   // Convertir en vente
-  Future<bool> convertToSale(int orderId) async {
+  Future<bool> convertToSale(int orderId,{
+    int? employeeId,
+    int? cashRegisterId,
+    int? cashSessionId,
+  }) async {
     try {
       final token = await _storage.getToken();
       if (token == null) throw Exception('Non authentifié');
 
+      final Map<String, dynamic> data = {};
+    if (employeeId != null) data['employee_id'] = employeeId;
+    if (cashRegisterId != null) data['cash_register_id'] = cashRegisterId;
+    if (cashSessionId != null) data['cash_session_id'] = cashSessionId;
       final response = await _dio.post(
         'orders/$orderId/convert_to_sale/',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
+        data: data.isNotEmpty ? data : null
       );
 
       if (response.statusCode == 200) {
-        await fetchOrders(storeId: _currentStoreId);
+        await fetchOrders(storeId: _currentStoreId!);
         return true;
       } else {
         _errorMessage = 'Erreur ${response.statusCode}: ${response.data}';
@@ -271,7 +314,7 @@ class OrderProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        await fetchOrders(storeId: _currentStoreId);
+        await fetchOrders(storeId: _currentStoreId!);
         return true;
       } else {
         _errorMessage = 'Erreur ${response.statusCode}: ${response.data}';

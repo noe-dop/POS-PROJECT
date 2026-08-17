@@ -12,7 +12,8 @@ import 'package:nsp_pos_mobile/app/app.dart';
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const NSPPosApp());
+    final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+    await tester.pumpWidget(NSPPosApp(scaffoldMessengerKey: scaffoldMessengerKey));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

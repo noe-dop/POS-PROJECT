@@ -21,7 +21,7 @@ class ProductsPage extends StatefulWidget {
 class _ProductsPageState extends State<ProductsPage> {
   final TextEditingController _searchController = TextEditingController();
   bool _showDetails = false;
-  bool _isLoadingMore = false;
+  final bool _isLoadingMore = false;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -439,8 +439,8 @@ class _ProductsPageState extends State<ProductsPage> {
 
     if (boutiqueService.accessibleStores.isEmpty) {
       await boutiqueService.fetchAccessibleStores();
+      if (!mounted) return;
     }
-    if (!mounted) return;
 
     final currentStore = boutiqueService.selectedStore;
     if (currentStore == null) {
@@ -456,8 +456,8 @@ class _ProductsPageState extends State<ProductsPage> {
         currentStore.boutique.id,
         refresh: true,
       );
+      if (!mounted) return;
     }
-    if (!mounted) return;
 
     final isMobile = MediaQuery.of(context).size.width < 768;
 
@@ -467,7 +467,7 @@ class _ProductsPageState extends State<ProductsPage> {
           context: context,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
-          builder: (context) => Container(
+          builder: (sheetContext) => Container(
             height: MediaQuery.of(context).size.height * 0.9,
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -477,10 +477,11 @@ class _ProductsPageState extends State<ProductsPage> {
               storeId: currentStore.boutique.id,
               onProductsSelected: (selectedProducts) {
                 // Lier tous les produits sélectionnés
+                Navigator.of(sheetContext).pop();
                 _linkMultipleProductsToStore(selectedProducts);
               },
               onCreateNew: () {
-                Navigator.pop(context);
+                Navigator.of(sheetContext).pop();
                 _openCreateProductForm();
               },
             ),
@@ -489,13 +490,13 @@ class _ProductsPageState extends State<ProductsPage> {
       } else {
         showDialog(
           context: context,
-          builder: (context) => Dialog(
+          builder: (dialogContext) => Dialog(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 700, maxHeight: 800),
               child: SelectExistingProductSheet(
                 storeId: currentStore.boutique.id,
                 onProductsSelected: (selectedProducts) {
-                  Navigator.pop(context);
+                  Navigator.pop(dialogContext);
                   _linkMultipleProductsToStore(selectedProducts);
                 },
                 onCreateNew: () {
@@ -545,43 +546,73 @@ class _ProductsPageState extends State<ProductsPage> {
   // LIER PLUSIEURS PRODUITS À LA BOUTIQUE
   // ============================================
   Future<void> _linkMultipleProductsToStore(List<Product> products) async {
-    final provider = Provider.of<ProductProvider>(context, listen: false);
+    if (products.isEmpty) {
+      return;
+    }
 
-    if (products.isEmpty) return;
+    // --- Récupération du provider avec sécurité ---
+    ProductProvider? provider;
+    try {
+      provider = Provider.of<ProductProvider>(context, listen: false);
+    } catch (e) {
+      if (mounted) {
+        NotificationService.showError(
+          context,
+          'Impossible de récupérer le provider',
+        );
+      }
+      return;
+    }
 
-    // Afficher un indicateur de chargement
+    // --- Dialogue de chargement ---
+    BuildContext? dialogContext;
+    bool dialogClosed = false;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Liaison des produits en cours...'),
-              ],
+      builder: (ctx) {
+        dialogContext = ctx;
+        return const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Liaison des produits en cours...'),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
 
     try {
+      // --- Appel au provider ---
       final result = await provider.linkMultipleProductsToStore(products);
 
-      if (!context.mounted) return;
-      Navigator.pop(context); // Fermer le dialog de chargement
+      // Fermeture immédiate du dialogue
+      if (!dialogClosed &&
+          dialogContext != null &&
+          Navigator.canPop(dialogContext!)) {
+        Navigator.pop(dialogContext!);
+        dialogClosed = true;
+      }
 
+      // --- Vérification du montage du widget ---
+      if (!mounted) return;
+
+      // --- Traitement du résultat ---
       if (result['status'] == true) {
         NotificationService.showSuccess(
           context,
           result['message'] ?? 'Produits liés avec succès',
         );
-        // Recharger les listes
+        // Rechargement des listes
         await provider.loadStoreProducts(
           provider.currentStoreId!,
           refresh: true,
@@ -596,8 +627,7 @@ class _ProductsPageState extends State<ProductsPage> {
           context,
           result['message'] ?? 'Erreur lors de la liaison',
         );
-        if (result['errors'] != null && result['errors'].isNotEmpty) {
-          // Afficher les détails des erreurs
+        if (result['errors']?.isNotEmpty == true) {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -616,7 +646,9 @@ class _ProductsPageState extends State<ProductsPage> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    print('[DEBUG] Closing error details dialog');
+                  },
                   child: const Text('Fermer'),
                 ),
               ],
@@ -625,13 +657,27 @@ class _ProductsPageState extends State<ProductsPage> {
         }
       }
     } catch (e) {
-      if (!context.mounted) return;
-      Navigator.pop(context); // Fermer le dialog de chargement
-      NotificationService.showError(context, 'Erreur: $e');
+      if (!dialogClosed &&
+          dialogContext != null &&
+          Navigator.canPop(dialogContext!)) {
+        Navigator.pop(dialogContext!);
+        dialogClosed = true;
+      }
+      if (mounted) {
+        NotificationService.showError(context, 'Erreur: $e');
+      }
+    } finally {
+      if (!dialogClosed &&
+          dialogContext != null &&
+          Navigator.canPop(dialogContext!)) {
+        Navigator.pop(dialogContext!);
+        dialogClosed = true;
+      }
     }
   }
 
   void _openCreateProductForm({StoreProduct? produit}) {
+    if (!mounted) return;
     final isMobile = MediaQuery.of(context).size.width < 768;
     if (isMobile) {
       showModalBottomSheet(
@@ -674,36 +720,31 @@ class _ProductsPageState extends State<ProductsPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              // Dans votre widget
-
               Navigator.pop(ctx);
 
               final provider = context.read<ProductProvider>();
               final response = await provider.deleteStoreProduct(product.id);
 
+              if (!mounted) return;
               if (response['success'] == true) {
-                if (mounted) {
-                  NotificationService.showSuccess(
-                    context,
-                    response['message'] ?? 'Produit supprimé avec succès',
-                  );
-                  // Optionnel: rafraîchir la liste
-                  await provider.loadStoreProducts(
-                    product.storeId,
-                    refresh: true,
-                  );
-                  setState(() {
-                    _showDetails = false;
-                  });
-                }
+                NotificationService.showSuccess(
+                  context,
+                  response['message'] ?? 'Produit supprimé avec succès',
+                );
+                // rafraîchir la liste
+                await provider.loadStoreProducts(
+                  product.storeId,
+                  refresh: true,
+                );
+                setState(() {
+                  _showDetails = false;
+                });
               } else {
-                if (mounted) {
-                  NotificationService.showError(
-                    context,
-                    response['message'] ??
-                        'Erreur lors de la suppression du produit',
-                  );
-                }
+                NotificationService.showError(
+                  context,
+                  response['message'] ??
+                      'Erreur lors de la suppression du produit',
+                );
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),

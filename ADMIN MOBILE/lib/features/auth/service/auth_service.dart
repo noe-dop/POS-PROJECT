@@ -15,8 +15,11 @@ class AuthService extends ChangeNotifier {
   final Dio _dio = Dio();
   final baseUrl = ApiConfig.onlineBaseUrl;
   User? _currentUser;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   // Getters
+  String? get errorMessage => _errorMessage;
   Map<String, dynamic> get userData => Map.from(_currentUser!.toJson());
   String? get accessToken => _currentUser?.accessToken;
   String? get refreshToken => _currentUser?.refreshToken;
@@ -34,9 +37,9 @@ class AuthService extends ChangeNotifier {
   AuthService() {
     _dio.options = BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 8),
-      receiveTimeout: const Duration(seconds: 8),
-      sendTimeout: const Duration(seconds: 8),
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+      sendTimeout: const Duration(seconds: 15),
       headers: {'Content-Type': 'application/json'},
       validateStatus: (status) => status != null,
     );
@@ -48,7 +51,8 @@ class AuthService extends ChangeNotifier {
       final storedData = await _storageService.getUserData();
       if (storedData != null) {
         try {
-          _currentUser = User.fromJson(storedData);
+          // _currentUser = User.fromJson(storedData);
+          // refreshTokenFromDatabase();
         } catch (e) {
           return;
         }
@@ -126,6 +130,9 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<LoginResponse> login(LoginRequest request) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
     // Vérifier la connectivité au serveur avant de tenter la connexion
     if (!await isServerReachable(baseUrl)) {
       return LoginResponse.error(
@@ -141,7 +148,7 @@ class AuthService extends ChangeNotifier {
         // Tenter la connexion avec timeout court
         final response = await _dio
             .post(
-              '${baseUrl}auth/login/',
+              '${baseUrl}auth/staff/login/',
               data: request.toJson(),
               options: Options(
                 sendTimeout: const Duration(seconds: 8),
@@ -151,7 +158,6 @@ class AuthService extends ChangeNotifier {
             .timeout(const Duration(seconds: 12));
         if (response.statusCode == 200) {
           _currentUser = User.fromJson(response.data);
-          notifyListeners();
 
           // 3. Sauvegarder TOUT en une fois
           await _storageService.saveToken(_currentUser!.accessToken!);
@@ -190,6 +196,36 @@ class AuthService extends ChangeNotifier {
         "success": false,
         "message": e.toString(),
       }, 500);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> refreshTokenFromDatabase() async {
+    try {
+      final storedRefreshToken = await _storageService.getRefreshToken();
+      if (storedRefreshToken == null) {
+        throw Exception('No refresh token found');
+      }
+
+      final response = await _dio.post(
+        '${baseUrl}auth/token/refresh/',
+        data: {'refresh': storedRefreshToken},
+      );
+
+      if (response.statusCode == 200) {
+        final newAccessToken = response.data['access'];
+        _currentUser?.accessToken = newAccessToken;
+
+        // Sauvegarder le nouveau token
+        await _storageService.saveToken(newAccessToken);
+        notifyListeners();
+      } else {
+        throw Exception('Failed to refresh token: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      throw Exception('Token refresh failed: ${e.message}');
     }
   }
 
@@ -236,34 +272,43 @@ class AuthService extends ChangeNotifier {
       }
       await clearUserData();
       return true;
-    } on DioException catch (e) {
+    } on DioException {
       return false;
     }
   }
 
-  Future<Map<String, dynamic>> requestReset(String email) async {
+  Future<Map<String, dynamic>> requestPasswordReset(String email) async {
     try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
       final response = await _dio.post(
-        '${baseUrl}auth/chang-password/',
+        '${baseUrl}auth/password-reset/request/',
         data: {'email': email},
       );
-
-      return {
-        'success': true,
-        'message': 'Email de réinitialisation envoyé.',
-        'data': response.data,
-      };
-    } on DioException catch (e) {
-      return {
-        'success': false,
-        'message':
-            e.response?.data?['email']?[0] ??
-            'Erreur lors de la demande de réinitialisation.',
-      };
+      print(response.data);
+      if (response.statusCode == 200) {
+        print(response.data);
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'Email envoyé',
+        };
+      } else {
+        _errorMessage = response.data['email'].toString();
+        print(_errorMessage);
+        return {
+          'success': false,
+          'message': _errorMessage ?? 'Erreur serveur',
+        };
+      }
+    } catch (e) {
+      _errorMessage = 'Erreur de connexion ${e.toString()}';
+      print(_errorMessage);
+      return {'success': false, 'message': _errorMessage};
     }
   }
 
-  Future<Map<String, dynamic>> confirmReset({
+  Future<Map<String, dynamic>> confirmPasswordReset({
     required String uid,
     required String token,
     required String newPassword,
@@ -271,7 +316,7 @@ class AuthService extends ChangeNotifier {
   }) async {
     try {
       final response = await _dio.post(
-        '/auth/password-reset/confirm/',
+        '${baseUrl}auth/password-reset/confirm/',
         data: {
           'uid': uid,
           'token': token,
@@ -279,24 +324,62 @@ class AuthService extends ChangeNotifier {
           'confirm_password': confirmPassword,
         },
       );
-
-      return {
-        'success': true,
-        'message': 'Mot de passe réinitialisé avec succès.',
-      };
-    } on DioException catch (e) {
-      final errorData = e.response?.data;
-      String errorMessage = 'Erreur lors de la réinitialisation.';
-
-      if (errorData is Map) {
-        if (errorData['new_password'] != null) {
-          errorMessage = errorData['new_password'][0];
-        } else if (errorData['token'] != null) {
-          errorMessage = 'Lien invalide ou expiré.';
-        }
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'Mot de passe réinitialisé',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['error'] ?? 'Erreur serveur',
+        };
       }
+    } catch (e) {
+      return {'success': false, 'message': 'Erreur de connexion'};
+    }
+  }
 
-      return {'success': false, 'message': errorMessage};
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      _isLoading = true ;
+      _errorMessage = null;
+      notifyListeners();
+      final token = await _storageService.getToken();
+      if (token == null) throw Exception('Non authentifié');
+
+      final response = await _dio.post(
+        '${baseUrl}auth/change-password/',
+        data: {
+          'current_password': currentPassword,
+          'new_password': newPassword,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        _errorMessage = response.data['error'] ?? 'Erreur inconnue';
+        return false;
+      }
+    } on DioException catch (e) {
+      _errorMessage = e.response?.data['error'] ?? e.message;
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
@@ -313,7 +396,7 @@ class AuthService extends ChangeNotifier {
         return firstError.first.toString();
       }
       // Sinon, chercher "message", "error", "detail"
-      return data['message'] ?? data['error'] ?? data['detail'] ?? null;
+      return data['message'] ?? data['error'] ?? data['detail'];
     }
     return null;
   }

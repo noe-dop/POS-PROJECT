@@ -39,7 +39,9 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.dashboard,
         'selectedColor': Colors.blue,
         'iconColor': Colors.blue,
-        'visible': user?.canViewReports ?? false, // Visible si l'utilisateur peut voir les rapports
+        'visible':
+            user?.canViewReports ??
+            false, // Visible si l'utilisateur peut voir les rapports
       },
       {
         'title': 'Mes Boutiques',
@@ -47,7 +49,7 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.store,
         'selectedColor': Colors.green,
         'iconColor': Colors.green,
-        'visible' : user?.isOwner == true // Visible pour les propriétaires
+        'visible': user?.isOwner == true, // Visible pour les propriétaires
       },
       {
         'title': 'Caisse',
@@ -55,7 +57,19 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.point_of_sale,
         'selectedColor': Colors.orange,
         'iconColor': Colors.orange,
-        'visible' : user!.canManageCashbox || user.isOwner == true // Visible si l'utilisateur peut accéder à la caisse
+        'visible':
+            user!.canManageCashbox ||
+            user.isOwner ==
+                true, // Visible si l'utilisateur peut accéder à la caisse
+      },
+      {
+        'title': 'Commandes',
+        'route': '/orders',
+        'icon': Icons.shopping_basket,
+        'selectedColor': Colors.lime,
+        'iconColor': Colors.lime,
+        'visible': user
+            .canManageProducts, // Visible si l'utilisateur peut accéder à la caisse
       },
       {
         'title': LocaleKeys.employeesTitle.tr(),
@@ -63,7 +77,8 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.people,
         'selectedColor': Colors.purple,
         'iconColor': Colors.purple,
-        'visible' : user.canManageEmployees // Visible si l'utilisateur peut voir les employés
+        'visible': user
+            .canManageEmployees, // Visible si l'utilisateur peut voir les employés
       },
       {
         'title': LocaleKeys.typeProductsTitle.tr(),
@@ -71,7 +86,8 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.category,
         'selectedColor': Colors.indigo,
         'iconColor': Colors.indigo,
-        'visible' : user.canManageProducts // Visible si l'utilisateur peut voir les types de produits
+        'visible': user
+            .canManageProducts, // Visible si l'utilisateur peut voir les types de produits
       },
       {
         'title': LocaleKeys.productTitle.tr(),
@@ -79,7 +95,18 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.inventory,
         'selectedColor': Colors.teal,
         'iconColor': Colors.teal,
-        'visible' : user.canManageProducts // Visible si l'utilisateur peut voir les produits
+        'visible': user
+            .canManageProducts, // Visible si l'utilisateur peut voir les produits
+      },
+      {
+        'title': 'Transactions',
+        'route': '/transactions',
+        'icon': Icons.receipt_long,
+        'selectedColor': Colors.cyan,
+        'iconColor': Colors.cyan,
+        'visible':
+            user.canViewReports ||
+            user.isOwner, // accessible aux managers/owners
       },
       {
         'title': 'Inventaire',
@@ -87,7 +114,8 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.list_alt,
         'selectedColor': Colors.indigo,
         'iconColor': Colors.indigo,
-        'visible' : user.canManageInventory // Visible si l'utilisateur peut voir l'inventaire
+        'visible': user
+            .canManageInventory, // Visible si l'utilisateur peut voir l'inventaire
       },
       {
         'title': 'Statistiques',
@@ -95,7 +123,8 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.bar_chart,
         'selectedColor': Colors.red,
         'iconColor': Colors.red,
-        'visible' : user.canViewReports // Visible si l'utilisateur peut voir les rapports
+        'visible': user
+            .canViewReports, // Visible si l'utilisateur peut voir les rapports
       },
       {
         'title': 'Abonnements',
@@ -103,7 +132,8 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.card_membership,
         'selectedColor': Colors.pink,
         'iconColor': Colors.pink,
-        'visible' : user.canManageSubscriptions // Visible si l'utilisateur peut gérer les abonnements
+        'visible': user
+            .canManageSubscriptions, // Visible si l'utilisateur peut gérer les abonnements
       },
       {
         'title': 'Approvisionnement',
@@ -111,7 +141,8 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.local_shipping,
         'selectedColor': Colors.brown,
         'iconColor': Colors.brown,
-        'visible' : user.canManageSupply // Visible si l'utilisateur peut gérer les approvisionnements
+        'visible': user
+            .canManageSupply, // Visible si l'utilisateur peut gérer les approvisionnements
       },
       {
         'title': 'Stock',
@@ -119,8 +150,8 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.warehouse,
         'selectedColor': Colors.cyan,
         'iconColor': Colors.cyan,
-        'visible' : user.canManageProducts // Visible si l'utilisateur peut gérer le stock
-
+        'visible': user
+            .canManageProducts, // Visible si l'utilisateur peut gérer le stock
       },
       {
         'title': LocaleKeys.settingsTitle.tr(),
@@ -128,7 +159,7 @@ class _SideMenuState extends State<SideMenu> {
         'icon': Icons.settings,
         'selectedColor': Colors.grey[700]!,
         'iconColor': Colors.grey[600]!,
-        'visible' : true // Visible pour tous les utilisateurs
+        'visible': true, // Visible pour tous les utilisateurs
       },
     ];
 
@@ -153,7 +184,9 @@ class _SideMenuState extends State<SideMenu> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Column(
-                children: menuItems.where((item) => item['visible'] == true).map((item) {
+                children: menuItems.where((item) => item['visible'] == true).map((
+                  item,
+                ) {
                   // Utiliser la route actuelle pour déterminer si l'élément est sélectionné
                   bool isSelected = currentRoute == item['route'];
                   return _buildMenuItem(
@@ -194,7 +227,7 @@ class _SideMenuState extends State<SideMenu> {
 
     // Créer les initiales pour l'avatar
     String getInitials() {
-     /// Générer les initiales à partir du nom complet ou prénom/nom
+      /// Générer les initiales à partir du nom complet ou prénom/nom
       if (firstName.isNotEmpty && lastName.isNotEmpty) {
         return '${firstName[0]}${lastName[0]}'.toUpperCase();
       } else if (firstName.isNotEmpty) {

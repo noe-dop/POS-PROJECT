@@ -86,7 +86,7 @@ class _SelectExistingProductSheetState
       provider.setSearchQuery('');
       _searchController.clear();
     } catch (e) {
-      print('❌ Erreur chargement: $e');
+      print('Erreur chargement: $e');
       if (mounted) setState(() => _isInitialLoading = false);
     }
   }

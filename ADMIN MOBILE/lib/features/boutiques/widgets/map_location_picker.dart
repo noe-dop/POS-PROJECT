@@ -85,7 +85,6 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
       await _getAddressFromCoordinates(_selectedLocation!);
       
     } catch (e) {
-      print('Erreur localisation: $e');
       setState(() {
         _error = 'Erreur lors de l\'obtention de la position: $e'.tr();
         _selectedLocation = widget.initialLocation ?? const LatLng(48.8566, 2.3522);

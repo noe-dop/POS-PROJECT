@@ -84,13 +84,37 @@ class Variant {
 
   Map<String, dynamic> toJson() {
     return {
+      'id':id,
       'barcode': barcode,
       'name': name,
-      'quantity': quantity,
+      'quantity':quantity,
+      'store_product_id': storeProductId,
+      'store_variant_id': storeVariantId,
       'sale_price_1': salePrice1,
       'photo': imageUrl,
     };
   }
+
+  Variant.fromLocalMap(Map<String, dynamic> map)
+    : id = map['variant_id'],
+      barcode = map['barcode'] ?? '',
+      name = map['variant_name'] ?? map['product_name'] ?? 'Variante',
+      quantity = (map['quantity'] as num?)?.toDouble() ?? 0,
+      salePrice1 = (map['sale_price_1'] as num?)?.toDouble() ?? 0,
+      imageUrl = map['image_url'],
+      storeProductId = map['store_product_id'],
+      storeVariantId = map['store_variant_id'],
+      storeVariantPrice = (map['store_variant_price'] as num?)?.toDouble(),
+      storeQuantity = (map['stock_quantity'] as num?)?.toDouble() ?? 0,
+      isActive = map['is_active'] == 1,
+      status = 'active',
+      storeVariantCost = null,
+      storeOnlinePrice = null,
+      prixReduction = null,
+      weight = null,
+      selection = false,
+      createdAt = null,
+      updatedAt = null;
 
   // ========== GETTERS UTILES ==========
 
@@ -113,6 +137,7 @@ class Variant {
 
   /// Quantité effective (quantité boutique ou quantité globale)
   double get effectiveQuantity {
+    // TODO : a revoir
     if (storeQuantity > 0) return storeQuantity;
     return quantity;
   }

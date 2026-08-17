@@ -1,9 +1,8 @@
-// lib/features/caisse/views/caisse_initialisation_screen.dart
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/core/services/notifications.dart';
 import 'package:nsp_pos_mobile/features/caisse/services/caisse_provider.dart';
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/currency_config.dart';
+import 'package:nsp_pos_mobile/core/config/currency_config.dart';
 import 'package:provider/provider.dart';
 import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
 import 'package:nsp_pos_mobile/app/side_menu.dart';
@@ -31,6 +30,7 @@ class _CaisseInitialisationScreenState
   final String _selectedCurrency = 'FCFA';
   final Map<int, TextEditingController> _controllers = {};
   double _totalAmount = 0.0;
+  bool _isLoadingData = true;
 
   @override
   void initState() {
@@ -38,16 +38,42 @@ class _CaisseInitialisationScreenState
     _initializeControllers();
   }
 
-  void _initializeControllers() {
+  void _initializeControllers() async {
     final config = CurrencyConfig.currencies[_selectedCurrency]!;
+    final provider = Provider.of<CaisseProvider>(context, listen: false);
+    final lastBilletage = await provider.getLastClosedBilletage(
+      widget.cashRegisterId,
+    );
+    bool usePrevious = true; // Par défaut, on utilise le dernier billetage
+    
+    // Initialiser les contrôleurs avec les valeurs
     for (var denom in config.banknotes) {
-      _controllers[denom] = TextEditingController(text: '0')
+      String initialValue = '0';
+      if (usePrevious && lastBilletage['billetage_final'] != null) {
+        final billetage =
+            lastBilletage['billetage_final'] as Map<String, dynamic>;
+        if (billetage.containsKey(denom.toString())) {
+          initialValue = billetage[denom.toString()].toString();
+        }
+      }
+      _controllers[denom] = TextEditingController(text: initialValue)
         ..addListener(_calculateTotal);
     }
     for (var coin in config.coins) {
-      _controllers[coin] = TextEditingController(text: '0')
+      String initialValue = '0';
+      if (usePrevious && lastBilletage['billetage_final'] != null) {
+        final billetage =
+            lastBilletage['billetage_final'] as Map<String, dynamic>;
+        if (billetage.containsKey(coin.toString())) {
+          initialValue = billetage[coin.toString()].toString();
+        }
+      }
+      _controllers[coin] = TextEditingController(text: initialValue)
         ..addListener(_calculateTotal);
     }
+    // Recalculer le total
+    _calculateTotal();
+    if (mounted) setState(() => _isLoadingData = false);
   }
 
   void _calculateTotal() {
@@ -86,14 +112,16 @@ class _CaisseInitialisationScreenState
         _getCashCount(),
         _selectedCurrency,
       );
-      print(success);
       if (success) {
-        Navigator.pushReplacementNamed(context, '/cashbox/operation',
-            arguments: {
-              'storeId': provider.currentStoreId,
-              'employeeId': widget.employeeId,
-              'cashRegisterId': widget.cashRegisterId,
-            });
+        Navigator.pushReplacementNamed(
+          context,
+          '/cashbox/operation',
+          arguments: {
+            'storeId': provider.currentStoreId,
+            'employeeId': widget.employeeId,
+            'cashRegisterId': widget.cashRegisterId,
+          },
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -103,7 +131,10 @@ class _CaisseInitialisationScreenState
         );
       }
     } on Exception catch (e) {
-      NotificationService.showError(context, 'Erreur lors de l\'initialisation: $e');
+      NotificationService.showError(
+        context,
+        'Erreur lors de l\'initialisation: $e',
+      );
     }
   }
 
@@ -115,12 +146,14 @@ class _CaisseInitialisationScreenState
     return Scaffold(
       appBar: AppBar(title: const Text('Initialisation de la Caisse')),
       drawer: const SideMenu(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Card(
-              child: Padding(
+      body: _isLoadingData
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Card(
+                    child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [

@@ -46,7 +46,7 @@ class ProductProvider extends ChangeNotifier {
   // ============================================
   int _currentOffset = 0;
   int _currentPageUnlinked = 1;
-  int _totalPagesUnlinked = 1;
+  final int _totalPagesUnlinked = 1;
   bool _hasMoreUnlinked = true;
   bool _isLoadingMoreUnlinked = false;
 
@@ -198,7 +198,6 @@ class ProductProvider extends ChangeNotifier {
 
         notifyListeners();
       } else {
-        print("Erreur : ${response.data}- ${response.statusCode}");
         if (refresh) _products = [];
       }
     } on DioException catch (e) {
@@ -267,11 +266,6 @@ class ProductProvider extends ChangeNotifier {
       if (token == null) {
         throw Exception('Non authentifié');
       }
-
-      print(
-        '📤 Requête: offset=$_currentOffset, limit=$_pageSize, search=$_searchQuery',
-      );
-
       final response = await _dio.get(
         '${baseUrl}stores/$storeId/available-products/',
         queryParameters: {
@@ -287,29 +281,40 @@ class ProductProvider extends ChangeNotifier {
         ),
       );
 
-      if (response.statusCode == 200) {
-        print('📦 Réponse API: ${response.data}');
+      final uri = Uri.parse('${baseUrl}stores/$storeId/available-products/')
+          .replace(
+            queryParameters: {
+              'limit': '$_pageSize',
+              'offset': '$_currentOffset',
+              if (_searchQuery.isNotEmpty) 'search': _searchQuery,
+            },
+          );
 
+      if (response.statusCode == 200) {
         List<Product> newProducts = [];
         int totalCount = 0;
-
         if (response.data is Map && response.data.containsKey('results')) {
           final results = response.data['results'] as List? ?? [];
           totalCount = response.data['count'] ?? 0;
-
-          newProducts = results.map((json) => Product.fromJson(json)).toList();
+          try {
+            newProducts = results
+                .map((json) => Product.fromJson(json))
+                .toList();
+          } on Exception catch (e) {
+            print(e);
+          }
 
           // Vérifier si on a atteint la fin
           final currentLimit = response.data['limit'] ?? _pageSize;
           _hasMoreUnlinked = (_currentOffset + currentLimit) < totalCount;
-
-          print(
-            '📊 Total: $totalCount, Offset: $_currentOffset, HasMore: $_hasMoreUnlinked',
-          );
         } else if (response.data is List) {
-          newProducts = (response.data as List)
-              .map((json) => Product.fromJson(json))
-              .toList();
+          try {
+            newProducts = (response.data as List)
+                .map((json) => Product.fromJson(json))
+                .toList();
+          } on Exception catch (e) {
+            print(e);
+          }
           _hasMoreUnlinked = false;
         }
 
@@ -329,14 +334,13 @@ class ProductProvider extends ChangeNotifier {
           _currentOffset += newProducts.length;
         }
 
-
         return _unlinkedProducts;
       } else {
         _error = 'Erreur ${response.statusCode}: ${response.data}';
         return _unlinkedProducts;
       }
     } on DioException catch (e) {
-      _error = e.response?.data?.toString() ?? e.message;
+      _error = e.toString();
       return _unlinkedProducts;
     } finally {
       _isLoading = false;
@@ -353,12 +357,13 @@ class ProductProvider extends ChangeNotifier {
     if (_currentStoreId == null) return;
 
     _isLoadingMoreUnlinked = true;
+    _error = null;
     notifyListeners();
 
     try {
       await loadUnlinkedProducts(_currentStoreId!, refresh: false);
     } catch (e) {
-      print("❌ Erreur chargement plus produits non liés: $e");
+      _error = ("Erreur chargement plus produits non liés: $e");
     } finally {
       _isLoadingMoreUnlinked = false;
       notifyListeners();
@@ -517,13 +522,11 @@ class ProductProvider extends ChangeNotifier {
         onStoreChanged();
         return {'status': true, 'message': 'Mise à jour réussie'};
       } else {
-        print("❌ Erreur ${response.statusCode}: ${response.data}");
-        _error = "Erreur ${response.statusCode}";
+        _error = ("Erreur ${response.statusCode}: ${response.data}");
         return {'status': false, 'message': _error};
       }
     } catch (e) {
       _error = e.toString();
-      print('❌ Exception: $_error');
       return {'status': false, 'message': _error};
     } finally {
       _isLoading = false;
@@ -627,7 +630,7 @@ class ProductProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      print('❌ Erreur refreshStoreProduct: $e');
+      print('Erreur refreshStoreProduct: $e');
     }
     return;
   }
@@ -975,7 +978,7 @@ class ProductProvider extends ChangeNotifier {
       }
       return {'status': false, 'message': 'Erreur ${response.statusCode}'};
     } catch (e) {
-      print('❌ Erreur updateVariant: $e');
+      print('Erreur updateVariant: $e');
       return {'status': false, 'message': e.toString()};
     } finally {
       _isLoading = false;
@@ -1007,7 +1010,7 @@ class ProductProvider extends ChangeNotifier {
 
       return {'status': false, 'message': 'Erreur ${response.statusCode}'};
     } catch (e) {
-      print('❌ Erreur deleteGlobalVariant: $e');
+      print('Erreur deleteGlobalVariant: $e');
       return {'status': false, 'message': e.toString()};
     } finally {
       _isLoading = false;
@@ -1058,9 +1061,9 @@ class ProductProvider extends ChangeNotifier {
           contentType: 'multipart/form-data',
         ),
       );
-
       if (response.statusCode == 201) {
         await loadStoreProducts(_currentStoreId!, refresh: true);
+        refreshStoreProduct(_currentStoreId!);
         return {
           'status': true,
           'message': 'Variante créée et liée avec succès',
@@ -1069,7 +1072,7 @@ class ProductProvider extends ChangeNotifier {
       }
       return {'status': false, 'message': _formatErrorMessage(response.data)};
     } on DioException catch (e) {
-      print('❌ DioException in createAndLinkVariant: ${e.message}');
+      print('DioException in createAndLinkVariant: ${e.message}');
       return {'status': false, 'message': e.response?.data.toString()};
     } finally {
       _isLoading = false;
@@ -1087,6 +1090,7 @@ class ProductProvider extends ChangeNotifier {
     XFile? image,
   }) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
@@ -1130,7 +1134,6 @@ class ProductProvider extends ChangeNotifier {
           contentType: 'multipart/form-data',
         ),
       );
-      print('RESPONSE DATA ${response.data}');
       if (response.statusCode == 201) {
         if (response.data['total_created'] != null) {
           return {
@@ -1148,7 +1151,7 @@ class ProductProvider extends ChangeNotifier {
       }
       return {'status': false, 'message': _formatErrorMessage(response.data)};
     } catch (e) {
-      print('❌ Erreur linkVariantToStore: $e');
+      print('Erreur linkVariantToStore: $e');
       return {'status': false, 'message': e.toString()};
     } finally {
       _isLoading = false;
@@ -1156,7 +1159,13 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  Future<List<Variant>> loadUnlinkedVariants(int productId, int storeId) async {
+  Future<List<Variant>> loadUnlinkedVariants(
+    int productId,
+    int storeId,
+  ) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
     try {
       final token = await _storage.getToken();
       final response = await _dio.get(
@@ -1179,13 +1188,21 @@ class ProductProvider extends ChangeNotifier {
         }
         return variantsList.map((v) => Variant.fromJson(v)).toList();
       }
+      return [];
     } catch (e) {
-      print('Erreur chargement variantes non liées: $e');
+      _error = 'Erreur chargement variantes non liées: $e';
+      return [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-    return [];
   }
 
-  Future<List<StoreVariant>> loadStoreVariants(int storeId) async {
+  Future<List<StoreVariant?>> loadStoreVariants(int storeId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
     try {
       final token = await _storage.getToken();
       final response = await _dio.get(
@@ -1204,10 +1221,14 @@ class ProductProvider extends ChangeNotifier {
         }
         return variantsList.map((v) => StoreVariant.fromJson(v)).toList();
       }
+      return [];
     } catch (e) {
-      print('Erreur chargement store variants: $e');
+      _error = 'Erreur chargement store variants: $e';
+      return [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-    return [];
   }
 
   // ============================================
@@ -1229,6 +1250,7 @@ class ProductProvider extends ChangeNotifier {
     Map<String, dynamic>? globalVariantData,
   }) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
@@ -1311,7 +1333,7 @@ class ProductProvider extends ChangeNotifier {
         'message': 'Variante boutique mise à jour avec succès',
       };
     } catch (e) {
-      print('❌ Erreur updateStoreVariant: $e');
+      _error = 'Erreur updateStoreVariant: $e';
       return {'status': false, 'message': e.toString()};
     } finally {
       _isLoading = false;
@@ -1379,7 +1401,6 @@ class ProductProvider extends ChangeNotifier {
         data: {'quantity': quantity, 'type': type, 'reason': reason},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-
       if (response.statusCode == 200) {
         await loadStoreProducts(_currentStoreId!, refresh: true);
         return {
@@ -1438,6 +1459,7 @@ class ProductProvider extends ChangeNotifier {
   // ============================================
   Future<void> loadBrand() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
     try {
       final response = await _dio.get('${baseUrl}product-brands/');
@@ -1448,7 +1470,7 @@ class ProductProvider extends ChangeNotifier {
             .toList();
       }
     } catch (e) {
-      print("Erreur: $e");
+      _error = "Erreur: $e";
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -1457,6 +1479,7 @@ class ProductProvider extends ChangeNotifier {
 
   Future<void> createBrand(Map<String, dynamic> brand) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
     final token = await _storage.getToken();
     try {
@@ -1469,7 +1492,7 @@ class ProductProvider extends ChangeNotifier {
         loadBrand();
       }
     } catch (e) {
-      print('Erreur: $e');
+      _error = 'Erreur: ${e.toString()}';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -1478,6 +1501,7 @@ class ProductProvider extends ChangeNotifier {
 
   Future<void> updateBrand(ProductBrand brand) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
     final token = await _storage.getToken();
     try {
@@ -1490,7 +1514,7 @@ class ProductProvider extends ChangeNotifier {
         loadBrand();
       }
     } catch (e) {
-      print('Erreur: $e');
+      _error = 'Erreur: ${e.toString()}';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -1499,6 +1523,7 @@ class ProductProvider extends ChangeNotifier {
 
   Future<void> deleteBrand(ProductBrand brand) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
     final token = await _storage.getToken();
     try {
@@ -1510,7 +1535,7 @@ class ProductProvider extends ChangeNotifier {
         loadBrand();
       }
     } catch (e) {
-      print('Erreur: $e');
+      _error = 'Erreur: ${e.toString()}';
     } finally {
       _isLoading = false;
       notifyListeners();

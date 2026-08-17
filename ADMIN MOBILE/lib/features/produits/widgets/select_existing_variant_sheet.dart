@@ -59,7 +59,7 @@ class _SelectMultipleVariantsSheetState
     );
     if (mounted) {
       setState(() {
-        _variants = variants.where((v) => v.id != null).toList();
+        _variants = variants.isNotEmpty ? variants.where((v) => v.id != null).toList() : [];
         _isLoading = false;
       });
     }

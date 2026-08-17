@@ -1,6 +1,6 @@
-// lib/features/caisse/view/products_search_sheet.dart
-
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:nsp_pos_mobile/core/services/notifications.dart';
 import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
 import 'package:nsp_pos_mobile/features/produits/viewmodel/variante_model.dart';
 import 'package:provider/provider.dart';
@@ -22,15 +22,17 @@ class ProductsSearchSheet extends StatefulWidget {
 
 class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
   final TextEditingController _searchController = TextEditingController();
-  final Set<int> _selectedProductIds = {};
+  final Map<int, Variant> _selectedProducts = {};
   final ScrollController _scrollController = ScrollController();
 
   List<Variant> _products = [];
   bool _isLoading = true;
   bool _hasMore = true;
+  String? _nextUrl;
   bool _isLoadingMore = false;
-  int _currentPage = 1;
+  // int _currentPage = 1;
   String _searchQuery = '';
+  CancelToken? _cancelToken;
 
   @override
   void initState() {
@@ -41,6 +43,7 @@ class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
 
   @override
   void dispose() {
+    _cancelToken?.cancel('Widget disposed');
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -55,52 +58,87 @@ class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
     }
   }
 
+  // Vérification de mounted dans toutes les méthodes asynchrones
   Future<void> _loadProducts({bool refresh = true}) async {
     if (refresh) {
-      setState(() {
-        _isLoading = true;
-        _products = [];
-        _currentPage = 1;
-        _hasMore = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+          _products = [];
+          _hasMore = true;
+          _nextUrl = null;
+        });
+      }
     }
 
     try {
+      _cancelToken?.cancel('New request');
+      _cancelToken = CancelToken();
+
       final provider = Provider.of<CaisseProvider>(context, listen: false);
-      final results = await provider.searchProducts(
+
+      int? offset;
+      if (!refresh && _nextUrl != null) {
+        final uri = Uri.parse(_nextUrl!);
+        final offsetParam = uri.queryParameters['offset'];
+        offset = offsetParam != null ? int.tryParse(offsetParam) : null;
+      }
+
+      final result = await provider.searchProducts(
         widget.storeId,
         _searchQuery,
+        offset: offset,
       );
 
-      if (results.isNotEmpty) {
-        final newProducts = results.map((json) => Variant.fromJson(json)).toList();
-        setState(() {
-          if (refresh) {
-            _products = newProducts;
-          } else {
-            _products.addAll(newProducts);
-          }
-          _hasMore = results.length >= 20;
-          _currentPage++;
-        });
-      } else {
-        setState(() {
-          _hasMore = false;
-        });
-      }
-    } catch (e) {
-      print('❌ Erreur chargement produits: $e');
-    } finally {
+      if (!mounted) return;
+
+      final List<dynamic> results = result['results'] ?? [];
+      _nextUrl = result['next'];
+      _hasMore = _nextUrl != null;
+
+      // Tous les éléments sont directement des Variants (via toJson)
+      final newProducts = results
+          .map(
+            (variantMap) =>
+                Variant.fromJson(variantMap as Map<String, dynamic>),
+          )
+          .toList();
+
       setState(() {
+        if (refresh) {
+          _products = newProducts;
+        } else {
+          _products.addAll(newProducts);
+        }
         _isLoading = false;
         _isLoadingMore = false;
       });
+    } catch (e) {
+      if (e is DioException && e.type == DioExceptionType.cancel) return;
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+        NotificationService.showError(context, 'Erreur chargement: $e');
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   SnackBar(
+        //     content: Text('Erreur chargement: $e'),
+        //     backgroundColor: Colors.red,
+        //     behavior: SnackBarBehavior.floating,
+        //     duration: const Duration(milliseconds: 2000),
+        //   ),
+        // );
+        // Optionnel : fermer la sheet
+      }
     }
   }
 
   Future<void> _loadMoreProducts() async {
     if (_isLoadingMore || !_hasMore) return;
-    setState(() => _isLoadingMore = true);
+    if (mounted) {
+      setState(() => _isLoadingMore = true);
+    }
     await _loadProducts(refresh: false);
   }
 
@@ -110,19 +148,36 @@ class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
   }
 
   void _toggleSelection(Variant product) {
+    if (!mounted) return;
     setState(() {
-      final id = product.id ?? 0;
-      if (_selectedProductIds.contains(id)) {
-        _selectedProductIds.remove(id);
+      final key = product.storeVariantId ?? 0;
+      if (_selectedProducts.containsKey(key)) {
+        _selectedProducts.remove(key);
       } else {
-        _selectedProductIds.add(id);
+        _selectedProducts[key] = product;
+      }
+    });
+  }
+
+  void _selectAll() {
+    if (!mounted) return;
+    setState(() {
+      final allSelected = _products.every(
+        (p) => _selectedProducts.containsKey(p.storeVariantId ?? 0),
+      );
+      if (allSelected) {
+        _selectedProducts.clear();
+      } else {
+        for (var product in _products) {
+          final key = product.storeVariantId ?? 0;
+          _selectedProducts[key] = product;
+        }
       }
     });
   }
 
   void _confirmSelection() {
-    final selected = _products.where((p) => _selectedProductIds.contains(p.id)).toList();
-    if (selected.isEmpty) {
+    if (_selectedProducts.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Veuillez sélectionner au moins un produit'),
@@ -133,32 +188,15 @@ class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
     }
 
     Navigator.pop(context);
-    for (var product in selected) {
+    for (var product in _selectedProducts.values) {
       widget.onProductSelected(product);
     }
-  }
-
-  void _selectAll() {
-    setState(() {
-      final allSelected = _selectedProductIds.length == _products.length &&
-          _products.isNotEmpty;
-      if (allSelected) {
-        _selectedProductIds.clear();
-      } else {
-        for (var product in _products) {
-          if (product.id != null) {
-            _selectedProductIds.add(product.id!);
-          }
-        }
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      height: MediaQuery.of(context).size.height * 0.85,
       child: Column(
         children: [
           // Header
@@ -167,10 +205,7 @@ class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
             children: [
               const Text(
                 'Rechercher des produits',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               IconButton(
                 icon: const Icon(Icons.close),
@@ -210,13 +245,16 @@ class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.blue[50],
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${_selectedProductIds.length} sélectionné(s)',
+                  '${_selectedProducts.length} sélectionné(s)',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -234,7 +272,7 @@ class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
                 TextButton(
                   onPressed: _selectAll,
                   child: Text(
-                    _selectedProductIds.length == _products.length
+                    _selectedProducts.length == _products.length
                         ? 'Tout désélectionner'
                         : 'Tout sélectionner',
                     style: const TextStyle(fontSize: 12),
@@ -247,43 +285,51 @@ class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
           // Liste des produits
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      constraints: BoxConstraints(maxWidth: 40, maxHeight: 40),
+                    ),
+                  )
                 : _products.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.search_off, size: 60, color: Colors.grey[400]),
-                            const SizedBox(height: 16),
-                            Text(
-                              _searchQuery.isEmpty
-                                  ? 'Aucun produit disponible'
-                                  : 'Aucun résultat pour "$_searchQuery"',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 60,
+                          color: Colors.grey[400],
                         ),
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        itemCount: _products.length + (_hasMore ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == _products.length) {
-                            return const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            );
-                          }
-                          return _buildProductItem(_products[index]);
-                        },
-                      ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _searchQuery.isEmpty
+                              ? 'Aucun produit disponible'
+                              : 'Aucun résultat pour "$_searchQuery"',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    controller: _scrollController,
+                    itemCount: _products.length + (_hasMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _products.length) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      }
+                      return _buildProductItem(_products[index]);
+                    },
+                  ),
           ),
 
           const Divider(),
@@ -307,12 +353,14 @@ class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
-                  onPressed: _selectedProductIds.isEmpty ? null : _confirmSelection,
+                  onPressed: _selectedProducts.isEmpty
+                      ? null
+                      : _confirmSelection,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _selectedProductIds.isEmpty
+                    backgroundColor: _selectedProducts.isEmpty
                         ? Colors.grey[300]
                         : Colors.blue,
-                    foregroundColor: _selectedProductIds.isEmpty
+                    foregroundColor: _selectedProducts.isEmpty
                         ? Colors.grey[600]
                         : Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -321,7 +369,7 @@ class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
                     ),
                   ),
                   child: Text(
-                    'Ajouter ${_selectedProductIds.isEmpty ? '' : _selectedProductIds.length} produit(s)',
+                    'Ajouter ${_selectedProducts.isEmpty ? '' : _selectedProducts.length} produit(s)',
                     style: const TextStyle(fontSize: 15),
                   ),
                 ),
@@ -334,7 +382,8 @@ class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
   }
 
   Widget _buildProductItem(Variant product) {
-    final isSelected = product.id != null && _selectedProductIds.contains(product.id);
+    final key = product.storeVariantId ?? 0;
+    final isSelected = _selectedProducts.containsKey(key);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
@@ -364,19 +413,14 @@ class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
               ? Image.network(
                   product.imageUrl!,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stack) => Icon(
-                    Icons.shopping_bag,
-                    color: Colors.grey[400],
-                  ),
+                  errorBuilder: (context, error, stack) =>
+                      Icon(Icons.shopping_bag, color: Colors.grey[400]),
                 )
               : Icon(Icons.shopping_bag, color: Colors.grey[400]),
         ),
         title: Text(
           product.name,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -384,7 +428,7 @@ class _ProductsSearchSheetState extends State<ProductsSearchSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'SKU: ${product.barcode ?? "N/A"}',
+              'SKU: ${product.barcode}',
               style: TextStyle(fontSize: 11, color: Colors.grey[600]),
             ),
             Text(

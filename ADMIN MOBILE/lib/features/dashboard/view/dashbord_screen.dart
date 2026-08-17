@@ -88,29 +88,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      drawer: const SideMenu(),
-      appBar: AppBar(
-        title: Text(
-          LocaleKeys.dashboardTitle.tr(),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        elevation: 1,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFF2E3A59)),
-            onPressed: _isConnected ? _refreshData : null,
+    return Consumer2<BoutiqueService, DashboardProvider>(
+      builder: (context, storeService, dashboardProvider, child) {
+        // Si la boutique sélectionnée change, recharger le dashboard
+        final selectedStore = storeService.selectedStore;
+        if (selectedStore != null) {
+          final storeId = selectedStore.boutique.id;
+          if (dashboardProvider.selectedStoreId != storeId) {
+            // Recharger avec le nouvel ID
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              dashboardProvider.loadDashboard(storeId);
+            });
+          }
+        }
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F7FA),
+          drawer: const SideMenu(),
+          appBar: AppBar(
+            title: Text(
+              LocaleKeys.dashboardTitle.tr(),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            elevation: 1,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Color(0xFF2E3A59)),
+                onPressed: _isConnected ? _refreshData : null,
+              ),
+              IconButton(
+                icon: const Icon(Icons.language, color: Color(0xFF2E3A59)),
+                onPressed: () {
+                  // TODO : changement de langue
+                  // LanguageSelector(supportedLocales: )
+                },
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.language, color: Color(0xFF2E3A59)),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: Consumer<DashboardProvider>(
-        builder: (context, provider, child) {
-          return RefreshIndicator(
+          body: RefreshIndicator(
             onRefresh: _refreshData,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -122,13 +136,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 10),
                   _buildStoreSelector(context),
                   const SizedBox(height: 16),
-                  _buildContent(provider),
+                  _buildContent(dashboardProvider),
                 ],
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -446,24 +460,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               // if (permissions != null)
-                // Container(
-                //   padding: const EdgeInsets.symmetric(
-                //     horizontal: 12,
-                //     vertical: 4,
-                //   ),
-                //   decoration: BoxDecoration(
-                //     color: Colors.white.withAlpha(0.2),
-                //     borderRadius: BorderRadius.circular(20),
-                //   ),
-                //   child: Text(
-                //     permissions['role'] ?? 'employé',
-                //     style: const TextStyle(
-                //       color: Colors.white,
-                //       fontSize: 12,
-                //       fontWeight: FontWeight.w500,
-                //     ),
-                //   ),
-                // ),
+              // Container(
+              //   padding: const EdgeInsets.symmetric(
+              //     horizontal: 12,
+              //     vertical: 4,
+              //   ),
+              //   decoration: BoxDecoration(
+              //     color: Colors.white.withAlpha(0.2),
+              //     borderRadius: BorderRadius.circular(20),
+              //   ),
+              //   child: Text(
+              //     permissions['role'] ?? 'employé',
+              //     style: const TextStyle(
+              //       color: Colors.white,
+              //       fontSize: 12,
+              //       fontWeight: FontWeight.w500,
+              //     ),
+              //   ),
+              // ),
             ],
           ),
           const SizedBox(height: 12),
@@ -1080,7 +1094,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         'title': 'Produits',
         'description': 'Gérer votre catalogue de produits',
         'color': Colors.blue,
-        'route': '/products',
+        'route': '/produits',
       },
       {
         'icon': Icons.warehouse,

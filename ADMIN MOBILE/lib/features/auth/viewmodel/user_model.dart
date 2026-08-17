@@ -1,6 +1,3 @@
-// lib/features/auth/viewmodel/user_model.dart
-
-import 'package:nsp_pos_mobile/core/config/app_config.dart';
 import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
 
 class User {
@@ -27,8 +24,8 @@ class User {
   final CustomerProfile? customerProfile;
 
   // Tokens JWT
-  final String? accessToken;
-  final String? refreshToken;
+  String? accessToken;
+  String? refreshToken;
 
   User({
     required this.id,
@@ -60,6 +57,7 @@ class User {
   bool get isAuthenticated => accessToken != null && accessToken!.isNotEmpty;
 
   // Permissions combinées (profil + rôle)
+  bool get isManager => isOwner || (isEmployee && employeeProfile != null && employeeProfile!.roleName.toLowerCase() == 'manager');
   bool get canManageSales {
     if (isOwner) return true;
     if (isEmployee && employeeProfile != null) {
@@ -456,7 +454,7 @@ class EmployeeProfile {
     return EmployeeProfile(
       id: json['id'] ?? 0,
       photo: photoUrl,
-      storeId: json['store'] ?? 0,
+      storeId: json['store'],
       storeName: json['store_name'],
       roleId: json['role'],
       roleName: json['role_name'] ?? '',
@@ -486,7 +484,7 @@ class EmployeeProfile {
     return {
       'id': id,
       'photo': photo,
-      'store_id': storeId,
+      'store': storeId,
       'store_name': storeName,
       'role_name': roleName,
       'department': department,

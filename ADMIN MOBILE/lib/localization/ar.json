@@ -1,0 +1,180 @@
+{
+  "sales": "المبيعات",
+  "logout": "تسجيل الخروج",
+  "login": {
+    "title": "تسجيل الدخول",
+    "info": "سجّل الدخول إلى حسابك للمتابعة",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "login_button": "دخول",
+    "no_account": "ليس لديك حساب؟",
+    "register": "إنشاء حساب",
+    "forgot_password": "نسيت كلمة المرور؟",
+    "username": "اسم المستخدم",
+    "errors": {
+      "username_required": "يرجى إدخال اسم المستخدم",
+      "username_short": "اسم المستخدم قصير جدًا",
+      "email_required": "يرجى إدخال بريدك الإلكتروني",
+      "email_invalid": "بريد إلكتروني غير صالح",
+      "password_required": "يرجى إدخال كلمة المرور",
+      "password_short": "كلمة المرور قصيرة جدًا"
+    },
+    "success_message": "تم تسجيل الدخول بنجاح",
+    "error_message": "فشل تسجيل الدخول."
+  },
+  "common": {
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "update": "تحديث",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "search": "بحث",
+    "loading": "جارٍ التحميل...",
+    "error": "خطأ",
+    "success": "نجاح",
+    "backtolist": "العودة إلى القائمة",
+    "years": "سنوات",
+    "hours": "ساعات",
+    "minutes": "دقائق",
+    "seconds": "ثوانٍ",
+    "rating": "التقييم",
+    "statistics": "الإحصائيات"
+  },
+  "register": {
+    "title": "إنشاء حساب",
+    "info": "أدخل معلوماتك أدناه لإنشاء حساب جديد.",
+    "surname": "اللقب",
+    "name": "الاسم",
+    "username": "اسم المستخدم",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "phone1": "رقم الهاتف 1",
+    "phone2": "رقم الهاتف 2",
+    "hint_phone1": "رئيسي",
+    "hint_phone2": "ثانوي (اختياري)",
+    "address": "العنوان",
+    "confirm_password": "تأكيد كلمة المرور",
+    "register_button": "إنشاء حساب",
+    "already_account": "لديك حساب بالفعل؟",
+    "login": "تسجيل الدخول",
+    "generate_username": "توليد",
+    "errors": {
+      "surname_required": "يرجى إدخال اللقب",
+      "name_required": "يرجى إدخال الاسم",
+      "username_required": "يرجى إدخال اسم المستخدم",
+      "email_required": "يرجى إدخال بريدك الإلكتروني",
+      "email_invalid": "بريد إلكتروني غير صالح",
+      "password_required": "يرجى إدخال كلمة المرور",
+      "confirm_password_required": "يرجى تأكيد كلمة المرور",
+      "password_no_matching": "كلمتا المرور غير متطابقتين",
+      "password_short": "يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل",
+      "phone1_required": "يرجى إدخال رقم هاتفك الرئيسي"
+    },
+    "success_message": "تم إنشاء الحساب بنجاح! يرجى تسجيل الدخول.",
+    "generic_error": "حدث خطأ أثناء إنشاء الحساب.",
+    "network_error": "خطأ في الشبكة. تحقق من اتصالك.",
+    "email_taken_error": "هذا البريد الإلكتروني مستخدم بالفعل.",
+    "username_taken_error": "اسم المستخدم هذا محجوز بالفعل."
+  },
+  "validation": {
+    "incorrect_form": "يرجى تصحيح الأخطاء في النموذج",
+    "required": "هذا الحقل مطلوب",
+    "email_invalid": "يرجى إدخال بريد إلكتروني صالح",
+    "min_length": "يجب أن يحتوي على {min} أحرف على الأقل",
+    "max_length": "يجب ألا يتجاوز {max} حرفًا"
+  },
+  "dashboard": {
+    "title": "لوحة القيادة"
+  },
+  "product": {
+    "title": "المنتجات",
+    "statuts": {
+      "draft": "مسودة"
+    }
+  },
+  "type_products": {
+    "title": "أنواع المنتجات",
+    "description": "أدر أنواع المنتجات المختلفة المتوفرة في مخزونك."
+  },
+  "settings": {
+    "title": "الإعدادات"
+  },
+  "employees": {
+    "title": "إدارة الموظفين",
+    "description": "أدر جميع معلومات موظفيك وأدوارهم وحالاتهم.",
+    "profiletitle": "ملف الموظف",
+    "profiledescription": "معلومات تفصيلية وإدارة الملف الشخصي.",
+    "no_employee_selected": "لم يتم اختيار أي موظف",
+    "employee_not_found": "الموظف غير موجود",
+    "select_employee_to_view_details": "اختر موظفًا لعرض التفاصيل",
+    "employee_name": "اسم الموظف",
+    "role": "الدور",
+    "status": "الحالة",
+    "store": "المتجر",
+    "add_employee_title": "إضافة موظف",
+    "edit_profile_title": "تعديل الموظف",
+    "delete_profile_title": "حذف الموظف",
+    "delete_employee_message": "هل أنت متأكد أنك تريد حذف الموظف {}؟ لا يمكن التراجع عن هذا الإجراء.",
+    "email": "البريد الإلكتروني",
+    "phone": "رقم الهاتف",
+    "salary": "الراتب",
+    "profileImage": "صورة الملف الشخصي"
+  },
+  "store": {
+    "title": "المتاجر",
+    "description": "أدر معلومات متاجرك ومواقعها وساعات عملها.",
+    "profiletitle": "ملف المتجر",
+    "profiledescription": "معلومات تفصيلية وإدارة ملف المتجر.",
+    "no_store_selected": "لم يتم اختيار أي متجر",
+    "location": "الموقع",
+    "opening_hours": "ساعات العمل",
+    "creation": {
+      "boutique_name": "اسم المتجر",
+      "slogan": "الشعار الترويجي",
+      "boutique_type": "نوع المتجر",
+      "address": "العنوان",
+      "phone": "الهاتف",
+      "email": "البريد الإلكتروني",
+      "opening_time": "وقت الفتح",
+      "closing_time": "وقت الإغلاق",
+      "schedule": "الجدول الزمني",
+      "geographic_coordinates": "الإحداثيات الجغرافية",
+      "latitude": "خط العرض",
+      "longitude": "خط الطول",
+      "create_boutique": "إنشاء المتجر",
+      "create_new_boutique": "إنشاء متجر جديد",
+      "boutique_created_success": "تم إنشاء المتجر بنجاح",
+      "error_creating_boutique": "خطأ أثناء إنشاء المتجر. يرجى المحاولة مرة أخرى.",
+      "required_field": "هذا الحقل مطلوب.",
+      "invalid_phone": "رقم هاتف غير صالح",
+      "invalid_email": "بريد إلكتروني غير صالح",
+      "select_type": "اختر نوعًا",
+      "basic_information": "المعلومات الأساسية",
+      "contact_information": "معلومات الاتصال",
+      "add_logo": "إضافة شعار",
+      "take_photo": "التقاط صورة",
+      "choose_from_gallery": "اختيار من المعرض",
+      "enter_url": "إدخال رابط",
+      "enter_logo_url": "إدخال رابط الشعار",
+      "logo": "الشعار",
+      "map_preview": "معاينة الخريطة"
+    }
+  },
+  "generate_password": "توليد كلمة مرور",
+  "network": {
+    "server_unreachable": "الخادم غير متاح. يرجى المحاولة لاحقًا."
+  },
+  "roles": {
+    "all_roles": "جميع الأدوار",
+    "admin": "مدير النظام",
+    "owner": "المالك",
+    "manager": "المدير",
+    "employee": "موظف",
+    "staff": "طاقم العمل"
+  },
+  "numeric_keyboard": {
+    "mode_quantity": "وضع الكمية",
+    "mode_scan": "وضع المسح",
+    "clear": "مسح"
+  }
+}

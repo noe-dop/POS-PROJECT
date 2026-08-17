@@ -1,5 +1,6 @@
 // lib/core/utils/network_utils.dart
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 // import 'package:flutter/foundation.dart';
@@ -47,4 +48,24 @@ Future<bool> pingServer(String baseUrl) async {
   } catch (_) {
     return false;
   }
+}
+Future<bool> isNetworkError(Object e) async {
+  if (e is DioException) {
+    // Types d'erreurs réseau
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.connectionError) {
+      return true;
+    }
+    // SocketException sous-jacente
+    if (e.error is SocketException) {
+      return true;
+    }
+    // Erreur réseau sans réponse (e.response == null)
+    if (e.response == null) {
+      return true;
+    }
+  }
+  return false;
 }

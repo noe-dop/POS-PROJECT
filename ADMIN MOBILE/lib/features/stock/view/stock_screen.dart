@@ -228,7 +228,7 @@ class _StockScreenState extends State<StockScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getStockStatusColor(stock.stockStatus).withOpacity(0.1),
+                      color: _getStockStatusColor(stock.stockStatus).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(

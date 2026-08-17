@@ -1,6 +1,3 @@
-// lib/features/caisse/models/caisse_session.dart
-
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/payment_method_model.dart';
 import 'caisse_transaction.dart';
 
 class CaisseSession {
@@ -8,12 +5,15 @@ class CaisseSession {
   final int userId;
   final DateTime startTime;
   final DateTime? endTime;
-  final Map<int, int> initialCash;
-  Map<int, int>? currentCash;
+  final Map<int, int> initialCash; // Billetage initial
+  Map<int, int>? currentCash; // Billetage final (saisi lors de la clôture)
   List<CaisseTransaction> transactions;
   final String currency;
   final int? storeId;
-  final Map<int, double> _totalsByPaymentMethod = {};
+
+  // Nouvelles propriétés privées pour les totaux collectés (hors fond initial)
+  final Map<int, double> _methodTotals = {}; // méthodeId -> montant collecté
+  double _cashCollected = 0.0;
 
   CaisseSession({
     required this.id,
@@ -28,46 +28,25 @@ class CaisseSession {
     Map<int, double>? initialTotals,
   }) : transactions = transactions ?? [] {
     if (initialTotals != null) {
-      _totalsByPaymentMethod.addAll(initialTotals);
+      _methodTotals.addAll(initialTotals);
+      _cashCollected = _methodTotals[1] ?? 0.0;
     }
-    // Initialiser currentCash avec initialCash si null
-    currentCash ??= Map<int, int>.from(initialCash);
-    // Recalculer les totaux à partir des transactions existantes
-    // CORRECTION: Utiliser 'this.transactions' au lieu de 'transactions'
-    for (var transaction in this.transactions) {
-      _addTransactionTotals(transaction);
+    // Recalculer à partir des transactions existantes
+    for (var tx in this.transactions) {
+      _addTransactionTotals(tx);
     }
   }
 
-  // ============================================================================
-  // GETTERS
-  // ============================================================================
+  // ========== GETTERS PRINCIPAUX ==========
 
-  /// Solde en espèces (méthode de paiement ID = 1)
-  double get cashBalance => _totalsByPaymentMethod[1] ?? 0;
-
-  /// Totaux par méthode de paiement (lecture seule)
-  Map<int, double> get totalsByPaymentMethod =>
-      Map.unmodifiable(_totalsByPaymentMethod);
-
-  /// Total encaissé (tous moyens de paiement confondus)
-  double get totalCollected {
-    return _totalsByPaymentMethod.values.fold(0, (sum, value) => sum + value);
-  }
-
-  /// Fonds actuel de la caisse = fonds initial + encaissements en espèces
-  double get totalCurrent {
-    return totalInitial + cashBalance;
-  }
-
-  /// Montant total du fonds initial
+  /// Montant total du fond initial (billetage initial)
   double get totalInitial {
     double total = 0;
     initialCash.forEach((denom, qty) => total += denom * qty);
     return total;
   }
 
-  /// Montant total du billetage actuel
+  /// Montant total du billetage final (saisi par l'utilisateur)
   double get totalCurrentCash {
     if (currentCash == null) return 0;
     double total = 0;
@@ -75,7 +54,13 @@ class CaisseSession {
     return total;
   }
 
-  /// Total des ventes (somme de toutes les transactions)
+  /// Montant total collecté en espèces (paiements en cash uniquement)
+  double get cashCollected => _cashCollected;
+
+  /// Fond attendu en caisse = initial + espèces collectées
+  double get expectedCashBalance => totalInitial + cashCollected;
+
+  /// Chiffre d'affaires total (tous moyens de paiement)
   double get totalSales {
     double total = 0;
     for (var tx in transactions) {
@@ -87,75 +72,62 @@ class CaisseSession {
   /// Nombre de transactions
   int get transactionCount => transactions.length;
 
-  // ============================================================================
-  // MÉTHODES PUBLIQUES
-  // ============================================================================
+  /// Différence entre le fond déclaré et le fond attendu
+  double get difference => totalCurrentCash - expectedCashBalance;
 
-  /// Obtenir le total pour une méthode de paiement spécifique
+  // ========== MÉTHODES PUBLIQUES ==========
+
+  // Obtenir le montant collecté par méthode (pour l'API)
   double getTotalForPaymentMethod(int methodId) {
-    return _totalsByPaymentMethod[methodId] ?? 0;
+    double total = 0;
+    for (var tx in transactions) {
+      if (tx.paymentBreakdown.isNotEmpty) {
+        total += tx.paymentBreakdown[methodId] ?? 0;
+      } else {
+        // Fallback : si la transaction a une seule méthode, on l'attribue
+        if (tx.paymentMethod.length == 1) {
+          final id = int.tryParse(tx.paymentMethod.first) ?? 0;
+          if (id == methodId) total += tx.amount;
+        }
+      }
+    }
+    return total;
   }
 
-  /// Ajouter une transaction à la session
+  /// Ajouter une transaction (appelé lors de la création d'une vente)
   void addTransaction(CaisseTransaction transaction) {
     transactions.add(transaction);
     _addTransactionTotals(transaction);
   }
 
-  /// Mettre à jour le billetage après un paiement en espèces
+  /// Mettre à jour le billetage final après un paiement en espèces (pré‑remplissage)
   void updateCurrentCashForCashPayment(double amount) {
-    if (currentCash == null) {
-      currentCash = Map<int, int>.from(initialCash);
-    }
-
+    currentCash ??= Map<int, int>.from(initialCash);
     final breakdown = _breakdownAmount(amount);
-    final currentCashNonNull = currentCash!;
     for (var entry in breakdown.entries) {
-      final denomination = entry.key;
+      final denom = entry.key;
       final count = entry.value;
-      currentCashNonNull[denomination] = (currentCashNonNull[denomination] ?? 0) + count;
+      currentCash![denom] = (currentCash![denom] ?? 0) + count;
     }
   }
 
-  /// Mettre à jour le billetage après un rendu de monnaie
+  /// Mettre à jour le billetage final après un rendu de monnaie
   void updateCurrentCashForChange(double amount) {
-    if (currentCash == null) {
-      currentCash = Map<int, int>.from(initialCash);
-    }
-
+    currentCash ??= Map<int, int>.from(initialCash);
     final breakdown = _breakdownAmount(amount);
-    final currentCashNonNull = currentCash!;
-    
     for (var entry in breakdown.entries) {
-      final denomination = entry.key;
+      final denom = entry.key;
       final count = entry.value;
-      final currentCount = currentCashNonNull[denomination] ?? 0;
+      final currentCount = currentCash![denom] ?? 0;
       if (currentCount >= count) {
-        currentCashNonNull[denomination] = currentCount - count;
+        currentCash![denom] = currentCount - count;
       } else {
-        _handleInsufficientChange(denomination, count);
+        _handleInsufficientChange(denom, count);
       }
     }
   }
 
-  /// Obtenir le récapitulatif pour la clôture
-  Map<String, double> getClosureSummary(List<PaymentMethod> paymentMethods) {
-    final summary = <String, double>{};
-    for (var method in paymentMethods) {
-      final amount = _totalsByPaymentMethod[method.id] ?? 0;
-      if (amount > 0) {
-        summary[method.name] = amount;
-      }
-    }
-    return summary;
-  }
-
-  /// Formater une date en heure:minute
-  String formatTime(DateTime date) {
-    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
-  /// Convertir en JSON
+  /// Convertir en JSON (pour sauvegarde)
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -167,32 +139,31 @@ class CaisseSession {
       'transactions': transactions.map((t) => t.toJson()).toList(),
       'currency': currency,
       'store_id': storeId,
-      'totals_by_payment_method': _totalsByPaymentMethod.map(
+      'totals_by_payment_method': _methodTotals.map(
         (k, v) => MapEntry(k.toString(), v),
       ),
     };
   }
 
-  // ============================================================================
-  // MÉTHODES PRIVÉES
-  // ============================================================================
+  // ========== MÉTHODES PRIVÉES ==========
 
-  /// Ajouter les totaux d'une transaction au suivi des paiements
   void _addTransactionTotals(CaisseTransaction transaction) {
     if (transaction.paymentBreakdown.isNotEmpty) {
       for (var entry in transaction.paymentBreakdown.entries) {
         final methodId = entry.key;
         final amount = entry.value;
-        _totalsByPaymentMethod[methodId] =
-            (_totalsByPaymentMethod[methodId] ?? 0) + amount;
+        _methodTotals[methodId] = (_methodTotals[methodId] ?? 0) + amount;
+        if (methodId == 1) _cashCollected += amount;
       }
     } else {
-      // Fallback pour les anciennes transactions sans breakdown
+      // Fallback : on répartit le montant sur les méthodes indiquées
       for (var methodIdStr in transaction.paymentMethod) {
         final methodId = int.tryParse(methodIdStr) ?? 0;
         if (methodId > 0) {
-          _totalsByPaymentMethod[methodId] =
-              (_totalsByPaymentMethod[methodId] ?? 0) + transaction.amount;
+          // On suppose que le montant est réparti également si plusieurs méthodes
+          final share = transaction.amount / transaction.paymentMethod.length;
+          _methodTotals[methodId] = (_methodTotals[methodId] ?? 0) + share;
+          if (methodId == 1) _cashCollected += share;
         }
       }
     }
@@ -231,7 +202,7 @@ class CaisseSession {
   /// Gérer le cas où on n'a pas assez de petite monnaie
   void _handleInsufficientChange(int denomination, int neededCount) {
     if (currentCash == null) return;
-    
+
     final currentCashNonNull = currentCash!;
     final largerDenoms = [
       10000,

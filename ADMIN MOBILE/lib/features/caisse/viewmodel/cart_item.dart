@@ -1,8 +1,8 @@
-// lib/features/caisse/models/cart_item.dart
 class CartItem {
   final int storeProductId;
   final String productName;
   final double unitPrice;
+  final int storeVariantId;
   int quantity;
   final double taxRate;
   final String? sku;
@@ -14,6 +14,7 @@ class CartItem {
     required this.unitPrice,
     required this.quantity,
     required this.taxRate,
+    required this.storeVariantId,
     this.sku,
     this.imageUrl,
   });
@@ -24,6 +25,7 @@ class CartItem {
 
   Map<String, dynamic> toJson() => {
     'store_product': storeProductId,
+    'store_variant_id': storeVariantId,
     'quantity': quantity,
     'unit_price': unitPrice,
     'tax_rate': taxRate,

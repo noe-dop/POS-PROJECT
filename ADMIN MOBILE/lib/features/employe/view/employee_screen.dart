@@ -6,7 +6,7 @@ import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
 import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_model.dart';
 import 'package:nsp_pos_mobile/app/side_menu.dart';
 import 'package:nsp_pos_mobile/features/boutiques/service/boutique_service.dart';
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/currency_config.dart';
+import 'package:nsp_pos_mobile/core/config/currency_config.dart';
 import 'package:nsp_pos_mobile/features/employe/service/employe_provider.dart';
 import 'package:nsp_pos_mobile/features/employe/view/employee_form_widget.dart';
 import 'package:nsp_pos_mobile/features/employe/viewmodel/employe_model.dart';

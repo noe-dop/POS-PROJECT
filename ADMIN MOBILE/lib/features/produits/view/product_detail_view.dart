@@ -1,7 +1,7 @@
 // product_detail_view.dart
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/core/services/notifications.dart';
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/currency_config.dart';
+import 'package:nsp_pos_mobile/core/config/currency_config.dart';
 import 'package:nsp_pos_mobile/features/produits/service/product_service.dart';
 import 'package:nsp_pos_mobile/features/produits/view/product_variant_page.dart';
 import 'package:nsp_pos_mobile/features/produits/viewmodel/store_product_model.dart';
@@ -327,7 +327,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
 
   Widget _buildInventorySection() {
     final stock = widget.product.stockDetails;
-    
+
     if (stock == null) {
       return const Center(
         child: Text(
@@ -337,12 +337,12 @@ class _ProductDetailViewState extends State<ProductDetailView> {
       );
     }
     final int quantityPerPackage = stock.quantityAvailable > 0
-          ? (stock.quantityAvailable / widget.product.quantityItem).floor()
-          : 0;
+        ? (stock.quantityAvailable / widget.product.quantityItem).floor()
+        : 0;
 
     if (widget.isMobile) {
       // Calcule du nombre de produit par colis
-      
+
       return Column(
         children: [
           _buildStockCard(
@@ -701,8 +701,8 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                 NotificationService.showError(context, 'Quantité invalide');
                 return;
               }
-              Navigator.pop(ctx);
               await _updateStock(quantity, 'add', reasonController.text);
+              Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             child: const Text('Ajouter'),
@@ -831,8 +831,8 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                 );
                 return;
               }
-              Navigator.pop(ctx);
               await _updateStock(quantity, 'reserve', reasonController.text);
+              Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
             child: const Text('Réserver'),
@@ -907,11 +907,13 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   Future<void> _updateStock(int quantity, String type, String reason) async {
+    print('Widget monté: $mounted');
     if (!mounted) return;
 
     setState(() => _isUpdatingStock = true);
 
     try {
+      print('Widget monté: $mounted');
       final provider = Provider.of<ProductProvider>(context, listen: false);
 
       final response = await provider.adjustStock(
@@ -920,37 +922,63 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         type: type,
         reason: reason,
       );
-      print(response);
-      if (response['status'] == true && mounted) {
-        print('Stock mis à jour avec succès: ${response['message']}');
-        // Utiliser les données retournées par l'API pour mettre à jour le stock
+      // Logs de débogage
+      print('Réponse brute: $response');
+      print(
+        'Status: ${response['status']} (${response['status'].runtimeType})',
+      );
+      print('Widget monté: $mounted');
+
+      // Vérifier si le widget est toujours monté
+      if (!mounted) {
+        print('Widget démonté, on ignore la mise à jour');
+        return;
+      }
+
+      // Vérification robuste du statut
+      bool success = false;
+      if (response['status'] is bool) {
+        success = response['status'] as bool;
+      } else if (response['status'] is int) {
+        success = (response['status'] as int) == 1;
+      } else if (response['status'] is String) {
+        success = (response['status'] as String).toLowerCase() == 'true';
+      }
+
+      if (success) {
+        print('Succès: ${response['message']}');
+
+        // Mise à jour du stock local
         final stockData = response['stock'];
         if (stockData != null && widget.product.stockDetails != null) {
           setState(() {
             final stock = widget.product.stockDetails!;
-
-            // Mettre à jour avec les valeurs exactes du serveur
-            stock.quantityOnHand = stockData['quantity_on_hand'];
-            stock.quantityReserved = stockData['quantity_reserved'];
-            stock.quantityAvailable = stockData['quantity_available'];
-            stock.stockStatus = stockData['stock_status'];
+            stock.quantityOnHand =
+                stockData['quantity_on_hand'] as int? ?? stock.quantityOnHand;
+            stock.quantityReserved =
+                stockData['quantity_reserved'] as int? ??
+                stock.quantityReserved;
+            stock.quantityAvailable =
+                stockData['quantity_available'] as int? ??
+                stock.quantityAvailable;
+            stock.stockStatus =
+                stockData['stock_status'] as String? ?? stock.stockStatus;
           });
         }
 
-        // Afficher le message de succès
         final message =
-            response['message'] ?? _getSuccessMessage(type, quantity);
+            response['message'] as String? ??
+            _getSuccessMessage(type, quantity);
         NotificationService.showSuccess(context, message);
-      } else if (mounted) {
-        // Gérer l'erreur
+      } else {
         final errorMessage =
-            response['message'] ?? 'Erreur lors de la mise à jour du stock';
+            response['message'] as String? ??
+            'Erreur lors de la mise à jour du stock';
         NotificationService.showError(context, errorMessage);
       }
     } catch (e) {
-      if (mounted) {
-        NotificationService.showError(context, 'Erreur: ${e.toString()}');
-      }
+      if (!mounted) return;
+      NotificationService.showError(context, 'Erreur: ${e.toString()}');
     } finally {
       if (mounted) {
         setState(() => _isUpdatingStock = false);

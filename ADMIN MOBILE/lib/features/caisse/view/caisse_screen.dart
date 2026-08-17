@@ -1,5 +1,6 @@
 // lib/features/caisse/views/caisse_screen.dart
 import 'package:flutter/material.dart';
+import 'package:nsp_pos_mobile/core/services/notifications.dart';
 import 'package:nsp_pos_mobile/features/auth/service/auth_service.dart';
 import 'package:nsp_pos_mobile/features/boutiques/service/cash_register_service.dart';
 import 'package:nsp_pos_mobile/features/caisse/services/caisse_provider.dart';
@@ -7,23 +8,44 @@ import 'package:provider/provider.dart';
 import 'package:nsp_pos_mobile/app/side_menu.dart';
 
 class CaisseScreen extends StatelessWidget {
-  final List<String> userRoleCaisse;
-  const CaisseScreen({super.key, required this.userRoleCaisse});
+  const CaisseScreen({super.key});
 
-  bool _hasAccess(List<String> roles) {
-    return roles.contains('caissier') ||
-        roles.contains('gerant') ||
-        roles.contains('admin');
+  bool _hasAccess(dynamic user) {
+    if (user == null) return false;
+    if (user.isOwner == true) return true;
+    final role = user.role?.toString().toLowerCase();
+    if (role == 'admin') return true;
+    final employeeRole = user.employeeProfile?.roleName
+        ?.toString()
+        .toLowerCase();
+    return employeeRole == 'caissier' ||
+        employeeRole == 'gerant' ||
+        employeeRole == 'admin' ||
+        employeeRole == 'manager';
+  }
+
+  bool _isManagerOrOwner(dynamic user) {
+    if (user == null) return false;
+    if (user.isOwner == true) return true;
+    final employeeRole = user.employeeProfile?.roleName
+        ?.toString()
+        .toLowerCase();
+    return employeeRole == 'gerant' ||
+        employeeRole == 'admin' ||
+        employeeRole == 'manager';
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_hasAccess(userRoleCaisse)) {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final currentUser = authService.currentUser;
+    if (!_hasAccess(currentUser)) {
       return Scaffold(
         appBar: AppBar(title: const Text('Accès Refusé')),
         body: const Center(child: Text('Vous n\'avez pas accès à ce module')),
       );
     }
+    final isManagerOrOwner = _isManagerOrOwner(currentUser);
 
     return Consumer<CaisseProvider>(
       builder: (context, provider, child) {
@@ -99,8 +121,10 @@ class CaisseScreen extends StatelessWidget {
                               return;
                             }
 
-                            final storeId =
-                                authService.currentUser?.employeeProfile?.storeId;
+                            final storeId = authService
+                                .currentUser
+                                ?.employeeProfile
+                                ?.storeId;
                             if (storeId == null) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -112,7 +136,9 @@ class CaisseScreen extends StatelessWidget {
                             }
                             // Récupérer la liste des caisses
                             final cashService = CashRegisterService();
-                            await cashService.fetchAvailableCashRegisters(storeId);
+                            await cashService.fetchAvailableCashRegisters(
+                              storeId,
+                            );
                             if (cashService.availableCashRegisters.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -172,8 +198,28 @@ class CaisseScreen extends StatelessWidget {
                         title: 'Historique',
                         subtitle: 'Consulter les sessions précédentes',
                         color: Colors.purple,
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/cashbox/history',
+                            
+                          );
+                        },
                       ),
+                      if (isManagerOrOwner)
+                        _buildMenuItem(
+                          icon: Icons.lock_open,
+                          title: 'Forcer la clôture',
+                          subtitle: 'Clôturer la session en cas d\'urgence',
+                          color: Colors.red,
+                          onTap: () async {
+                            final provider = context.read<CaisseProvider>();
+                            await provider
+                                .getOpenSessions(); // charge les sessions ouvertes
+                            // Afficher une boîte de dialogue avec la liste
+                            _showForceCloseDialog(context, provider);
+                          },
+                        ),
                       _buildMenuItem(
                         icon: Icons.settings,
                         title: 'Paramètres',
@@ -224,7 +270,7 @@ class CaisseScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.1),
+          backgroundColor: color.withValues(alpha: 0.1),
           child: Icon(icon, color: color),
         ),
         title: Text(
@@ -260,9 +306,94 @@ class CaisseScreen extends StatelessWidget {
                 '/cashbox/close',
                 arguments: closedSession,
               );
-                        },
+            },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
             child: const Text('Clôturer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showForceCloseDialog(BuildContext context, CaisseProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sessions ouvertes'),
+        content: provider.openSessions.isEmpty
+            ? const Text('Aucune session ouverte')
+            : SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: provider.openSessions.length,
+                  itemBuilder: (context, index) {
+                    final session = provider.openSessions[index];
+                    return ListTile(
+                      title: Text('Session #${session['id']}'),
+                      subtitle: Text(
+                        'Caisse: ${session['cash_register_name']} - ${session['employee_name']}',
+                      ),
+                      trailing: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _confirmForceClose(context, provider, session['id']);
+                        },
+                        child: const Text('Forcer'),
+                      ),
+                    );
+                  },
+                ),
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmForceClose(
+    BuildContext context,
+    CaisseProvider provider,
+    int sessionId,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmer la clôture forcée'),
+        content: const Text('Voulez-vous vraiment fermer cette session ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context);
+              final success = await provider.forceCloseSession(
+                sessionId,
+                comment: 'Clôture forcée par manager',
+              );
+              if (success) {
+                NotificationService.showSuccess(
+                  context,
+                  'Clôture forcée de la session effectuée',
+                );
+              } else {
+                NotificationService.showError(
+                  context,
+                  provider.errorMessage ?? 'Erreur inconnue'
+                );
+              }
+            },
+            child: const Text('Oui, forcer'),
           ),
         ],
       ),

@@ -6,7 +6,11 @@ class OrderStatusModel {
   final String name;
   final Color color;
 
-  OrderStatusModel({required this.id, required this.code, required this.name, required this.color});
+  OrderStatusModel({
+    required this.id, 
+    required this.code, 
+    required this.name, 
+    required this.color});
 
   factory OrderStatusModel.fromJson(Map<String, dynamic> json) {
     final colorHex = json['color'] ?? '#000000';

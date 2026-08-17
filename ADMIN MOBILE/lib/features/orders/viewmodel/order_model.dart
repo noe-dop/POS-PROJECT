@@ -1,5 +1,6 @@
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/order_item_model.dart';
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/order_status_model.dart';
+import 'package:nsp_pos_mobile/core/utils/format_utils.dart';
+import 'package:nsp_pos_mobile/features/orders/viewmodel/order_item_model.dart';
+import 'package:nsp_pos_mobile/features/orders/viewmodel/order_status_model.dart';
 
 class OrderModel {
   final int id;
@@ -22,18 +23,29 @@ class OrderModel {
     required this.createdAt,
   });
 
-  factory OrderModel.fromJson(Map<String, dynamic> json, List<OrderStatusModel> statuses) {
+  factory OrderModel.fromJson(
+    Map<String, dynamic> json,
+    List<OrderStatusModel> statuses,
+  ) {
+
     final statusId = json['status'];
     final status = statuses.firstWhere((s) => s.id == statusId, orElse: () => statuses.first);
+
     return OrderModel(
       id: json['id'],
       number: json['order_number'] ?? 'N/A',
       customerName: json['customer_name'] ?? 'Client anonyme',
       customerPhone: json['customer_phone'] ?? '',
-      total: (json['total_amount'] as num).toDouble(),
+      total: FormatUtils.toDouble(json['total_amount'])!,
       status: status,
-      items: (json['items'] as List?)?.map((item) => OrderItemModel.fromJson(item)).toList() ?? [],
-      createdAt: DateTime.parse(json['order_date'] ?? DateTime.now().toIso8601String()),
+      items:
+          (json['items'] as List?)
+              ?.map((item) => OrderItemModel.fromJson(item))
+              .toList() ??
+          [],
+      createdAt: DateTime.parse(
+        json['order_date'] ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 }

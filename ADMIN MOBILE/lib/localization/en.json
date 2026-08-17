@@ -9,7 +9,7 @@
     "login_button": "Sign in",
     "no_account": "No account yet?",
     "register": "Register",
-    "forgot_password": "Forgot password ?",
+    "forgot_password": "Forgot password?",
     "username": "Username",
     "errors": {
       "username_required": "Please enter your username",
@@ -19,7 +19,26 @@
       "password_required": "Please enter your password",
       "password_short": "Password too short"
     },
-    "success_message": "Login successful, Welcome {name}"
+    "success_message": "Login successful",
+    "error_message": "Login failed."
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "update": "Update",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "backtolist": "Back to list",
+    "years": "Years",
+    "hours": "Hours",
+    "minutes": "Minutes",
+    "seconds": "Seconds",
+    "rating": "Rating",
+    "statistics": "Statistics"
   },
   "register": {
     "title": "Create an account",
@@ -38,6 +57,7 @@
     "register_button": "Register",
     "already_account": "Already have an account?",
     "login": "Login",
+    "generate_username": "Generate",
     "errors": {
       "surname_required": "Please enter your surname",
       "name_required": "Please enter your name",
@@ -50,24 +70,11 @@
       "password_short": "Password must be at least 6 characters",
       "phone1_required": "Please enter your primary phone number"
     },
-    "success_message": "Registration successful! Please log in."
-  },
-  "common": {
-    "cancel": "Cancel",
-    "save": "Save",
-    "delete": "Delete",
-    "edit": "Edit",
-    "search": "Search",
-    "loading": "Loading...",
-    "error": "Error",
-    "success": "Success",
-    "backtolist": "Back to list",
-    "years": "Years",
-    "hours": "Hours",
-    "minutes": "Minutes",
-    "seconds": "Seconds",
-    "rating": "Rating",
-    "statistics": "Statistics"
+    "success_message": "Registration successful! Please log in.",
+    "generic_error": "An error occurred during registration.",
+    "network_error": "Network error. Please check your connection.",
+    "email_taken_error": "This email is already registered.",
+    "username_taken_error": "This username is already taken."
   },
   "validation": {
     "incorrect_form": "Please correct the errors in the form",
@@ -80,7 +87,14 @@
     "title": "Dashboard"
   },
   "product": {
-    "title": "Products"
+    "title": "Products",
+    "statuts": {
+      "draft": "Draft"
+    }
+  },
+  "type_products": {
+    "title": "Product Types",
+    "description": "Manage the different product types available in your inventory."
   },
   "settings": {
     "title": "Settings"
@@ -111,9 +125,12 @@
     "description": "Manage your stores' information, locations, and opening hours.",
     "profiletitle": "Store Profile",
     "profiledescription": "Detailed information and store profile management.",
+    "no_store_selected": "No store selected",
+    "location": "Location",
+    "opening_hours": "Opening hours",
     "creation": {
       "boutique_name": "Boutique Name",
-      "description": "Description",
+      "slogan": "Slogan",
       "boutique_type": "Boutique Type",
       "address": "Address",
       "phone": "Phone",
@@ -127,8 +144,8 @@
       "create_boutique": "Create Boutique",
       "create_new_boutique": "Create New Boutique",
       "boutique_created_success": "Boutique created successfully",
-      "error_creating_boutique": "Error creating boutique",
-      "required_field": "This field is required",
+      "error_creating_boutique": "Error creating boutique. Please try again.",
+      "required_field": "This field is required.",
       "invalid_phone": "Invalid phone number",
       "invalid_email": "Invalid email address",
       "select_type": "Select a type",
@@ -140,9 +157,24 @@
       "enter_url": "Enter URL",
       "enter_logo_url": "Enter Logo URL",
       "logo": "Logo",
-      "map_preview": "Map Preview",
-      "cancel": "Cancel",
-      "save": "Save"
+      "map_preview": "Map Preview"
     }
+  },
+  "generate_password": "Generate password",
+  "network": {
+    "server_unreachable": "Server unreachable. Please try again later."
+  },
+  "roles": {
+    "all_roles": "All roles",
+    "admin": "Administrator",
+    "owner": "Owner",
+    "manager": "Manager",
+    "employee": "Employee",
+    "staff": "Staff"
+  },
+  "numeric_keyboard": {
+    "mode_quantity": "QUANTITY MODE",
+    "mode_scan": "SCAN MODE",
+    "clear": "CLEAR"
   }
 }

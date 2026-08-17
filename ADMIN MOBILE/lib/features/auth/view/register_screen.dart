@@ -170,16 +170,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     } on Exception catch (e) {
       // Gestion des erreurs
-      String errorMessage = 'An error occurred during registration';
-
+      String errorMessage = LocaleKeys.registerGenericError.tr();
       if (e.toString().contains('Network error')) {
-        errorMessage = 'Network error. Please check your connection';
+        errorMessage = LocaleKeys.registerNetworkError.tr();
       } else if (e.toString().contains('email already exists')) {
-        errorMessage = 'This email is already registered';
+        errorMessage = LocaleKeys.registerEmailTakenError.tr();
       } else if (e.toString().contains('username taken')) {
-        errorMessage = 'This username is already taken';
-      } else {
-        errorMessage = e.toString().replaceFirst('Exception: ', '');
+        errorMessage = LocaleKeys.registerUsernameTakenError.tr();
       }
 
       NotificationService.showError(context, errorMessage);

@@ -259,7 +259,7 @@ class _InventaireScreenState extends State<InventaireScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(inventaire.statut).withOpacity(0.1),
+                      color: _getStatusColor(inventaire.statut).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -462,7 +462,7 @@ class _InventaireScreenState extends State<InventaireScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: _getStatusColor(inventaire.statut).withOpacity(0.1),
+                                color: _getStatusColor(inventaire.statut).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -494,7 +494,7 @@ class _InventaireScreenState extends State<InventaireScreen> {
                                         width: 40,
                                         height: 40,
                                         decoration: BoxDecoration(
-                                          color: _getStatusColor(item.status).withOpacity(0.1),
+                                          color: _getStatusColor(item.status).withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(8),
                                         ),
                                         child: Icon(

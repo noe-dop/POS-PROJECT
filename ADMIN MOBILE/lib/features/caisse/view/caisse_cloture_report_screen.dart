@@ -1,19 +1,16 @@
 // lib/features/caisse/views/caisse_cloture_report_screen.dart
 import 'package:flutter/material.dart';
 import 'package:nsp_pos_mobile/app/side_menu.dart';
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/caisse_session.dart';
+import 'package:nsp_pos_mobile/features/caisse/viewmodel/caisse_session_model.dart';
 
 class CaisseClotureReportScreen extends StatelessWidget {
   final CaisseSession session;
 
-  const CaisseClotureReportScreen({
-    super.key,
-    required this.session,
-  });
+  const CaisseClotureReportScreen({super.key, required this.session});
 
   @override
   Widget build(BuildContext context) {
-    final difference = session.totalCurrent - session.totalInitial;
+    final difference = session.difference;
     final isBalanced = difference.abs() < 0.01;
 
     return Scaffold(
@@ -27,26 +24,26 @@ class CaisseClotureReportScreen extends StatelessWidget {
         child: Column(
           children: [
             // Icône de succès
-            Icon(
-              isBalanced ? Icons.check_circle : Icons.warning,
-              size: 80,
-              color: isBalanced ? Colors.green : Colors.orange,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              isBalanced ? 'Clôture réussie' : 'Clôture avec écart',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: isBalanced ? Colors.green : Colors.orange,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isBalanced ? Icons.check_circle : Icons.warning,
+                  size: 40,
+                  color: isBalanced ? Colors.green : Colors.orange,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  isBalanced ? 'Clôture réussie' : 'Clôture avec écart',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: isBalanced ? Colors.green : Colors.orange,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            Text(
-              'Session #${session.id.toString()} - ${session.formatTime(session.startTime)} à ${session.formatTime(session.endTime!)}',
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 30),
 
             // Carte principale
             Card(
@@ -57,11 +54,20 @@ class CaisseClotureReportScreen extends StatelessWidget {
                   children: [
                     const Text(
                       'RÉCAPITULATIF',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 20),
-                    _buildInfoRow('Date d\'ouverture', _formatDateTime(session.startTime)),
-                    _buildInfoRow('Date de clôture', _formatDateTime(session.endTime!)),
+                    _buildInfoRow(
+                      'Date d\'ouverture',
+                      _formatDateTime(session.startTime),
+                    ),
+                    _buildInfoRow(
+                      'Date de clôture',
+                      _formatDateTime(session.endTime!),
+                    ),
                     const Divider(height: 30),
                     _buildInfoRow(
                       'Fond initial',
@@ -69,11 +75,15 @@ class CaisseClotureReportScreen extends StatelessWidget {
                       isBold: true,
                     ),
                     _buildInfoRow(
-                      'Fond final',
-                      '${session.totalCurrent.toStringAsFixed(0)} ${session.currency}',
+                      'Fond attendu',
+                      '${session.expectedCashBalance.toStringAsFixed(0)} ${session.currency}',
                       isBold: true,
                     ),
-                    const Divider(height: 30),
+                    _buildInfoRow(
+                      'Fond déclaré',
+                      '${session.totalCurrentCash.toStringAsFixed(0)} ${session.currency}',
+                      isBold: true,
+                    ),
                     _buildInfoRow(
                       'Différence',
                       '${difference > 0 ? '+' : ''}${difference.toStringAsFixed(0)} ${session.currency}',
@@ -106,7 +116,10 @@ class CaisseClotureReportScreen extends StatelessWidget {
                   children: [
                     const Text(
                       'STATISTIQUES',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     _buildInfoRow(
@@ -132,7 +145,9 @@ class CaisseClotureReportScreen extends StatelessWidget {
                     onPressed: () {
                       // TODO: Imprimer le rapport
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Impression à implémenter')),
+                        const SnackBar(
+                          content: Text('Impression à implémenter'),
+                        ),
                       );
                     },
                     child: const Text('IMPRIMER'),
@@ -162,7 +177,9 @@ class CaisseClotureReportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {
+  Widget _buildInfoRow(
+    String label,
+    String value, {
     Color? color,
     bool isBold = false,
     double fontSize = 14,
@@ -172,7 +189,10 @@ class CaisseClotureReportScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: fontSize, color: Colors.grey[600])),
+          Text(
+            label,
+            style: TextStyle(fontSize: fontSize, color: Colors.grey[600]),
+          ),
           Text(
             value,
             style: TextStyle(

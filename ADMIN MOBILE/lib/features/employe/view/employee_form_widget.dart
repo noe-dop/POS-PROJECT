@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nsp_pos_mobile/core/utils/password_generator.dart';
 import 'package:nsp_pos_mobile/features/boutiques/viewmodel/boutique_model.dart';
-import 'package:nsp_pos_mobile/features/caisse/viewmodel/currency_config.dart';
+import 'package:nsp_pos_mobile/core/config/currency_config.dart';
 import 'package:nsp_pos_mobile/features/employe/service/employe_provider.dart';
 import 'package:nsp_pos_mobile/features/employe/viewmodel/employe_model.dart';
 import 'package:nsp_pos_mobile/localization/locale_keys.dart';

@@ -1,5 +1,17 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:nsp_pos_mobile/localization/locale_keys.dart';
 
+/// Pavé numérique réutilisable pour la saisie de code-barres et de
+/// quantité en caisse.
+///
+/// Les libellés ("MODE QUANTITÉ", "MODE SCAN", "VIDER") sont traduits via
+/// [LocaleKeys.numericKeyboardModeQuantity], [LocaleKeys.numericKeyboardModeScan]
+/// et [LocaleKeys.numericKeyboardClear]. Les chiffres eux-mêmes (0-9, '.')
+/// ne sont volontairement pas traduits/convertis : le français, l'anglais
+/// et l'arabe utilisé en Mauritanie partagent les mêmes chiffres
+/// occidentaux (0-9), contrairement aux chiffres arabo-indiens (٠١٢٣...)
+/// utilisés dans d'autres régions arabophones.
 class NumericKeyboard extends StatelessWidget {
   final Function(String) onKeyPressed;
   final VoidCallback onClear;
@@ -38,7 +50,9 @@ class NumericKeyboard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  isQuantityMode ? "MODE QUANTITÉ" : "MODE SCAN",
+                  isQuantityMode
+                      ? LocaleKeys.numericKeyboardModeQuantity.tr()
+                      : LocaleKeys.numericKeyboardModeScan.tr(),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -82,7 +96,10 @@ class NumericKeyboard extends StatelessWidget {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  child: const Text('VIDER', style: TextStyle(fontSize: 16)),
+                  child: Text(
+                    LocaleKeys.numericKeyboardClear.tr(),
+                    style: const TextStyle(fontSize: 16),
+                  ),
                 ),
               ),
             ],
@@ -92,6 +109,7 @@ class NumericKeyboard extends StatelessWidget {
     );
   }
 
+  /// Construit une touche numérique/point simple.
   Widget _buildKey(String value) {
     return ElevatedButton(
       onPressed: () => onKeyPressed(value),
@@ -109,6 +127,8 @@ class NumericKeyboard extends StatelessWidget {
     );
   }
 
+  /// Construit une touche d'action (ex. suppression du dernier caractère).
+  /// Le symbole "⌫" est universel et n'a pas besoin de traduction.
   Widget _buildActionKey(String label, VoidCallback onPressed) {
     return ElevatedButton(
       onPressed: onPressed,

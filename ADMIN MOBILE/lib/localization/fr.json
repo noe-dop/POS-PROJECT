@@ -1,4 +1,5 @@
 {
+  "sales": "Ventes",
   "logout": "Déconnexion",
   "login": {
     "title": "Connexion",
@@ -18,7 +19,7 @@
       "password_required": "Veuillez entrer votre mot de passe",
       "password_short": "Mot de passe trop court"
     },
-    "success_message": "Connexion reussie",
+    "success_message": "Connexion réussie",
     "error_message": "Échec de la connexion."
   },
   "common": {
@@ -69,7 +70,11 @@
       "password_short": "Le mot de passe doit contenir au moins 6 caractères",
       "phone1_required": "Veuillez entrer votre numéro de téléphone principal"
     },
-    "success_message": "Inscription réussie ! Veuillez vous connecter."
+    "success_message": "Inscription réussie ! Veuillez vous connecter.",
+    "generic_error": "Une erreur est survenue lors de l'inscription.",
+    "network_error": "Erreur réseau. Vérifiez votre connexion.",
+    "email_taken_error": "Cet email est déjà utilisé.",
+    "username_taken_error": "Ce nom d'utilisateur est déjà pris."
   },
   "validation": {
     "incorrect_form": "Veuillez corriger les erreurs dans le formulaire",
@@ -155,7 +160,6 @@
       "map_preview": "Aperçu de la carte"
     }
   },
-  "sales": "Ventes",
   "generate_password": "Générer un mot de passe",
   "network": {
     "server_unreachable": "Serveur inaccessible. Veuillez reessayer plus tard."
@@ -167,5 +171,10 @@
     "manager": "Gestionnaire",
     "employee": "Employé(e)",
     "staff": "Personnel"
+  },
+  "numeric_keyboard": {
+    "mode_quantity": "MODE QUANTITÉ",
+    "mode_scan": "MODE SCAN",
+    "clear": "VIDER"
   }
 }

@@ -7,7 +7,17 @@ class LocaleKeys {
 
   // Produits 
   static const productTitle = "product.title";
+  static const productStatutsDraft = "product.statuts.draft";
+
   //Store
+  static const storeTitle = "store.title";
+  static const storeDescription = "store.description";
+  static const storeProfileTitle = "store.profiletitle";
+  static const storeProfileDescription = "store.profiledescription";
+  static const storeNoStoreSelected = "store.no_store_selected";
+  static const storeLocation = "store.location";
+  static const storeOpeningHours = "store.opening_hours";
+
   static const storeCreateName = "store.creation.boutique_name";
   static const storeCreateSlogan = "store.creation.slogan";
   static const storeCreateType = "store.creation.boutique_type";
@@ -129,8 +139,12 @@ class LocaleKeys {
   static const registerPasswordShort = "register.errors.password_short";
   static const registerPhone1Required = "register.errors.phone1_required";
   
-  // Register success message
+  // Register success / error messages
   static const registerSuccessMessage = "register.success_message";
+  static const registerGenericError = "register.generic_error";
+  static const registerNetworkError = "register.network_error";
+  static const registerEmailTakenError = "register.email_taken_error";
+  static const registerUsernameTakenError = "register.username_taken_error";
 
   // Common
   static const commonCancel = "common.cancel";
@@ -161,4 +175,8 @@ class LocaleKeys {
   // Network
   static const networkServerUnreachable = "network.server_unreachable";
 
+  // Numeric keyboard (caisse)
+  static const numericKeyboardModeQuantity = "numeric_keyboard.mode_quantity";
+  static const numericKeyboardModeScan = "numeric_keyboard.mode_scan";
+  static const numericKeyboardClear = "numeric_keyboard.clear";
 }
